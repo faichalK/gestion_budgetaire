@@ -9,8 +9,8 @@ export default function KpiCard({
   label,
   value,
   sub,
-  color      = '#C9910A',
-  bgColor    = '#FDF6E3',
+  color      = 'var(--color-gold)',
+  bgColor    = 'var(--color-gold-soft)',
   trend,          // number → auto "↑ +X%" label
   trendText,      // string → custom trend label e.g. "2 nouveaux"
   trendPositive,  // bool override for color when trendText is provided
