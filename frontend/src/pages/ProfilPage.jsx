@@ -65,7 +65,7 @@ export default function ProfilPage() {
       <div
         className="rounded-[var(--radius-lg)] px-8 py-7 mb-6 flex items-center gap-[22px] text-white relative overflow-hidden"
         style={{
-          background: '#1E3A8A',
+          background: 'var(--af-ink)',
           boxShadow: '0 8px 28px rgba(15,34,64,.4)',
         }}
       >

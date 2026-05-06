@@ -69,14 +69,14 @@ export default function Securite() {
                 transition:`all .65s cubic-bezier(.16,1,.3,1) ${i*.08}s`,
                 position:'relative', overflow:'hidden',
               }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor='rgba(37,99,235,0.25)'; e.currentTarget.style.background='#FFFFFF'; e.currentTarget.style.boxShadow='0 4px 20px rgba(37,99,235,0.08)' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor='rgba(184,134,74,0.25)'; e.currentTarget.style.background='#FFFFFF'; e.currentTarget.style.boxShadow='0 4px 20px rgba(184,134,74,0.08)' }}
               onMouseLeave={e => { e.currentTarget.style.borderColor='rgba(15,23,42,0.08)'; e.currentTarget.style.background='#F8FAFC'; e.currentTarget.style.boxShadow='none' }}
             >
-              <div style={{ color:'#2563EB', marginBottom:16 }}>{item.icon}</div>
+              <div style={{ color:'var(--af-ink)', marginBottom:16 }}>{item.icon}</div>
               <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, marginBottom:10 }}>
                 <h3 style={{ fontSize:item.wide?18:15, fontWeight:600, color:'#0F172A', margin:0, letterSpacing:'-0.02em' }}>{item.title}</h3>
                 {item.badge && (
-                  <span style={{ flexShrink:0, padding:'3px 10px', borderRadius:999, background:'rgba(37,99,235,0.08)', border:'1px solid rgba(37,99,235,0.2)', color:'#2563EB', fontSize:10, fontWeight:600, letterSpacing:'.04em' }}>
+                  <span style={{ flexShrink:0, padding:'3px 10px', borderRadius:999, background:'var(--color-gold-soft)', border:'1px solid var(--color-gold-line)', color:'var(--color-gold)', fontSize:10, fontWeight:600, letterSpacing:'.04em' }}>
                     {item.badge}
                   </span>
                 )}

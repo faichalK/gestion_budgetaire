@@ -25,7 +25,7 @@ export default function LandingPage() {
       <div aria-hidden="true" style={{
         position: 'fixed', top: 0, left: 0, right: 0, height: 600,
         zIndex: 0, pointerEvents: 'none',
-        background: 'radial-gradient(ellipse 900px 400px at 50% -10%, rgba(37,99,235,0.07) 0%, transparent 70%)',
+        background: 'radial-gradient(ellipse 900px 400px at 50% -10%, rgba(184,134,74,0.06) 0%, transparent 70%)',
       }} />
 
       {/* Grid pattern */}

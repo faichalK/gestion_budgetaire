@@ -46,7 +46,7 @@ export default function ResetPasswordPage() {
 
         {/* Header — dark navy */}
         <div style={{
-          background: '#1E3A8A', padding: '20px 28px',
+          background: 'var(--af-ink)', padding: '20px 28px',
           display: 'flex', alignItems: 'center', gap: 14,
         }}>
           <div style={{
@@ -69,7 +69,7 @@ export default function ResetPasswordPage() {
         <div style={{ padding: '28px 28px 32px' }}>
           {invalidLink ? (
             <div>
-              <h2 style={{ fontWeight: 700, fontSize: 18, color: '#1E3A8A', marginBottom: 10, margin: '0 0 10px' }}>
+              <h2 style={{ fontWeight: 700, fontSize: 18, color: 'var(--af-ink)', marginBottom: 10, margin: '0 0 10px' }}>
                 Lien invalide
               </h2>
               <p style={{ fontSize: 14, color: '#57616E', lineHeight: 1.7, marginBottom: 24, margin: '0 0 24px' }}>
@@ -88,7 +88,7 @@ export default function ResetPasswordPage() {
               }}>
                 <CheckCircle2 size={28} color="#1B7C3E" strokeWidth={1.8} />
               </div>
-              <h2 style={{ fontWeight: 700, fontSize: 18, color: '#1E3A8A', marginBottom: 8, margin: '0 0 8px' }}>
+              <h2 style={{ fontWeight: 700, fontSize: 18, color: 'var(--af-ink)', marginBottom: 8, margin: '0 0 8px' }}>
                 Mot de passe mis à jour !
               </h2>
               <p style={{ fontSize: 14, color: '#57616E', lineHeight: 1.7, marginBottom: 28, margin: '0 0 28px' }}>
@@ -105,7 +105,7 @@ export default function ResetPasswordPage() {
           ) : (
             <>
               <div style={{ marginBottom: 24 }}>
-                <h2 style={{ fontWeight: 700, fontSize: 18, color: '#1E3A8A', marginBottom: 4, margin: '0 0 4px' }}>
+                <h2 style={{ fontWeight: 700, fontSize: 18, color: 'var(--af-ink)', marginBottom: 4, margin: '0 0 4px' }}>
                   Nouveau mot de passe
                 </h2>
                 <p style={{ fontSize: 13.5, color: '#8A939E', lineHeight: 1.6, margin: 0 }}>

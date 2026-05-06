@@ -49,17 +49,17 @@ const ORGS = [
     name: 'Trésor Public',
     logo: (
       <svg width="28" height="28" viewBox="0 0 48 48" fill="none" aria-hidden="true">
-        <path d="M24 4L6 14v6c0 13 7.6 22 18 26 10.4-4 18-13 18-26v-6L24 4z" stroke="#1E3A8A" strokeWidth="2.5" fill="none"/>
-        <path d="M17 24l5 5 9-9" stroke="#1E3A8A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M24 4L6 14v6c0 13 7.6 22 18 26 10.4-4 18-13 18-26v-6L24 4z" stroke="#0E2A47" strokeWidth="2.5" fill="none"/>
+        <path d="M17 24l5 5 9-9" stroke="#0E2A47" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
       </svg>
     ),
   },
 ]
 
 const METRICS = [
-  { value: 70,  suffix: '%', label: 'Gain de temps',  sub: 'Sur la consolidation financière trimestrielle', accent: '#2563EB' },
-  { value: 100, suffix: '%', label: 'Traçabilité',    sub: 'Chaque dépense liée à un projet et un validateur', accent: '#F59E0B' },
-  { value: 0,   suffix: '%', label: 'Dépassement',    sub: 'Blocage système avant engagement hors budget', accent: '#2563EB' },
+  { value: 70,  suffix: '%', label: 'Gain de temps',  sub: 'Sur la consolidation financière trimestrielle', accent: 'var(--af-ink)' },
+  { value: 100, suffix: '%', label: 'Traçabilité',    sub: 'Chaque dépense liée à un projet et un validateur', accent: 'var(--color-gold)' },
+  { value: 0,   suffix: '%', label: 'Dépassement',    sub: 'Blocage système avant engagement hors budget', accent: 'var(--color-success-600)' },
 ]
 
 function MetricItem({ value, suffix, label, sub, accent }) {
@@ -84,7 +84,7 @@ export default function Stats() {
   return (
     <>
       {/* Trust band */}
-      <section style={{ padding:'28px 24px', background:'#1E3A8A' }} aria-label="Organisations partenaires">
+      <section style={{ padding:'28px 24px', background:'var(--af-ink)' }} aria-label="Organisations partenaires">
         <div style={{ maxWidth:1100, margin:'0 auto', display:'flex', flexDirection:'column', alignItems:'center', gap:20 }}>
           <p style={{ fontSize:11, textTransform:'uppercase', letterSpacing:'.18em', color:'rgba(255,255,255,0.5)', fontWeight:600, margin:0 }}>
             Ils structurent leurs finances avec Gestion budgétaire
@@ -101,11 +101,11 @@ export default function Stats() {
       </section>
 
       {/* Metrics */}
-      <section ref={ref} style={{ padding:'80px 24px', position:'relative', overflow:'hidden', background:'#EFF6FF' }} aria-label="Chiffres clés Gestion budgétaire">
+      <section ref={ref} style={{ padding:'80px 24px', position:'relative', overflow:'hidden', background:'var(--af-night)' }} aria-label="Chiffres clés Gestion budgétaire">
         <div aria-hidden="true" style={{
           position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)',
           width:'80%', height:300,
-          background:'radial-gradient(ellipse at center, rgba(37,99,235,0.05) 0%, transparent 70%)',
+          background:'radial-gradient(ellipse at center, rgba(184,134,74,0.05) 0%, transparent 70%)',
           pointerEvents:'none',
         }} />
         <div style={{

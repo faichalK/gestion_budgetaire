@@ -59,7 +59,7 @@ function AccordionItem({ item, isOpen, onToggle, index, visible }) {
         aria-expanded={isOpen}
         aria-controls={`faq-answer-${index}`}
       >
-        <span className={`font-medium transition-colors duration-200 pr-4`} style={{ color: isOpen ? '#C9910A' : '#1E3A8A' }}>
+        <span className={`font-medium transition-colors duration-200 pr-4`} style={{ color: isOpen ? 'var(--color-gold)' : 'var(--af-ink)' }}>
           {item.question}
         </span>
         <ChevronDown

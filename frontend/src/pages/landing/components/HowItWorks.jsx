@@ -27,7 +27,7 @@ export default function HowItWorks() {
       <div style={{ maxWidth:1100, margin:'0 auto' }}>
 
         <div ref={headerRef} style={{ textAlign:'center', marginBottom:72, opacity:headerVisible?1:0, transform:headerVisible?'translateY(0)':'translateY(24px)', transition:'all .7s cubic-bezier(.16,1,.3,1)' }}>
-          <p style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.15em', color:'#2563EB', marginBottom:16 }}>Comment ça marche</p>
+          <p style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.15em', color:'var(--color-gold)', marginBottom:16 }}>Comment ça marche</p>
           <h2 id="how-it-works-title" style={{ fontSize:'clamp(1.8rem,3.5vw,3rem)', fontWeight:800, letterSpacing:'-0.04em', color:'#0F172A', marginBottom:16, lineHeight:1.15 }}>
             Simple. Rapide. Tracé.
           </h2>
@@ -42,7 +42,7 @@ export default function HowItWorks() {
             position:'absolute', top:28, left:'calc(16.67% + 28px)', right:'calc(16.67% + 28px)',
             height:1, background:'rgba(15,23,42,0.1)', zIndex:0,
           }}>
-            <div style={{ position:'absolute', top:0, left:0, height:'100%', width:'33%', background:'linear-gradient(90deg, #2563EB, rgba(37,99,235,0.2))', boxShadow:'0 0 6px rgba(37,99,235,0.3)' }} />
+            <div style={{ position:'absolute', top:0, left:0, height:'100%', width:'33%', background:'linear-gradient(90deg, var(--color-gold), rgba(184,134,74,0.2))', boxShadow:'0 0 6px rgba(184,134,74,0.3)' }} />
           </div>
 
           <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:48, position:'relative', zIndex:1 }}>
@@ -61,13 +61,13 @@ function StepCard({ step, index, visible }) {
       <div style={{
         width:56, height:56, borderRadius:'50%', marginBottom:20,
         display:'flex', alignItems:'center', justifyContent:'center',
-        background:active?'rgba(37,99,235,0.1)':'#FFFFFF',
-        border:`2px solid ${active?'#2563EB':'rgba(15,23,42,0.12)'}`,
-        color:active?'#2563EB':'#94A3B8',
-        boxShadow:active?'0 0 16px rgba(37,99,235,0.2)':'0 1px 4px rgba(15,23,42,0.08)',
+        background:active?'rgba(184,134,74,0.1)':'#FFFFFF',
+        border:`2px solid ${active?'var(--color-gold)':'rgba(15,23,42,0.12)'}`,
+        color:active?'var(--color-gold)':'#94A3B8',
+        boxShadow:active?'0 0 16px rgba(184,134,74,0.2)':'0 1px 4px rgba(15,23,42,0.08)',
         position:'relative', zIndex:1,
       }}>{icon}</div>
-      <div style={{ fontSize:10, fontWeight:700, letterSpacing:'.12em', color:active?'#2563EB':'#94A3B8', textTransform:'uppercase', marginBottom:10 }}>Étape {number}</div>
+      <div style={{ fontSize:10, fontWeight:700, letterSpacing:'.12em', color:active?'var(--color-gold)':'#94A3B8', textTransform:'uppercase', marginBottom:10 }}>Étape {number}</div>
       <h3 style={{ fontSize:17, fontWeight:700, color:'#0F172A', marginBottom:10, letterSpacing:'-0.02em' }}>{title}</h3>
       <p style={{ fontSize:13, color:'#64748B', lineHeight:1.65, margin:0, maxWidth:260 }}>{description}</p>
     </div>

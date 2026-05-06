@@ -390,19 +390,19 @@ export function printPDF(title, headers, rows, meta = {}) {
   body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11px; color: #1F2937; background: #fff; padding: 24px 28px; }
   .toolbar { display: flex; gap: 8px; justify-content: flex-end; margin-bottom: 16px; }
   .toolbar button { padding: 7px 18px; border-radius: 6px; border: none; cursor: pointer; font-size: 12px; font-weight: 600; }
-  .btn-print { background: #1E3A8A; color: #fff; border: 1px solid rgba(30,58,138,.4); }
+  .btn-print { background: #0E2A47; color: #fff; border: 1px solid rgba(30,58,138,.4); }
   .btn-close { background: #F3F4F6; color: #374151; }
-  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; padding-bottom: 14px; border-bottom: 2px solid #2563EB; }
-  .header-left h1 { font-size: 16px; font-weight: 800; color: #1E3A8A; margin-bottom: 3px; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; padding-bottom: 14px; border-bottom: 2px solid #B8864A; }
+  .header-left h1 { font-size: 16px; font-weight: 800; color: #0E2A47; margin-bottom: 3px; }
   .header-left p  { font-size: 10px; color: #6B7280; }
   .header-right   { text-align: right; font-size: 10px; color: #6B7280; }
-  .logo { font-size: 18px; font-weight: 900; color: #1E3A8A; letter-spacing: -0.5px; }
+  .logo { font-size: 18px; font-weight: 900; color: #0E2A47; letter-spacing: -0.5px; }
   .stats { display: flex; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
   .stat-box { background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 6px; padding: 8px 14px; min-width: 100px; }
-  .stat-val { font-size: 15px; font-weight: 800; color: #1E3A8A; }
+  .stat-val { font-size: 15px; font-weight: 800; color: #0E2A47; }
   .stat-lbl { font-size: 9px; color: #6B7280; text-transform: uppercase; letter-spacing: .4px; margin-top: 2px; }
   table { width: 100%; border-collapse: collapse; margin-top: 4px; }
-  thead tr { background: #1E3A8A; }
+  thead tr { background: #0E2A47; }
   thead th { color: #fff; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; padding: 7px 8px; text-align: left; white-space: nowrap; }
   tbody td { padding: 6px 8px; font-size: 10px; border-bottom: 1px solid #F3F4F6; vertical-align: top; }
   tr.alt td { background: #F9FAFB; }
@@ -482,22 +482,22 @@ export function printPDFMulti(title, sections, meta = {}) {
   body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11px; color: #1F2937; background: #fff; padding: 24px 28px; }
   .toolbar { display: flex; gap: 8px; justify-content: flex-end; margin-bottom: 16px; }
   .toolbar button { padding: 7px 18px; border-radius: 6px; border: none; cursor: pointer; font-size: 12px; font-weight: 600; }
-  .btn-print { background: #1E3A8A; color: #fff; }
+  .btn-print { background: #0E2A47; color: #fff; }
   .btn-close  { background: #F3F4F6; color: #374151; }
-  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; padding-bottom: 14px; border-bottom: 2px solid #2563EB; }
-  .header-left h1 { font-size: 16px; font-weight: 800; color: #1E3A8A; margin-bottom: 3px; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; padding-bottom: 14px; border-bottom: 2px solid #B8864A; }
+  .header-left h1 { font-size: 16px; font-weight: 800; color: #0E2A47; margin-bottom: 3px; }
   .header-left p  { font-size: 10px; color: #6B7280; }
   .header-right   { text-align: right; font-size: 10px; color: #6B7280; }
-  .logo { font-size: 18px; font-weight: 900; color: #1E3A8A; letter-spacing: -0.5px; }
+  .logo { font-size: 18px; font-weight: 900; color: #0E2A47; letter-spacing: -0.5px; }
   .stats { display: flex; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
   .stat-box { background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 6px; padding: 8px 14px; min-width: 100px; }
-  .stat-val { font-size: 15px; font-weight: 800; color: #1E3A8A; }
+  .stat-val { font-size: 15px; font-weight: 800; color: #0E2A47; }
   .stat-lbl { font-size: 9px; color: #6B7280; text-transform: uppercase; letter-spacing: .4px; margin-top: 2px; }
-  .sec-title { font-size: 12px; font-weight: 800; color: #1E3A8A; margin: 0 0 8px; padding: 6px 10px; background: #EFF6FF; border-left: 3px solid #2563EB; border-radius: 0 4px 4px 0; display: flex; align-items: center; }
+  .sec-title { font-size: 12px; font-weight: 800; color: #0E2A47; margin: 0 0 8px; padding: 6px 10px; background: #EFF6FF; border-left: 3px solid #B8864A; border-radius: 0 4px 4px 0; display: flex; align-items: center; }
   .sec-count { font-size: 10px; font-weight: 600; color: #6B7280; margin-left: 8px; }
   .sec-gap { height: 22px; }
   table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
-  thead tr { background: #1E3A8A; }
+  thead tr { background: #0E2A47; }
   thead th { color: #fff; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; padding: 7px 8px; text-align: left; white-space: nowrap; }
   tbody td { padding: 6px 8px; font-size: 10px; border-bottom: 1px solid #F3F4F6; vertical-align: top; }
   tr.alt td { background: #F9FAFB; }

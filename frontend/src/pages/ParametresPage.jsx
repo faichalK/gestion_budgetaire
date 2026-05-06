@@ -51,7 +51,7 @@ function Toggle({ checked, onChange }) {
       onClick={() => onChange(!checked)}
       style={{
         width: 44, height: 26, borderRadius: 13, border: 'none', cursor: 'pointer',
-        background: checked ? '#1E3A8A' : '#D1D5DB',
+        background: checked ? 'var(--af-ink)' : 'var(--color-gray-150)',
         position: 'relative', transition: 'background .18s', flexShrink: 0, minWidth: 44,
       }}
     >
@@ -104,16 +104,16 @@ function ChipGroup({ options, value, onChange }) {
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '6px 14px', borderRadius: 8, cursor: 'pointer',
-              border: active ? '2px solid #1E3A8A' : '1.5px solid #E5E7EB',
-              background: active ? '#EFF6FF' : '#fff',
-              color: active ? '#1E3A8A' : '#6B7280',
+              border: active ? '2px solid var(--af-ink)' : '1.5px solid #E5E7EB',
+              background: active ? 'var(--color-gold-soft)' : '#fff',
+              color: active ? 'var(--af-ink)' : '#6B7280',
               fontWeight: active ? 700 : 500, fontSize: 13,
               transition: 'all .15s', minHeight: 38,
             }}
           >
             {Icon && <Icon size={14} strokeWidth={active ? 2.5 : 1.8} />}
             {label}
-            {active && <Check size={11} strokeWidth={3} style={{ color: '#1E3A8A' }} />}
+            {active && <Check size={11} strokeWidth={3} style={{ color: 'var(--af-ink)' }} />}
           </button>
         )
       })}
@@ -126,7 +126,7 @@ function Toast({ msg, onDone }) {
   return (
     <div style={{
       position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
-      background: '#1E3A8A', color: '#fff', padding: '10px 18px',
+      background: 'var(--af-ink)', color: '#fff', padding: '10px 18px',
       borderRadius: 10, fontSize: 13, fontWeight: 600,
       boxShadow: '0 8px 24px rgba(0,0,0,.18)',
       display: 'flex', alignItems: 'center', gap: 8,
@@ -141,7 +141,7 @@ function Toast({ msg, onDone }) {
 const TAB_STYLE = (active) => ({
   padding: '8px 18px', borderRadius: 8, cursor: 'pointer',
   border: 'none', fontWeight: active ? 700 : 500, fontSize: 13,
-  background: active ? '#1E3A8A' : 'transparent',
+  background: active ? 'var(--af-ink)' : 'transparent',
   color: active ? '#fff' : '#6B7280',
   transition: 'all .15s',
   minHeight: 38,
@@ -299,7 +299,7 @@ export default function ParametresPage() {
 
       {/* ── Notifications ─────────────────────────────────────────────────── */}
       {tab === 'notifications' && (
-        <SectionCard icon={Bell} iconBg="#EFF6FF" iconColor="#1E3A8A" title={t('tab_notifications')}>
+        <SectionCard icon={Bell} iconBg="var(--color-gold-soft)" iconColor="var(--af-ink)" title={t('tab_notifications')}>
           <Row
             label={t('notif_budgets_label')}
             description={t('notif_budgets_desc')}

@@ -12,7 +12,7 @@ export default function ExerciceBudgetaire({ budgetAnnuel, detailTrimestres }) {
       {/* Exercice budgétaire */}
       {budgetAnnuel && (
         <div>
-          <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#1E3A8A', marginBottom: 14 }}>
+          <h2 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--af-ink)', marginBottom: 14 }}>
             Exercice budgétaire {budgetAnnuel.annee}
           </h2>
           <div style={{
@@ -91,7 +91,7 @@ export default function ExerciceBudgetaire({ budgetAnnuel, detailTrimestres }) {
       {/* Détail par trimestre */}
       {detailTrimestres?.length > 0 && (
         <div>
-          <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#1E3A8A', marginBottom: 14 }}>
+          <h2 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--af-ink)', marginBottom: 14 }}>
             Évolution trimestrielle
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>

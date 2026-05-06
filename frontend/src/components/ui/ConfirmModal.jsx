@@ -18,7 +18,7 @@ const VARIANTS = {
     Icon: CheckCircle2,
   },
   primary: {
-    headerBg: '#1E3A8A',
+    headerBg: 'var(--af-ink)',
     btnClass: 'btn btn-primary btn-md',
     Icon: LogOut,
   },
