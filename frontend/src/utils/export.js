@@ -398,7 +398,7 @@ export function printPDF(title, headers, rows, meta = {}) {
   .header-right   { text-align: right; font-size: 10px; color: #6B7280; }
   .logo { font-size: 18px; font-weight: 900; color: #0E2A47; letter-spacing: -0.5px; }
   .stats { display: flex; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
-  .stat-box { background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 6px; padding: 8px 14px; min-width: 100px; }
+  .stat-box { background: rgba(184,134,74,0.08); border: 1px solid rgba(184,134,74,0.25); border-radius: 6px; padding: 8px 14px; min-width: 100px; }
   .stat-val { font-size: 15px; font-weight: 800; color: #0E2A47; }
   .stat-lbl { font-size: 9px; color: #6B7280; text-transform: uppercase; letter-spacing: .4px; margin-top: 2px; }
   table { width: 100%; border-collapse: collapse; margin-top: 4px; }
@@ -490,10 +490,10 @@ export function printPDFMulti(title, sections, meta = {}) {
   .header-right   { text-align: right; font-size: 10px; color: #6B7280; }
   .logo { font-size: 18px; font-weight: 900; color: #0E2A47; letter-spacing: -0.5px; }
   .stats { display: flex; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
-  .stat-box { background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 6px; padding: 8px 14px; min-width: 100px; }
+  .stat-box { background: rgba(184,134,74,0.08); border: 1px solid rgba(184,134,74,0.25); border-radius: 6px; padding: 8px 14px; min-width: 100px; }
   .stat-val { font-size: 15px; font-weight: 800; color: #0E2A47; }
   .stat-lbl { font-size: 9px; color: #6B7280; text-transform: uppercase; letter-spacing: .4px; margin-top: 2px; }
-  .sec-title { font-size: 12px; font-weight: 800; color: #0E2A47; margin: 0 0 8px; padding: 6px 10px; background: #EFF6FF; border-left: 3px solid #B8864A; border-radius: 0 4px 4px 0; display: flex; align-items: center; }
+  .sec-title { font-size: 12px; font-weight: 800; color: #0E2A47; margin: 0 0 8px; padding: 6px 10px; background: rgba(184,134,74,0.08); border-left: 3px solid #B8864A; border-radius: 0 4px 4px 0; display: flex; align-items: center; }
   .sec-count { font-size: 10px; font-weight: 600; color: #6B7280; margin-left: 8px; }
   .sec-gap { height: 22px; }
   table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }

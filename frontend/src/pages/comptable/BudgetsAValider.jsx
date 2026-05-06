@@ -471,7 +471,7 @@ export function BudgetValidationDetail({ basePath = '/validation' }) {
                 onClick={handleCloturer}
                 disabled={saving}
                 className="inline-flex items-center gap-[7px] px-[18px] py-[9px] rounded-[9px] border-none text-white font-bold text-[13px] cursor-pointer"
-                style={{ background: 'linear-gradient(135deg, #0E2A47, #6D28D9)', boxShadow: '0 2px 10px rgba(124,58,237,.4)' }}
+                style={{ background: 'linear-gradient(135deg, #0E2A47, #163A5F)', boxShadow: '0 2px 10px rgba(14,42,71,.35)' }}
               >
                 Clôturer
               </button>
@@ -483,8 +483,8 @@ export function BudgetValidationDetail({ basePath = '/validation' }) {
       {/* Export toolbar */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 16 }}>
         {[
-          { key: 'csv', icon: <Download size={13} strokeWidth={2.2} />, label: 'CSV', bg: '#EFF6FF', bgHover: '#DBEAFE', border: '#BFDBFE', color: 'var(--af-ink)', handler: handleExportCSV },
-          { key: 'pdf', icon: <Printer  size={13} strokeWidth={2.2} />, label: 'PDF', bg: 'var(--af-ink)', bgHover: '#1e40af', border: 'var(--af-ink)', color: '#fff',    handler: handleExportPDF },
+          { key: 'csv', icon: <Download size={13} strokeWidth={2.2} />, label: 'CSV', bg: 'var(--color-gold-soft)', bgHover: 'rgba(184,134,74,0.22)', border: 'var(--color-gold-line)', color: 'var(--af-ink)', handler: handleExportCSV },
+          { key: 'pdf', icon: <Printer  size={13} strokeWidth={2.2} />, label: 'PDF', bg: 'var(--af-ink)', bgHover: '#163A5F', border: 'var(--af-ink)', color: '#fff',    handler: handleExportPDF },
         ].map(btn => (
           <div key={btn.key} style={{ position: 'relative' }}>
             <button
@@ -729,9 +729,9 @@ export function BudgetValidationDetail({ basePath = '/validation' }) {
    Section Dépenses — ConsommationLigne groupées par ligne budgétaire
 ══════════════════════════════════════════════════════════════════════════════ */
 function SectionDepenses({ depenses, lignes }) {
-  const couleur       = '#1D4ED8'
-  const couleurBg     = '#EFF6FF'
-  const couleurBorder = '#BFDBFE'
+  const couleur       = 'var(--af-ink)'
+  const couleurBg     = 'var(--color-gold-soft)'
+  const couleurBorder = 'var(--color-gold-line)'
 
   const totalDepense = depenses.reduce((s, d) => s + parseFloat(d.montant || 0), 0)
   const nbDepenses   = depenses.length

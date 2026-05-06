@@ -304,8 +304,8 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
               <div
                 onClick={() => setOpenCats(o => ({ ...o, [cat.id]: !isOpen }))}
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 24px', cursor: 'pointer', background: 'var(--color-gold-soft)', borderBottom: '1px solid rgba(184,134,74,0.15)', userSelect: 'none' }}
-                onMouseEnter={e => e.currentTarget.style.background = '#DBEAFE'}
-                onMouseLeave={e => e.currentTarget.style.background = '#EFF6FF'}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(184,134,74,0.20)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'var(--color-gold-soft)'}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   {isOpen
@@ -372,7 +372,7 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
                                   borderBottom: idx < lignesDeps.length - 1 ? '1px solid var(--color-gray-100)' : 'none',
                                   alignItems: 'center', cursor: 'pointer', transition: 'background .1s',
                                 }}
-                                onMouseEnter={e => e.currentTarget.style.background = '#EFF6FF'}
+                                onMouseEnter={e => e.currentTarget.style.background = 'var(--color-gold-soft)'}
                                 onMouseLeave={e => e.currentTarget.style.background = ''}
                               >
                                 {/* Désignation */}

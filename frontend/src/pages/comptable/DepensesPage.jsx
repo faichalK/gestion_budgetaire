@@ -337,8 +337,8 @@ function DepenseGroupDetail({ group, onClose, onRefresh }) {
           </div>
 
           {/* ── Hint clic ── */}
-          <div style={{ padding: '6px 24px', background: '#EFF6FF', borderBottom: '1px solid #DBEAFE' }}>
-            <span style={{ fontSize: '11px', color: '#1D4ED8' }}>
+          <div style={{ padding: '6px 24px', background: 'var(--color-gold-soft)', borderBottom: '1px solid var(--color-gold-line)' }}>
+            <span style={{ fontSize: '11px', color: 'var(--af-ink)' }}>
               💡 Cliquez sur une dépense pour voir son détail complet avec les pièces justificatives.
             </span>
           </div>
@@ -358,7 +358,7 @@ function DepenseGroupDetail({ group, onClose, onRefresh }) {
                     alignItems: 'center', gap: 16,
                     cursor: 'pointer', transition: 'background .12s',
                   }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#EFF6FF'}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--color-gold-soft)'}
                   onMouseLeave={e => e.currentTarget.style.background = d.statut === 'SAISIE' ? 'rgba(245,158,11,.03)' : 'transparent'}
                 >
                   {/* Info */}
