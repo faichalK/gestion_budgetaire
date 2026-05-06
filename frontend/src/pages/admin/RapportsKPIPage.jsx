@@ -50,11 +50,11 @@ export default function RapportsKPIPage() {
       {/* KPI cards */}
       <div className="kpi-grid mb-7">
         {[
-          { label: 'TOTAL BUDGETS',       value: kpis.budgets?.total ?? '—',          icon: <BarChart3 size={20} strokeWidth={1.8} />,     color: 'var(--color-primary-600)', bg: 'var(--color-primary-50)' },
+          { label: 'TOTAL BUDGETS',       value: kpis.budgets?.total ?? '—',          icon: <BarChart3 size={20} strokeWidth={1.8} />,     color: 'var(--color-gold)', bg: 'var(--color-gold-soft)' },
           { label: 'APPROUVÉS',           value: kpis.budgets?.approuves ?? '—',       icon: <CheckCircle2 size={20} strokeWidth={1.8} />,  color: 'var(--color-success-600)', bg: 'var(--color-success-50)' },
           { label: 'SOUMIS',              value: kpis.budgets?.soumis ?? '—',          icon: <Clock size={20} strokeWidth={1.8} />,         color: 'var(--color-warning-600)', bg: 'var(--color-warning-50)' },
           { label: 'REJETÉS',             value: kpis.budgets?.rejetes ?? '—',         icon: <XCircle size={20} strokeWidth={1.8} />,       color: 'var(--color-danger-600)',  bg: 'var(--color-danger-50)'  },
-          { label: 'TAUX APPROBATION',    value: kpis.taux_approbation != null ? `${kpis.taux_approbation}%` : '—', icon: <TrendingUp size={20} strokeWidth={1.8} />, color: 'var(--color-info-600)', bg: 'var(--color-info-50)' },
+          { label: 'TAUX APPROBATION',    value: kpis.taux_approbation != null ? `${kpis.taux_approbation}%` : '—', icon: <TrendingUp size={20} strokeWidth={1.8} />, color: 'var(--af-ink)', bg: 'rgba(14,42,71,0.07)' },
           { label: 'ENVELOPPES CRITIQUES',value: kpis.nb_enveloppes_critiques ?? '—', icon: <AlertTriangle size={20} strokeWidth={1.8} />, color: '#C2410C', bg: '#fff7ed' },
         ].map(({ label, value, icon, color, bg }) => (
           <div key={label} className="card flex items-center gap-[14px]">
@@ -89,8 +89,8 @@ export default function RapportsKPIPage() {
                 formatter={(v, n) => [v, n === 'montant' ? 'Montant (k FCFA)' : 'Nb budgets']}
               />
               <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Line type="monotone" dataKey="budgets" stroke="var(--color-primary-500)" strokeWidth={2} dot={{ r: 3 }} name="Budgets" />
-              <Line type="monotone" dataKey="montant" stroke="var(--color-info-500)" strokeWidth={2} dot={{ r: 3 }} name="Montant (k)" />
+              <Line type="monotone" dataKey="budgets" stroke="var(--af-ink)"    strokeWidth={2} dot={{ r: 3 }} name="Budgets" />
+              <Line type="monotone" dataKey="montant" stroke="var(--color-gold)" strokeWidth={2} dot={{ r: 3 }} name="Montant (k)" strokeDasharray="4 2" />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -109,7 +109,7 @@ export default function RapportsKPIPage() {
                 contentStyle={{ borderRadius: 9, border: '1px solid var(--color-gray-200)', fontSize: 12 }}
                 formatter={v => [`${v} k FCFA`]}
               />
-              <Bar dataKey="montant" fill="var(--color-primary-500)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="montant" fill="var(--color-gold)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

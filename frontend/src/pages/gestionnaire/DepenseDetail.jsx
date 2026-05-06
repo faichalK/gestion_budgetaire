@@ -92,7 +92,7 @@ export default function DepenseDetail({ basePath = '/mes-depenses' }) {
 
         {/* Header navy */}
         <div style={{
-          background: '#1E3A8A', padding: '20px 28px',
+          background: 'var(--af-ink)', padding: '20px 28px',
           color: '#fff', position: 'relative', overflow: 'hidden',
         }}>
           <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,.05)', pointerEvents: 'none' }} />
@@ -127,13 +127,13 @@ export default function DepenseDetail({ basePath = '/mes-depenses' }) {
             background: 'var(--color-gray-50)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
           }}>
             <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--color-gray-400)', textTransform: 'uppercase', letterSpacing: '.4px' }}>Budget</span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 700, background: 'var(--color-primary-100)', color: 'var(--color-primary-700)', padding: '2px 8px', borderRadius: 6 }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 700, background: 'rgba(184,134,74,0.15)', color: 'var(--color-gold-dark)', padding: '2px 8px', borderRadius: 6 }}>
               {depense.budget_code}
             </span>
             <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-gray-700)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {depense.budget_nom}
             </span>
-            <Link to={budgetPath} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '12px', fontWeight: 600, color: 'var(--color-primary-600)', textDecoration: 'none', flexShrink: 0 }}>
+            <Link to={budgetPath} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '12px', fontWeight: 600, color: 'var(--color-gold)', textDecoration: 'none', flexShrink: 0 }}>
               <ExternalLink size={12} strokeWidth={2} /> Voir le budget
             </Link>
           </div>
@@ -143,9 +143,9 @@ export default function DepenseDetail({ basePath = '/mes-depenses' }) {
         <div style={{
           display: 'grid', gridTemplateColumns: '1fr 160px 120px 150px',
           padding: '7px 24px', gap: 12,
-          background: 'var(--color-primary-50)', borderBottom: '1px solid var(--color-primary-100)',
+          background: 'var(--color-gold-soft)', borderBottom: '1px solid rgba(184,134,74,0.15)',
           fontSize: '10px', fontWeight: 700, textTransform: 'uppercase',
-          letterSpacing: '.4px', color: 'var(--color-primary-800)',
+          letterSpacing: '.4px', color: 'var(--color-gold-dark)',
         }}>
           <span>Désignation / Fournisseur</span>
           <span style={{ textAlign: 'right' }}>Montant</span>
@@ -178,7 +178,7 @@ export default function DepenseDetail({ basePath = '/mes-depenses' }) {
               <a
                 href={depense.piece_justificative_url}
                 target="_blank" rel="noreferrer"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 6, fontSize: '12px', fontWeight: 600, color: 'var(--color-primary-600)', textDecoration: 'none' }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 6, fontSize: '12px', fontWeight: 600, color: 'var(--color-gold)', textDecoration: 'none' }}
               >
                 <Paperclip size={11} strokeWidth={2} /> Justificatif
               </a>
@@ -244,7 +244,7 @@ export default function DepenseDetail({ basePath = '/mes-depenses' }) {
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '14px 24px',
-          background: '#1E3A8A', gap: 16,
+          background: 'var(--af-ink)', gap: 16,
         }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
             <span style={{ fontSize: '12px', fontWeight: 700, color: 'rgba(255,255,255,.6)', textTransform: 'uppercase', letterSpacing: '.5px' }}>

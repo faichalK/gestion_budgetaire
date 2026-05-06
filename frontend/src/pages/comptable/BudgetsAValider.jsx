@@ -84,7 +84,7 @@ export function BudgetsAValiderList() {
           { label: 'EN ATTENTE',  val: countFor('SOUMIS'),   color: 'var(--color-warning-600)',  border: 'var(--color-warning-600)'  },
           { label: 'APPROUVÉS',   val: countFor('APPROUVE'), color: 'var(--color-success-600)',  border: 'var(--color-success-600)'  },
           { label: 'REJETÉS',     val: countFor('REJETE'),   color: 'var(--color-danger-600)',   border: 'var(--color-danger-600)'   },
-          { label: 'TOTAL',       val: countFor(null),       color: 'var(--color-primary-600)',  border: 'var(--color-primary-500)'  },
+          { label: 'TOTAL',       val: countFor(null),       color: 'var(--color-gold)',  border: 'var(--color-gold)'  },
         ].map(k => (
           <div key={k.label} className="card" style={{ borderTop: `3px solid ${k.border}` }}>
             <div style={{ fontSize: '10px', fontWeight: 700, color: k.color, textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 8 }}>{k.label}</div>
@@ -130,64 +130,91 @@ export function BudgetsAValiderList() {
         </div>
       </div>
 
-      {visible.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-icon">
-            <CheckCircle2 size={28} strokeWidth={1.5} className="text-[var(--color-success-400)]" />
-          </div>
-          <p className="empty-title">Aucun budget</p>
-          <p className="empty-body">
-            {q ? `Aucun résultat pour « ${search} »` : 'Aucun budget pour ce filtre'}
-          </p>
-        </div>
-      ) : (
-        <div className="grid gap-3">
-          {visible.map(b => (
-            <div
-              key={b.id}
-              className="card card-hover cursor-pointer border-l-4 border-primary-500"
-              onClick={() => navigate(`/validation/${b.id}`)}
-            >
-              <div className="flex justify-between items-start gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-[6px] flex-wrap">
-                    <span className="code-tag">{b.code}</span>
-                    <StatutBadge statut={b.statut} />
-                  </div>
-                  <div className="font-display font-bold text-[15px] text-gray-900 mb-1">
-                    {b.nom}
-                  </div>
-                  <div className="text-[12px] text-[#6B7280]">
-                    {b.departement_nom} · Gestionnaire : <strong>{b.gestionnaire_nom || '—'}</strong>
-                    {b.comptable_nom && (
-                      <span style={{ marginLeft: 8 }}>
-                        · {b.statut === 'APPROUVE' ? 'Approuvé' : 'Rejeté'} par : <strong>{b.comptable_nom}</strong>
-                      </span>
-                    )}
-                  </div>
-                  {b.date_soumission && (
-                    <div className="text-[11px] text-[#9CA3AF] mt-1">
-                      Soumis le {new Date(b.date_soumission).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
-                    </div>
-                  )}
-                </div>
-                <div className="text-right shrink-0">
-                  <div className="font-mono font-bold text-[16px] text-gray-900">
-                    {fmt(b.montant_global)}
-                  </div>
-                  <div className="text-[10px] text-[#9CA3AF] mb-3">FCFA global</div>
-                  <button
-                    className="btn btn-primary btn-sm gap-[5px]"
-                    onClick={e => { e.stopPropagation(); navigate(`/validation/${b.id}`) }}
-                  >
-                    Examiner <ArrowRight size={12} strokeWidth={2.5} />
-                  </button>
-                </div>
-              </div>
+      <div className="card p-0 overflow-hidden">
+        {visible.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-icon">
+              <CheckCircle2 size={28} strokeWidth={1.5} className="text-[var(--color-success-400)]" />
             </div>
-          ))}
-        </div>
-      )}
+            <p className="empty-title">Aucun budget</p>
+            <p className="empty-body">
+              {q ? `Aucun résultat pour « ${search} »` : 'Aucun budget pour ce filtre'}
+            </p>
+          </div>
+        ) : (
+          <table className="data-table">
+            <thead>
+              <tr>
+                {['Code', 'Nom', 'Département', 'Gestionnaire', 'Soumis le', 'Montant', 'Taux', 'Statut', 'Actions'].map(h => (
+                  <th key={h}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {visible.map(b => {
+                const taux = parseFloat(b.taux_consommation || 0)
+                return (
+                  <tr
+                    key={b.id}
+                    className="cursor-pointer"
+                    onClick={() => navigate(`/validation/${b.id}`)}
+                  >
+                    <td>
+                      <span className="code-tag">{b.code}</span>
+                    </td>
+                    <td className="font-medium max-w-[200px]">
+                      <div className="overflow-hidden text-ellipsis whitespace-nowrap">{b.nom}</div>
+                      {b.comptable_nom && (
+                        <div className="text-[11px] mt-[2px]" style={{ color: b.statut === 'APPROUVE' ? 'var(--color-success-600)' : 'var(--color-danger-600)' }}>
+                          {b.statut === 'APPROUVE' ? '✓' : '✕'} {b.comptable_nom}
+                        </div>
+                      )}
+                    </td>
+                    <td className="text-[#6B7280]">{b.departement_nom || '—'}</td>
+                    <td className="text-[#6B7280]">{b.gestionnaire_nom || '—'}</td>
+                    <td className="text-[#9CA3AF] text-[12px] whitespace-nowrap">
+                      {b.date_soumission
+                        ? new Date(b.date_soumission).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
+                        : '—'}
+                    </td>
+                    <td className="font-mono font-semibold whitespace-nowrap">
+                      {fmt(b.montant_global)} <span className="text-[10px] text-[#9CA3AF]">FCFA</span>
+                    </td>
+                    <td>
+                      <div className="flex items-center gap-2">
+                        <div className="exec-bar w-[60px]">
+                          <div
+                            className="exec-bar-fill"
+                            style={{
+                              width: `${Math.min(taux, 100)}%`,
+                              background: taux > 75 ? 'var(--color-danger-600)' : taux > 50 ? 'var(--color-warning-600)' : 'var(--color-success-600)',
+                            }}
+                          />
+                        </div>
+                        <span
+                          className="text-[11px] font-bold font-mono"
+                          style={{ color: taux > 75 ? 'var(--color-danger-600)' : taux > 50 ? 'var(--color-warning-600)' : '#374151' }}
+                        >
+                          {taux}%
+                        </span>
+                      </div>
+                    </td>
+                    <td><StatutBadge statut={b.statut} /></td>
+                    <td onClick={e => e.stopPropagation()}>
+                      <button
+                        onClick={() => navigate(`/validation/${b.id}`)}
+                        className="btn btn-primary btn-sm gap-[5px]"
+                      >
+                        Examiner <ArrowRight size={12} strokeWidth={2.5} />
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   )
 }
@@ -369,14 +396,14 @@ export function BudgetValidationDetail({ basePath = '/validation' }) {
     }
   }
 
-  const tauColor = (t) => t >= 95 ? 'var(--color-danger-600)' : t >= 80 ? 'var(--color-warning-600)' : t >= 50 ? 'var(--color-success-600)' : 'var(--color-primary-600)'
+  const tauColor = (t) => t >= 95 ? 'var(--color-danger-600)' : t >= 80 ? 'var(--color-warning-600)' : t >= 50 ? 'var(--color-success-600)' : 'var(--color-gold)'
 
   return (
     <div>
       {/* Hero header */}
       <div
         className="rounded-[var(--radius-lg)] px-[30px] py-[26px] mb-6 text-white relative overflow-hidden"
-        style={{ background: '#1E3A8A' }}
+        style={{ background: 'var(--af-ink)' }}
       >
         <div className="absolute rounded-full pointer-events-none" style={{ top: -50, right: -50, width: 200, height: 200, background: 'rgba(201,168,76,.06)' }} />
         <div className="relative flex items-start gap-4">
@@ -444,7 +471,7 @@ export function BudgetValidationDetail({ basePath = '/validation' }) {
                 onClick={handleCloturer}
                 disabled={saving}
                 className="inline-flex items-center gap-[7px] px-[18px] py-[9px] rounded-[9px] border-none text-white font-bold text-[13px] cursor-pointer"
-                style={{ background: 'linear-gradient(135deg, #7C3AED, #6D28D9)', boxShadow: '0 2px 10px rgba(124,58,237,.4)' }}
+                style={{ background: 'linear-gradient(135deg, #0E2A47, #6D28D9)', boxShadow: '0 2px 10px rgba(124,58,237,.4)' }}
               >
                 Clôturer
               </button>
@@ -456,8 +483,8 @@ export function BudgetValidationDetail({ basePath = '/validation' }) {
       {/* Export toolbar */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 16 }}>
         {[
-          { key: 'csv', icon: <Download size={13} strokeWidth={2.2} />, label: 'CSV', bg: '#EFF6FF', bgHover: '#DBEAFE', border: '#BFDBFE', color: '#1E3A8A', handler: handleExportCSV },
-          { key: 'pdf', icon: <Printer  size={13} strokeWidth={2.2} />, label: 'PDF', bg: '#1E3A8A', bgHover: '#1e40af', border: '#1E3A8A', color: '#fff',    handler: handleExportPDF },
+          { key: 'csv', icon: <Download size={13} strokeWidth={2.2} />, label: 'CSV', bg: '#EFF6FF', bgHover: '#DBEAFE', border: '#BFDBFE', color: 'var(--af-ink)', handler: handleExportCSV },
+          { key: 'pdf', icon: <Printer  size={13} strokeWidth={2.2} />, label: 'PDF', bg: 'var(--af-ink)', bgHover: '#1e40af', border: 'var(--af-ink)', color: '#fff',    handler: handleExportPDF },
         ].map(btn => (
           <div key={btn.key} style={{ position: 'relative' }}>
             <button
@@ -513,7 +540,7 @@ export function BudgetValidationDetail({ basePath = '/validation' }) {
           {
             label: 'BUDGET GLOBAL', value: fmt(totalBudget), unit: 'FCFA',
             sub: 'Montant alloué total',
-            color: 'var(--color-primary-600)', bg: 'var(--color-primary-50)',
+            color: 'var(--color-gold)', bg: 'var(--color-gold-soft)',
             icon: <BarChart3 size={18} strokeWidth={1.8} />,
           },
           {
@@ -536,7 +563,7 @@ export function BudgetValidationDetail({ basePath = '/validation' }) {
             label: 'TAUX CONSOMMATION', value: `${tauxGlobal}%`, unit: '',
             sub: `${lignes.length} ligne${lignes.length !== 1 ? 's' : ''}`,
             color: tauColor(tauxGlobal),
-            bg: tauxGlobal >= 95 ? 'var(--color-danger-50)' : tauxGlobal >= 80 ? 'var(--color-warning-50)' : 'var(--color-primary-50)',
+            bg: tauxGlobal >= 95 ? 'var(--color-danger-50)' : tauxGlobal >= 80 ? 'var(--color-warning-50)' : 'var(--color-gold-soft)',
             icon: <BarChart3 size={18} strokeWidth={1.8} />,
           },
         ].map(({ label, value, unit, sub, color, bg, icon }) => (
@@ -600,7 +627,7 @@ export function BudgetValidationDetail({ basePath = '/validation' }) {
       {(budget.statut === 'SOUMIS' || budget.statut === 'APPROUVE') && (
         <div
           className="mt-6 rounded-[var(--radius-lg)] px-7 py-[22px] flex justify-between items-center flex-wrap gap-4"
-          style={{ background: '#1E3A8A' }}
+          style={{ background: 'var(--af-ink)' }}
         >
           <div>
             <div className="font-display font-bold text-white mb-1 text-[15px]">
@@ -639,7 +666,7 @@ export function BudgetValidationDetail({ basePath = '/validation' }) {
                 onClick={handleCloturer}
                 disabled={saving}
                 className="inline-flex items-center gap-[7px] px-[22px] py-[10px] rounded-[9px] border-none text-white font-bold text-[14px] cursor-pointer"
-                style={{ background: 'linear-gradient(135deg, #7C3AED, #6D28D9)', boxShadow: '0 2px 14px rgba(124,58,237,.4)' }}
+                style={{ background: 'linear-gradient(135deg, #0E2A47, #6D28D9)', boxShadow: '0 2px 14px rgba(124,58,237,.4)' }}
               >
                 Clôturer le budget
               </button>

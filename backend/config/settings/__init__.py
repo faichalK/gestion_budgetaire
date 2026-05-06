@@ -35,7 +35,7 @@ if _railway_domain:
 # Application definition
 
 INSTALLED_APPS = [
-    'simpleui',                          # ← doit précéder django.contrib.admin
+    'jazzmin',                           # ← doit précéder django.contrib.admin
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -51,39 +51,78 @@ INSTALLED_APPS = [
     'audit',
 ]
 
-# ── SimpleUI — interface d'administration ──────────────────────────────────────
-SIMPLEUI_HOME_TITLE     = 'BudgetFlow Admin'
-SIMPLEUI_HOME_INFO      = False          # masquer le bloc "about SimpleUI"
-SIMPLEUI_ANALYSIS       = False          # désactiver la télémétrie
-SIMPLEUI_DEFAULT_THEME  = 'dark.css'     # thème sombre par défaut (dark / light / element.css …)
-SIMPLEUI_LOGO           = '/gestion.jpg' # logo dans la barre latérale
+# ── Jazzmin — interface d'administration Atlas Finance ────────────────────────
+JAZZMIN_SETTINGS = {
+    "site_title":   "Atlas Finance",
+    "site_header":  "Atlas Finance",
+    "site_brand":   "AF",
+    "welcome_sign": "Administration — Atlas Finance",
+    "copyright":    "Atlas Finance · Gestion Budgétaire",
+    "user_avatar":  None,
 
-# Raccourcis rapides sur la page d'accueil de l'admin
-SIMPLEUI_HOME_QUICK = True
+    "show_sidebar":           True,
+    "navigation_expanded":    True,
+    "related_modal_active":   False,
+    "show_ui_builder":        False,
+    "use_google_fonts_cdn":   True,
+    "changeform_format":      "horizontal_tabs",
 
-# Icônes FontAwesome pour chaque section de menu
-SIMPLEUI_ICON = {
-    'Comptes'                   : 'fas fa-users',
-    'Utilisateurs'              : 'fas fa-user-tie',
-    'Départements'              : 'fas fa-building',
-    'Budget'                    : 'fas fa-wallet',
-    'Budgets annuels'           : 'fas fa-calendar-alt',
-    'Allocations départementales': 'fas fa-chart-pie',
-    'Budgets'                   : 'fas fa-file-invoice-dollar',
-    'Lignes budgétaires'        : 'fas fa-list-alt',
-    'Consommations lignes'      : 'fas fa-receipt',
-    'Audit'                     : 'fas fa-shield-alt',
-    'Logs audit'                : 'fas fa-history',
+    "custom_css": "jazzmin/css/custom.css",
+    "custom_js":  None,
+
+    "icons": {
+        "auth":                           "fas fa-users-cog",
+        "accounts":                       "fas fa-users",
+        "accounts.utilisateur":           "fas fa-user-tie",
+        "accounts.departement":           "fas fa-building",
+        "budget":                         "fas fa-wallet",
+        "budget.budgetannuel":            "fas fa-calendar-alt",
+        "budget.allocationdepartementale":"fas fa-chart-pie",
+        "budget.budget":                  "fas fa-file-invoice-dollar",
+        "budget.lignebudgetaire":         "fas fa-list-alt",
+        "budget.consommationligne":       "fas fa-receipt",
+        "audit":                          "fas fa-shield-alt",
+        "audit.logaudit":                 "fas fa-history",
+    },
+    "default_icon_parents":  "fas fa-chevron-circle-right",
+    "default_icon_children": "fas fa-circle",
+
+    "order_with_respect_to": ["accounts", "budget", "audit"],
+    "topmenu_links": [
+        {"name": "Tableau de bord", "url": "admin:index", "permissions": ["auth.view_user"]},
+    ],
 }
 
-SIMPLEUI_CONFIG = {
-    'system_keep'  : False,   # cacher les menus Django par défaut non nécessaires
-    'menu_display' : [        # ordre d'affichage des apps dans la sidebar
-        'Comptes',
-        'Budget',
-        'Audit',
-    ],
-    'dynamic'      : True,    # menus dynamiques (basés sur les permissions réelles)
+JAZZMIN_UI_TWEAKS = {
+    "navbar_small_text":       False,
+    "footer_small_text":       False,
+    "body_small_text":         False,
+    "brand_small_text":        False,
+    "brand_colour":            "navbar-dark",
+    "accent":                  "accent-warning",
+    "navbar":                  "navbar-dark",
+    "no_navbar_border":        True,
+    "navbar_fixed":            True,
+    "layout_boxed":            False,
+    "footer_fixed":            False,
+    "sidebar_fixed":           True,
+    "sidebar":                 "sidebar-dark-primary",
+    "sidebar_nav_small_text":  False,
+    "sidebar_disable_expand":  False,
+    "sidebar_nav_child_indent":True,
+    "sidebar_nav_compact_style":False,
+    "sidebar_nav_legacy_style": False,
+    "sidebar_nav_flat_style":   False,
+    "theme":                   "default",
+    "dark_mode_theme":         None,
+    "button_classes": {
+        "primary":   "btn-primary",
+        "secondary": "btn-secondary",
+        "info":      "btn-info",
+        "warning":   "btn-warning",
+        "danger":    "btn-danger",
+        "success":   "btn-success",
+    },
 }
 
 MIDDLEWARE = [

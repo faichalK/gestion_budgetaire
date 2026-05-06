@@ -51,7 +51,7 @@ export default function Footer() {
           {/* Brand */}
           <div style={{ gridColumn:'span 2', minWidth:0 }}>
             <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16 }}>
-              <div style={{ width:28, height:28, borderRadius:7, background:'linear-gradient(135deg,#2563EB,#60A5FA)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 10px rgba(37,99,235,0.3)' }}>
+              <div style={{ width:28, height:28, borderRadius:7, background:'linear-gradient(135deg, var(--color-gold), var(--color-gold-dark))', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 10px rgba(184,134,74,0.3)' }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
               </div>
               <span style={{ fontSize:16, fontWeight:700, color:'#FFFFFF', letterSpacing:'-0.03em' }}>Gestion budgétaire</span>
@@ -65,7 +65,7 @@ export default function Footer() {
                 { label:'Twitter / X', path:'M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z' },
               ].map(({ label, path }) => (
                 <a key={label} href="/" aria-label={label} style={{ width:32, height:32, borderRadius:8, background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', display:'flex', alignItems:'center', justifyContent:'center', color:'#475569', textDecoration:'none', transition:'all .15s' }}
-                  onMouseEnter={e => { e.currentTarget.style.color='#FFFFFF'; e.currentTarget.style.background='rgba(37,99,235,0.3)'; e.currentTarget.style.borderColor='rgba(37,99,235,0.4)' }}
+                  onMouseEnter={e => { e.currentTarget.style.color='#FFFFFF'; e.currentTarget.style.background='rgba(184,134,74,0.3)'; e.currentTarget.style.borderColor='rgba(184,134,74,0.4)' }}
                   onMouseLeave={e => { e.currentTarget.style.color='#475569'; e.currentTarget.style.background='rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor='rgba(255,255,255,0.1)' }}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d={path} /></svg>
@@ -82,7 +82,7 @@ export default function Footer() {
                 {col.links.map(link => (
                   <li key={link.label}>
                     <a href={link.href} style={{ fontSize:13, color:'#475569', textDecoration:'none', transition:'color .15s' }}
-                      onMouseEnter={e => { e.currentTarget.style.color='#60A5FA' }}
+                      onMouseEnter={e => { e.currentTarget.style.color='var(--color-gold)' }}
                       onMouseLeave={e => { e.currentTarget.style.color='#475569' }}
                     >{link.label}</a>
                   </li>
@@ -97,7 +97,7 @@ export default function Footer() {
           <div style={{ display:'flex', flexWrap:'wrap', gap:'4px 8px', alignItems:'center', fontSize:12, color:'#334155' }}>
             <span>© {currentYear} Gestion budgétaire. Tous droits réservés.</span>
             <span style={{ color:'#1E293B' }}>·</span>
-            <span>Développé par <span style={{ color:'#60A5FA', fontWeight:600 }}>KONATÉ Stanislas</span></span>
+            <span>Développé par <span style={{ color:'var(--color-gold-warm)', fontWeight:600 }}>KONATÉ Stanislas</span></span>
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:6 }}>
             <div style={{ width:6, height:6, borderRadius:'50%', background:'#22C55E' }} />

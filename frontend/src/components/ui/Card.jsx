@@ -138,8 +138,8 @@ Card.Stat = function CardStat({
   sub,
   trend,
   trendPositive,
-  color    = 'var(--color-primary-600)',
-  bgColor  = 'var(--color-primary-50)',
+  color    = 'var(--color-gold)',
+  bgColor  = 'var(--color-gold-soft)',
   onClick,
   className = '',
 }) {

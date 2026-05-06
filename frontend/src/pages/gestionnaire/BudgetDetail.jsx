@@ -22,9 +22,9 @@ import { formaterNombre, formaterPourcentage } from '../../utils/formatters'
 const fmt = (n) => formaterNombre(n, { maximumFractionDigits: 0 })
 
 const jaugeColor = (taux) => {
-  if (taux > 75) return '#F43F5E'
-  if (taux > 50) return '#F59E0B'
-  return '#22C55E'
+  if (taux > 75) return 'var(--color-danger-500)'
+  if (taux > 50) return 'var(--color-gold)'
+  return 'var(--color-success-600)'
 }
 
 export default function BudgetDetail({ basePath = '/mes-budgets' }) {
@@ -148,7 +148,7 @@ export default function BudgetDetail({ basePath = '/mes-budgets' }) {
 
         {/* Header navy — identique à DepenseGroupDetail */}
         <div style={{
-          background: '#1E3A8A', padding: '24px 28px 20px',
+          background: 'var(--af-ink)', padding: '24px 28px 20px',
           color: '#fff', position: 'relative', overflow: 'hidden',
         }}>
           <div style={{ position: 'absolute', top: -30, right: -30, width: 130, height: 130, borderRadius: '50%', background: 'rgba(255,255,255,.06)', pointerEvents: 'none' }} />
@@ -208,7 +208,7 @@ export default function BudgetDetail({ basePath = '/mes-budgets' }) {
         {/* Mini KPI — identique à DepenseGroupDetail */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', borderBottom: '1px solid var(--color-gray-100)' }}>
           {[
-            { label: 'Budget global',  val: fmt(montantGlobal) + ' FCFA',     color: 'var(--color-primary-700)', bg: 'var(--color-primary-50)' },
+            { label: 'Budget global',  val: fmt(montantGlobal) + ' FCFA',     color: 'var(--color-gold-dark)', bg: 'var(--color-gold-soft)' },
             { label: 'Consommé',       val: fmt(montantConsomme) + ' FCFA',   color: '#6a2fa0',                  bg: '#f5f0fd' },
             { label: 'Disponible',     val: fmt(montantDisponible) + ' FCFA', color: montantDisponible <= 0 ? 'var(--color-danger-700)' : 'var(--color-success-700)', bg: montantDisponible <= 0 ? 'var(--color-danger-50)' : 'var(--color-success-50)' },
             { label: "Taux d'exéc.",   val: formaterPourcentage(taux, { decimales: 1 }), color: jaugeColor(taux), bg: taux > 75 ? 'var(--color-danger-50)' : taux > 50 ? 'var(--color-warning-50)' : 'var(--color-success-50)' },
@@ -326,13 +326,13 @@ export default function BudgetDetail({ basePath = '/mes-budgets' }) {
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <Receipt size={16} strokeWidth={2} style={{ color: 'var(--color-primary-600)' }} />
+                <Receipt size={16} strokeWidth={2} style={{ color: 'var(--color-gold)' }} />
                 <span style={{ fontWeight: 700, fontSize: '14px', color: 'var(--color-gray-900)' }}>
                   Dépenses enregistrées
                 </span>
                 {depenses.length > 0 && (
                   <span style={{
-                    background: 'var(--color-primary-100)', color: 'var(--color-primary-700)',
+                    background: 'rgba(184,134,74,0.15)', color: 'var(--color-gold-dark)',
                     fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: 20,
                   }}>
                     {depenses.length}
@@ -390,7 +390,7 @@ export default function BudgetDetail({ basePath = '/mes-budgets' }) {
                           )}
                           {d.piece_justificative_url && (
                             <a href={d.piece_justificative_url} target="_blank" rel="noreferrer"
-                              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--color-primary-600)', fontWeight: 600, textDecoration: 'none' }}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--color-gold)', fontWeight: 600, textDecoration: 'none' }}
                               onClick={e => e.stopPropagation()}>
                               <Paperclip size={11} strokeWidth={2} /> Justificatif
                             </a>
@@ -531,7 +531,7 @@ export default function BudgetDetail({ basePath = '/mes-budgets' }) {
           <div className="modal-panel" onClick={e => e.stopPropagation()} style={{ maxWidth: 500 }}>
             <div className="modal-header">
               <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '15px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Send size={15} strokeWidth={2} style={{ color: 'var(--color-primary-600)' }} />
+                <Send size={15} strokeWidth={2} style={{ color: 'var(--color-gold)' }} />
                 Soumettre le budget
               </h2>
             </div>
@@ -629,7 +629,7 @@ export default function BudgetDetail({ basePath = '/mes-budgets' }) {
 function StatusBanner({ type, icon, children }) {
   const cfg = {
     info:    { bg: 'var(--color-gray-50)',    border: 'var(--color-gray-200)',    color: 'var(--color-gray-700)'    },
-    primary: { bg: 'var(--color-primary-50)', border: 'var(--color-primary-200)', color: 'var(--color-primary-800)' },
+    primary: { bg: 'var(--color-gold-soft)', border: 'rgba(184,134,74,0.3)', color: 'var(--color-gold-dark)' },
     success: { bg: 'var(--color-success-50)', border: 'var(--color-success-200)', color: 'var(--color-success-800)' },
     danger:  { bg: 'var(--color-danger-50)',  border: 'var(--color-danger-200)',  color: 'var(--color-danger-800)'  },
   }[type] || {}

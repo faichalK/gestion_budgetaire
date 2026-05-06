@@ -50,7 +50,7 @@ export default function ContactPage() {
   const field = (name, label, type = 'text', required = false) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       <label htmlFor={name} style={{ fontSize: 13, fontWeight: 500, color: errors[name] ? '#DC2626' : '#374151' }}>
-        {label}{required && <span style={{ color: '#2563EB', marginLeft: 3 }}>*</span>}
+        {label}{required && <span style={{ color: 'var(--color-gold)', marginLeft: 3 }}>*</span>}
       </label>
       <input
         id={name}
@@ -64,7 +64,7 @@ export default function ContactPage() {
           color: '#0F172A', outline: 'none', transition: 'border-color .15s, box-shadow .15s',
           fontFamily: "'Inter', system-ui, sans-serif",
         }}
-        onFocus={e => { if (!errors[name]) { e.target.style.borderColor = '#2563EB'; e.target.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.1)' } }}
+        onFocus={e => { if (!errors[name]) { e.target.style.borderColor = 'var(--color-gold)'; e.target.style.boxShadow = '0 0 0 3px rgba(184,134,74,0.15)' } }}
         onBlur={e => { if (!errors[name]) { e.target.style.borderColor = 'rgba(15,23,42,0.15)'; e.target.style.boxShadow = 'none' } }}
         placeholder={type === 'email' ? 'vous@organisation.org' : ''}
         aria-required={required}
@@ -90,7 +90,7 @@ export default function ContactPage() {
 
       {/* Top accent bar */}
       <div aria-hidden="true" style={{
-        height: 4, background: 'linear-gradient(90deg, #2563EB, #60A5FA, #DBEAFE)',
+        height: 4, background: 'linear-gradient(90deg, var(--color-gold), var(--color-gold-warm), rgba(184,134,74,0.3))',
       }} />
 
       <div ref={pageRef}>
@@ -105,9 +105,9 @@ export default function ContactPage() {
           <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
             <div style={{
               width: 30, height: 30, borderRadius: 8,
-              background: 'linear-gradient(135deg, #2563EB, #60A5FA)',
+              background: 'linear-gradient(135deg, var(--color-gold), var(--color-gold-dark))',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 0 10px rgba(37,99,235,0.3)',
+              boxShadow: '0 0 10px rgba(184,134,74,0.3)',
             }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
@@ -119,7 +119,7 @@ export default function ContactPage() {
             marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6,
             fontSize: 13, color: '#64748B', textDecoration: 'none', transition: 'color .15s',
           }}
-            onMouseEnter={e => { e.currentTarget.style.color = '#2563EB' }}
+            onMouseEnter={e => { e.currentTarget.style.color = 'var(--color-gold)' }}
             onMouseLeave={e => { e.currentTarget.style.color = '#64748B' }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -137,8 +137,8 @@ export default function ContactPage() {
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
               padding: '4px 14px', borderRadius: 999,
-              background: 'rgba(37,99,235,0.08)', border: '1px solid rgba(37,99,235,0.2)',
-              fontSize: 11, fontWeight: 700, color: '#2563EB', letterSpacing: '.08em',
+              background: 'var(--color-gold-soft)', border: '1px solid var(--color-gold-line)',
+              fontSize: 11, fontWeight: 700, color: 'var(--color-gold)', letterSpacing: '.08em',
               textTransform: 'uppercase', marginBottom: 20,
             }}>
               Nous contacter
@@ -159,8 +159,8 @@ export default function ContactPage() {
             <div className="c-reveal c-active" style={{
               maxWidth: 520, margin: '0 auto', textAlign: 'center',
               padding: '56px 40px', borderRadius: 20,
-              background: '#FFFFFF', border: '1px solid rgba(37,99,235,0.15)',
-              boxShadow: '0 8px 40px rgba(37,99,235,0.1)',
+              background: '#FFFFFF', border: '1px solid var(--af-line)',
+              boxShadow: '0 8px 40px rgba(15,23,42,0.08)',
             }}>
               <div style={{
                 width: 56, height: 56, borderRadius: '50%', margin: '0 auto 24px',
@@ -180,8 +180,8 @@ export default function ContactPage() {
               <Link to="/" style={{
                 display: 'inline-flex', alignItems: 'center', gap: 8,
                 padding: '11px 24px', borderRadius: 10,
-                background: '#2563EB', color: '#FFFFFF', textDecoration: 'none',
-                fontWeight: 600, fontSize: 14, boxShadow: '0 4px 16px rgba(37,99,235,0.3)',
+                background: 'var(--af-ink)', color: '#FFFFFF', textDecoration: 'none',
+                fontWeight: 600, fontSize: 14, boxShadow: '0 4px 16px rgba(14,42,71,0.25)',
               }}>
                 Retour à l'accueil
               </Link>
@@ -213,16 +213,16 @@ export default function ContactPage() {
                   }}>
                     <div style={{
                       width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-                      background: 'rgba(37,99,235,0.08)', border: '1px solid rgba(37,99,235,0.15)',
+                      background: 'var(--color-gold-soft)', border: '1px solid var(--color-gold-line)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      color: '#2563EB',
+                      color: 'var(--af-ink)',
                     }}>
                       {item.icon}
                     </div>
                     <div>
                       <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 4 }}>{item.label}</div>
                       {item.href
-                        ? <a href={item.href} style={{ fontSize: 14, color: '#2563EB', textDecoration: 'none', fontWeight: 500 }}>{item.value}</a>
+                        ? <a href={item.href} style={{ fontSize: 14, color: 'var(--color-gold)', textDecoration: 'none', fontWeight: 500 }}>{item.value}</a>
                         : <span style={{ fontSize: 14, color: '#374151', fontWeight: 500 }}>{item.value}</span>
                       }
                     </div>
@@ -239,7 +239,7 @@ export default function ContactPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {['Démo personnalisée', 'Tarification pour ONG', 'Déploiement hébergé', 'Intégration ERP / API', 'Support & Formation'].map(t => (
                       <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#475569' }}>
-                        <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#2563EB', flexShrink: 0 }} />
+                        <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--color-gold)', flexShrink: 0 }} />
                         {t}
                       </div>
                     ))}
@@ -258,7 +258,7 @@ export default function ContactPage() {
                 {/* Top accent */}
                 <div aria-hidden="true" style={{
                   position: 'absolute', top: 0, left: 0, right: 0,
-                  height: 3, background: 'linear-gradient(90deg, #2563EB, #60A5FA)',
+                  height: 3, background: 'linear-gradient(90deg, var(--color-gold), var(--color-gold-warm))',
                 }} />
 
                 <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -284,7 +284,7 @@ export default function ContactPage() {
                         appearance: 'none', WebkitAppearance: 'none',
                         transition: 'border-color .15s, box-shadow .15s',
                       }}
-                      onFocus={e => { e.target.style.borderColor = '#2563EB'; e.target.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.1)' }}
+                      onFocus={e => { e.target.style.borderColor = 'var(--color-gold)'; e.target.style.boxShadow = '0 0 0 3px rgba(184,134,74,0.15)' }}
                       onBlur={e => { e.target.style.borderColor = 'rgba(15,23,42,0.15)'; e.target.style.boxShadow = 'none' }}
                     >
                       <option value="">Sélectionnez un sujet…</option>
@@ -295,7 +295,7 @@ export default function ContactPage() {
                   {/* Textarea */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     <label htmlFor="message" style={{ fontSize: 13, fontWeight: 500, color: errors.message ? '#DC2626' : '#374151' }}>
-                      Message<span style={{ color: '#2563EB', marginLeft: 3 }}>*</span>
+                      Message<span style={{ color: 'var(--color-gold)', marginLeft: 3 }}>*</span>
                     </label>
                     <textarea
                       id="message"
@@ -310,7 +310,7 @@ export default function ContactPage() {
                         color: '#0F172A', outline: 'none', transition: 'border-color .15s, box-shadow .15s',
                         fontFamily: "'Inter', system-ui, sans-serif", lineHeight: 1.6,
                       }}
-                      onFocus={e => { if (!errors.message) { e.target.style.borderColor = '#2563EB'; e.target.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.1)' } }}
+                      onFocus={e => { if (!errors.message) { e.target.style.borderColor = 'var(--color-gold)'; e.target.style.boxShadow = '0 0 0 3px rgba(184,134,74,0.15)' } }}
                       onBlur={e => { if (!errors.message) { e.target.style.borderColor = 'rgba(15,23,42,0.15)'; e.target.style.boxShadow = 'none' } }}
                       aria-required="true"
                       aria-invalid={!!errors.message}
@@ -322,14 +322,14 @@ export default function ContactPage() {
                     type="submit"
                     style={{
                       padding: '13px 24px', borderRadius: 10, border: 'none', cursor: 'pointer',
-                      background: '#2563EB', color: '#FFFFFF',
+                      background: 'var(--af-ink)', color: '#FFFFFF',
                       fontWeight: 700, fontSize: 15, fontFamily: "'Inter', system-ui, sans-serif",
-                      boxShadow: '0 4px 16px rgba(37,99,235,0.3)',
+                      boxShadow: '0 4px 16px rgba(14,42,71,0.25)',
                       transition: 'background .15s, box-shadow .15s, transform .15s',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                     }}
-                    onMouseEnter={e => { e.currentTarget.style.background = '#1D4ED8'; e.currentTarget.style.transform = 'translateY(-1px)' }}
-                    onMouseLeave={e => { e.currentTarget.style.background = '#2563EB'; e.currentTarget.style.transform = '' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-gold-dark)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'var(--af-ink)'; e.currentTarget.style.transform = '' }}
                   >
                     Envoyer le message
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -353,7 +353,7 @@ export default function ContactPage() {
           background: '#FFFFFF',
         }}>
           <Link to="/" style={{ fontSize: 13, color: '#64748B', textDecoration: 'none', transition: 'color .15s' }}
-            onMouseEnter={e => { e.currentTarget.style.color = '#2563EB' }}
+            onMouseEnter={e => { e.currentTarget.style.color = 'var(--color-gold)' }}
             onMouseLeave={e => { e.currentTarget.style.color = '#64748B' }}
           >
             ← Retour à l'accueil

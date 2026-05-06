@@ -73,7 +73,7 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
   const budgetGlobal = parseFloat(budget?.montant_global || 0)
   const disponible = budgetGlobal - total
   const taux       = budgetGlobal > 0 ? Math.min(100, Math.round(total / budgetGlobal * 100)) : 0
-  const tauxColor  = taux >= 95 ? '#DC2626' : taux >= 80 ? '#D97706' : '#2563EB'
+  const tauxColor  = taux >= 95 ? 'var(--color-danger-500)' : taux >= 80 ? 'var(--color-gold)' : 'var(--af-ink)'
 
   const budgetPath = isAdmin
     ? `/budgets/${budgetId}`
@@ -136,7 +136,7 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
       <div className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: 20 }}>
 
         {/* ── Header navy ── */}
-        <div style={{ background: '#1E3A8A', padding: '20px 28px', color: '#fff', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ background: 'var(--af-ink)', padding: '20px 28px', color: '#fff', position: 'relative', overflow: 'hidden' }}>
           <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,.05)', pointerEvents: 'none' }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
             <div style={{ minWidth: 0 }}>
@@ -188,7 +188,7 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
         {/* ── Mini KPI strip ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', borderBottom: '1px solid var(--color-gray-100)' }}>
           {[
-            { label: 'Budget global',  val: fmt(budgetGlobal) + ' FCFA', color: 'var(--color-primary-700)', bg: 'var(--color-primary-50)' },
+            { label: 'Budget global',  val: fmt(budgetGlobal) + ' FCFA', color: 'var(--color-gold-dark)', bg: 'var(--color-gold-soft)' },
             { label: 'Total dépensé',  val: fmt(total) + ' FCFA',        color: '#6a2fa0',                  bg: '#f5f0fd' },
             { label: 'Disponible',     val: fmt(Math.max(0, disponible)) + ' FCFA', color: disponible <= 0 ? 'var(--color-danger-700)' : 'var(--color-success-700)', bg: disponible <= 0 ? 'var(--color-danger-50)' : 'var(--color-success-50)' },
             { label: "Taux d'exéc.",   val: taux + '%',                  color: tauxColor,                  bg: taux > 75 ? 'var(--color-danger-50)' : taux > 50 ? 'var(--color-warning-50)' : 'var(--color-success-50)' },
@@ -211,13 +211,13 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
         {/* ── Bande budget parent + export ── */}
         <div style={{ padding: '10px 24px', borderBottom: '1px solid var(--color-gray-100)', background: 'var(--color-gray-50)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--color-gray-400)', textTransform: 'uppercase', letterSpacing: '.4px' }}>Budget</span>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 700, background: 'var(--color-primary-100)', color: 'var(--color-primary-700)', padding: '2px 8px', borderRadius: 6 }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 700, background: 'rgba(184,134,74,0.15)', color: 'var(--color-gold-dark)', padding: '2px 8px', borderRadius: 6 }}>
             {budget?.code}
           </span>
           <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-gray-700)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {budget?.nom}
           </span>
-          <Link to={budgetPath} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '12px', fontWeight: 600, color: 'var(--color-primary-600)', textDecoration: 'none', flexShrink: 0 }}>
+          <Link to={budgetPath} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '12px', fontWeight: 600, color: 'var(--color-gold)', textDecoration: 'none', flexShrink: 0 }}>
             <ExternalLink size={12} strokeWidth={2} /> Voir le budget
           </Link>
 
@@ -303,19 +303,19 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
               {/* ── Catégorie ── */}
               <div
                 onClick={() => setOpenCats(o => ({ ...o, [cat.id]: !isOpen }))}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 24px', cursor: 'pointer', background: '#EFF6FF', borderBottom: '1px solid var(--color-primary-100)', userSelect: 'none' }}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 24px', cursor: 'pointer', background: 'var(--color-gold-soft)', borderBottom: '1px solid rgba(184,134,74,0.15)', userSelect: 'none' }}
                 onMouseEnter={e => e.currentTarget.style.background = '#DBEAFE'}
                 onMouseLeave={e => e.currentTarget.style.background = '#EFF6FF'}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   {isOpen
-                    ? <ChevronDown  size={14} strokeWidth={2.5} style={{ color: 'var(--color-primary-600)', flexShrink: 0 }} />
-                    : <ChevronRight size={14} strokeWidth={2.5} style={{ color: 'var(--color-primary-600)', flexShrink: 0 }} />
+                    ? <ChevronDown  size={14} strokeWidth={2.5} style={{ color: 'var(--color-gold)', flexShrink: 0 }} />
+                    : <ChevronRight size={14} strokeWidth={2.5} style={{ color: 'var(--color-gold)', flexShrink: 0 }} />
                   }
-                  {cat.code && <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: '13px', color: 'var(--color-primary-800)' }}>{cat.code}</span>}
-                  <span style={{ fontWeight: 700, fontSize: '13.5px', color: 'var(--color-primary-900)' }}>{cat.libelle}</span>
+                  {cat.code && <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: '13px', color: 'var(--af-ink)' }}>{cat.code}</span>}
+                  <span style={{ fontWeight: 700, fontSize: '13.5px', color: 'var(--af-ink)' }}>{cat.libelle}</span>
                 </div>
-                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: '13px', color: 'var(--color-primary-800)', whiteSpace: 'nowrap' }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: '13px', color: 'var(--af-ink)', whiteSpace: 'nowrap' }}>
                   {fmt(catTotal)} FCFA
                 </span>
               </div>
@@ -418,7 +418,7 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
           const totalAttente = enAttente.reduce((s, d) => s + parseFloat(d.montant || 0), 0)
           const piece        = depenses.find(d => d.piece_justificative_url)
           return (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 24px', background: '#1E3A8A', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 24px', background: 'var(--af-ink)', gap: 12, flexWrap: 'wrap' }}>
               <span style={{ fontSize: '12px', fontWeight: 700, color: 'rgba(255,255,255,.65)', textTransform: 'uppercase', letterSpacing: '.5px' }}>
                 Total général
               </span>

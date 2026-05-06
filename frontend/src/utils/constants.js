@@ -37,9 +37,9 @@ const STATUT_BUDGET_CONFIG = {
   },
   CLOTURE: {
     label:   'Clôturé',
-    couleur: '#7C3AED',
-    bg:      '#F5F3FF',
-    border:  '#DDD6FE',
+    couleur: '#5A6B7E',
+    bg:      'rgba(90,107,126,0.10)',
+    border:  'rgba(90,107,126,0.25)',
     icone:   'Lock',
   },
   ARCHIVE: {
@@ -86,8 +86,8 @@ const STATUT_DEPENSE_CONFIG = {
 const ROLE_CONFIG = {
   ADMINISTRATEUR: {
     label:   'Administrateur',
-    couleur: '#7C3AED',
-    bg:      '#F5F3FF',
+    couleur: '#0E2A47',
+    bg:      'rgba(14,42,71,0.08)',
     icone:   'ShieldCheck',
   },
   GESTIONNAIRE: {

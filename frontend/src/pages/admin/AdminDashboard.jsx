@@ -21,33 +21,33 @@ const fmtFull = (n) => formaterMontant(n)
 const fmtMillions = (n) => `${formaterNombre(n / 1e6, { maximumFractionDigits: 1 })}M`
 const MAX_DEPT_SLICES = 7
 const DEPT_COLORS = [
-  '#3B82F6', // bleu
-  '#10B981', // vert
-  '#F59E0B', // orange
-  '#8B5CF6', // violet
-  '#EC4899', // rose
-  '#06B6D4', // cyan
-  '#EF4444', // rouge
+  '#1E6B9E', // bleu marine
+  '#15803D', // vert forêt
+  '#B8864A', // or atlas
+  '#5A6B7E', // ardoise
+  '#C04C1A', // terra cotta
+  '#1A7A6E', // teal
+  '#9B1C1C', // bordeaux
 ]
 const DEPT_COLOR_MAP = {
-  Informatique: '#3B82F6',
-  Logistique: '#10B981',
-  'Ressources Hum': '#F59E0B',
-  'Ressources Hum.': '#F59E0B',
-  RH: '#F59E0B',
-  Finance: '#8B5CF6',
-  Comptabilite: '#3B82F6',
-  Comptabilité: '#3B82F6',
-  Administration: '#EC4899',
-  Sante: '#06B6D4',
-  Santé: '#06B6D4',
-  Education: '#10B981',
-  Éducation: '#10B981',
-  Agriculture: '#10B981',
-  Transport: '#F59E0B',
-  Justice: '#8B5CF6',
-  Securite: '#EF4444',
-  Sécurité: '#EF4444',
+  Informatique: '#1E6B9E',
+  Logistique: '#15803D',
+  'Ressources Hum': '#B8864A',
+  'Ressources Hum.': '#B8864A',
+  RH: '#B8864A',
+  Finance: '#5A6B7E',
+  Comptabilite: '#1E6B9E',
+  Comptabilité: '#1E6B9E',
+  Administration: '#C04C1A',
+  Sante: '#1A7A6E',
+  Santé: '#1A7A6E',
+  Education: '#15803D',
+  Éducation: '#15803D',
+  Agriculture: '#15803D',
+  Transport: '#B8864A',
+  Justice: '#5A6B7E',
+  Securite: '#9B1C1C',
+  Sécurité: '#9B1C1C',
 }
 const RADIAN = Math.PI / 180
 
@@ -80,25 +80,70 @@ function toTopSlicesWithOthers(entries, maxSlices = MAX_DEPT_SLICES) {
   return othersValue > 0 ? [...top, { name: 'Autres', value: othersValue }] : top
 }
 
-function renderPiePercentLabel({ cx, percent, x, y }) {
+function renderPieValueLabel({ cx, x, y, value, percent }) {
   if (!percent || percent < 0.04) return null
   return (
-    <text
-      x={x}
-      y={y}
-      textAnchor={x > cx ? 'start' : 'end'}
-      dominantBaseline="central"
-      style={{ fontSize: 11, fontWeight: 700, fill: '#111827', pointerEvents: 'none' }}
-    >
-      {`${(percent * 100).toFixed(1)}%`}
+    <text x={x} y={y} textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central"
+      style={{ fontSize: 11, fontWeight: 700, fill: '#111827', pointerEvents: 'none' }}>
+      {fmtMillions(value)}
     </text>
   )
 }
 
+function renderPieCountLabel({ cx, x, y, value, percent }) {
+  if (!percent || percent < 0.04) return null
+  return (
+    <text x={x} y={y} textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central"
+      style={{ fontSize: 11, fontWeight: 700, fill: '#111827', pointerEvents: 'none' }}>
+      {value}
+    </text>
+  )
+}
+
+function AllocationDept({ deptData }) {
+  if (!deptData?.length) return null
+  return (
+    <div className="card" style={{ padding: '20px 24px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+        <Building2 size={15} strokeWidth={2} color="var(--af-ink)" />
+        <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--color-gray-900)' }}>Allocation par département</span>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {deptData.slice(0, 8).map(dept => {
+          const pct = dept.taux
+          const barColor  = pct >= 90 ? 'var(--color-danger-500)' : 'var(--color-gold)'
+          const pctColor  = pct >= 90 ? 'var(--color-danger-500)' : 'var(--color-gold)'
+          const dotColor  = getDeptColor(dept.name)
+          const millions  = formaterNombre(dept.alloue / 1e6, { maximumFractionDigits: 0 })
+          return (
+            <div key={dept.name}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 7 }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-gray-900)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {dept.name}
+                </span>
+                <span style={{ fontSize: 12, color: 'var(--color-gray-400)', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>
+                  {millions} M FCFA
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: pctColor, flexShrink: 0, minWidth: 36, textAlign: 'right' }}>
+                  {pct}%
+                </span>
+              </div>
+              <div style={{ height: 4, background: 'var(--color-gray-100)', borderRadius: 99, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${Math.min(pct, 100)}%`, background: barColor, borderRadius: 99 }} />
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 function jaugeColor(t) {
-  if (t > 75) return '#F43F5E'
-  if (t > 50) return '#F59E0B'
-  return '#22C55E'
+  if (t > 75) return 'var(--color-danger-500)'
+  if (t > 50) return 'var(--color-gold)'
+  return 'var(--color-success-500)'
 }
 
 export default function AdminDashboard() {
@@ -219,7 +264,7 @@ export default function AdminDashboard() {
           label="Budget Total Alloué"
           value={montantAlloue >= 1e6 ? fmtMillions(montantAlloue) : `${fmt(montantAlloue)} F`}
           trendText={`Enveloppe annuelle: ${fmt(enveloppeGlobale)} F`}
-          color="#C9910A" bgColor="#FEF9EC"
+          color="#B8864A" bgColor="rgba(184,134,74,0.10)"
           sparklineData={evolutionData.map(d => d.montant)}
         />
         <KpiCard
@@ -227,7 +272,7 @@ export default function AdminDashboard() {
           label="Budget Consommé"
           value={montantConsom >= 1e6 ? fmtMillions(montantConsom) : `${fmt(montantConsom)} F`}
           trendText={`${Math.round(budgetsApprouves/Math.max(totalBudgets,1))*100}% budgets approuvés`}
-          color="#7C3AED" bgColor="#EDE9FE"
+          color="#0E2A47" bgColor="rgba(14,42,71,0.08)"
           onClick={() => navigate('/budgets')}
           sparklineData={evolutionData.map(d => d.consomme)}
         />
@@ -236,7 +281,7 @@ export default function AdminDashboard() {
           label="Budgets En Attente"
           value={budgetsSoumis}
           trendText={budgetsSoumis > 0 ? `${budgetsSoumis} à valider` : 'Aucun en attente'}
-          color="#D97706" bgColor="#FEF3C7"
+          color="#B8864A" bgColor="rgba(184,134,74,0.10)"
           onClick={() => navigate('/budgets')}
         />
         <KpiCard
@@ -244,7 +289,7 @@ export default function AdminDashboard() {
           label="Taux Réalisation"
           value={`${tauxGlobal}%`}
           trendText={`${fmt(montantConsom)} FCFA utilisés`}
-          color="#16A34A" bgColor="#DCFCE7"
+          color="#15803D" bgColor="rgba(21,128,61,0.10)"
           sparklineData={evolutionData.map(d => d.budgets)}
         />
         <KpiCard
@@ -252,7 +297,7 @@ export default function AdminDashboard() {
           label="Utilisateurs"
           value={users.length}
           trendText={`${users.filter(u=>u.role==='GESTIONNAIRE').length} gestionnaires`}
-          color="#7C3AED" bgColor="#F5F3FF"
+          color="#0E2A47" bgColor="rgba(14,42,71,0.08)"
           onClick={() => navigate('/utilisateurs')}
         />
       </div>
@@ -262,7 +307,7 @@ export default function AdminDashboard() {
         {/* 1. Budgets par département */}
         <div className="card" style={{ padding:'20px 24px' }}>
           <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:18 }}>
-            <Building2 size={15} strokeWidth={2} color="var(--color-primary-600)" />
+            <Building2 size={15} strokeWidth={2} color="var(--af-ink)" />
             <span style={{ fontWeight:700, fontSize:14, color:'var(--color-gray-900)' }}>Budgets par département</span>
           </div>
           {deptData.length === 0 ? (
@@ -282,7 +327,7 @@ export default function AdminDashboard() {
                   outerRadius={75}
                   innerRadius={42}
                   paddingAngle={2}
-                  label={renderPiePercentLabel}
+                  label={renderPieValueLabel}
                   labelLine={{ stroke: '#9CA3AF', strokeWidth: 1 }}
                 >
                   {budgetPieData.map((entry, index) => (
@@ -327,7 +372,7 @@ export default function AdminDashboard() {
                   outerRadius={75}
                   innerRadius={42}
                   paddingAngle={2}
-                  label={renderPiePercentLabel}
+                  label={renderPieValueLabel}
                   labelLine={{ stroke: '#9CA3AF', strokeWidth: 1 }}
                 >
                   {depensePieData.map((entry, index) => (
@@ -372,7 +417,7 @@ export default function AdminDashboard() {
                   outerRadius={75}
                   innerRadius={42}
                   paddingAngle={2}
-                  label={renderPiePercentLabel}
+                  label={renderPieCountLabel}
                   labelLine={{ stroke: '#9CA3AF', strokeWidth: 1 }}
                 >
                   {countPieData.map((entry, index) => (
@@ -395,10 +440,15 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      {/* ── Allocation par département ───────────────────────────────────── */}
+      <div style={{ marginBottom: 24 }}>
+        <AllocationDept deptData={deptData} />
+      </div>
+
       {/* ── Évolution mensuelle ───────────────────────────────────────────── */}
       <div className="card" style={{ padding:'20px 24px', marginBottom:24 }}>
         <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:18 }}>
-          <TrendingUp size={15} strokeWidth={2} color="var(--color-primary-600)" />
+          <TrendingUp size={15} strokeWidth={2} color="var(--color-gold)" />
           <span style={{ fontWeight:700, fontSize:14, color:'var(--color-gray-900)' }}>Évolution budgétaire — 6 derniers mois</span>
           <span style={{ fontSize:11, color:'var(--color-gray-400)', marginLeft:4 }}>(montants en millions FCFA)</span>
         </div>
@@ -418,8 +468,8 @@ export default function AdminDashboard() {
                 contentStyle={{ fontSize:11, borderRadius:8, border:'1px solid var(--color-gray-150)', boxShadow:'var(--shadow-md)' }}
               />
               <Legend iconSize={7} iconType="circle" formatter={v => <span style={{ fontSize:11, color:'var(--color-gray-500)' }}>{v === 'montant' ? 'Alloué (M)' : v === 'consomme' ? 'Consommé (M)' : 'Nb budgets'}</span>} />
-              <Line type="monotone" dataKey="montant"  stroke="#6366F1" strokeWidth={2} dot={{ r:3 }} activeDot={{ r:5 }} />
-              <Line type="monotone" dataKey="consomme" stroke="#22C55E" strokeWidth={2} dot={{ r:3 }} activeDot={{ r:5 }} strokeDasharray="4 2" />
+              <Line type="monotone" dataKey="montant"  stroke="var(--af-ink)"            strokeWidth={2} dot={{ r:3 }} activeDot={{ r:5 }} />
+              <Line type="monotone" dataKey="consomme" stroke="var(--color-gold)"         strokeWidth={2} dot={{ r:3 }} activeDot={{ r:5 }} strokeDasharray="4 2" />
             </LineChart>
           </ResponsiveContainer>
         )}
@@ -430,16 +480,16 @@ export default function AdminDashboard() {
         <div className="card" style={{ overflow: 'hidden', padding: 0 }}>
           {/* Header */}
           <div style={{
-            padding: '16px 22px', background: '#F8FAFF', borderBottom: '1px solid #E5E7EB',
+            padding: '16px 22px', background: 'var(--af-night)', borderBottom: '1px solid var(--af-line)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{
                 width: 38, height: 38, borderRadius: 10, flexShrink: 0,
-                background: 'var(--color-primary-50)',
+                background: 'var(--color-gold-soft)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <Sparkles size={18} strokeWidth={2} style={{ color: 'var(--color-primary-600)' }} />
+                <Sparkles size={18} strokeWidth={2} style={{ color: 'var(--color-gold)' }} />
               </div>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -482,7 +532,7 @@ export default function AdminDashboard() {
               },
               {
                 icon: <TrendingUp size={19} strokeWidth={1.8} />,
-                iconBg: 'var(--color-primary-50)', iconColor: 'var(--color-primary-600)',
+                iconBg: 'var(--color-gold-soft)', iconColor: 'var(--color-gold)',
                 title: 'Prédictions',
                 desc: 'Projections de consommation et recommandations IA',
                 action: () => navigate('/ia'),
@@ -491,7 +541,7 @@ export default function AdminDashboard() {
               },
               {
                 icon: <MessageSquare size={19} strokeWidth={1.8} />,
-                iconBg: 'var(--color-info-50)', iconColor: 'var(--color-info-600)',
+                iconBg: 'rgba(14,42,71,0.07)', iconColor: 'var(--af-ink)',
                 title: 'Assistant IA',
                 desc: 'Posez vos questions budgétaires à Claude',
                 action: () => window.dispatchEvent(new Event('open-chatbot')),
@@ -508,7 +558,7 @@ export default function AdminDashboard() {
                   cursor: 'pointer', transition: 'background .15s',
                   display: 'flex', flexDirection: 'column', gap: 10,
                 }}
-                onMouseEnter={e => e.currentTarget.style.background = '#F8FAFF'}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--color-gold-soft)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -537,7 +587,7 @@ export default function AdminDashboard() {
                   {item.desc}
                 </p>
                 <span style={{
-                  fontSize: '12px', fontWeight: 600, color: 'var(--color-primary-600)',
+                  fontSize: '12px', fontWeight: 600, color: 'var(--color-gold)',
                   display: 'flex', alignItems: 'center', gap: 5,
                 }}>
                   {item.label} <ArrowRight size={11} strokeWidth={2.5} />
@@ -558,8 +608,8 @@ export default function AdminDashboard() {
             background:'var(--color-gray-25)',
           }}>
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-              <div style={{ width:28, height:28, borderRadius:8, background:'#F5F3FF', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                <Clock size={14} strokeWidth={2} color="#7C3AED" />
+              <div style={{ width:28, height:28, borderRadius:8, background:'rgba(14,42,71,0.07)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                <Clock size={14} strokeWidth={2} color="var(--af-ink)" />
               </div>
               <div>
                 <div style={{ fontWeight:700, fontSize:13, color:'var(--color-gray-900)' }}>En attente de validation</div>
@@ -585,7 +635,7 @@ export default function AdminDashboard() {
                   cursor:'pointer', transition:'background .1s',
                   display:'flex', justifyContent:'space-between', alignItems:'center', gap:12,
                 }}
-                onMouseEnter={e=>e.currentTarget.style.background='#FAFAFF'}
+                onMouseEnter={e=>e.currentTarget.style.background='var(--color-gold-soft)'}
                 onMouseLeave={e=>e.currentTarget.style.background='transparent'}
               >
                 <div style={{ minWidth:0, flex:1 }}>
@@ -673,7 +723,7 @@ export default function AdminDashboard() {
           background:'var(--color-gray-25)',
         }}>
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <Wallet size={15} strokeWidth={2} color="var(--color-primary-600)" />
+            <Wallet size={15} strokeWidth={2} color="var(--color-gold)" />
             <span style={{ fontWeight:700, fontSize:14, color:'var(--color-gray-900)' }}>Tous les budgets</span>
             <span style={{ fontSize:12, color:'var(--color-gray-400)', fontFamily:'var(--font-mono)' }}>
               ({totalBudgets})

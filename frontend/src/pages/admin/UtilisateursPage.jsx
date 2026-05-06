@@ -25,7 +25,7 @@ function TabBtn({ label, icon, count, active, onClick }) {
         borderBottom: active ? '2px solid #C9910A' : '2px solid transparent',
         cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
         fontSize: 13, fontWeight: active ? 700 : 500,
-        color: active ? '#1E3A8A' : '#6B7280',
+        color: active ? 'var(--af-ink)' : 'var(--af-cream)',
         transition: 'all .15s',
       }}
     >
@@ -267,7 +267,7 @@ export default function UtilisateursPage() {
                 className="w-11 h-11 rounded-full shrink-0 flex items-center justify-center text-white font-bold text-[16px]"
                 style={{
                   background: u.actif
-                    ? 'linear-gradient(135deg, var(--color-primary-400), var(--color-primary-700))'
+                    ? 'linear-gradient(135deg, var(--color-gold), var(--color-gold-dark))'
                     : 'var(--color-gray-300)',
                 }}
               >
@@ -433,7 +433,7 @@ export default function UtilisateursPage() {
           <div className="modal-panel" style={{ maxWidth: 720, width: '95vw' }} onClick={e => e.stopPropagation()}>
 
             {/* Header */}
-            <div className="modal-header" style={{ background: '#1E3A8A', borderBottom: 'none' }}>
+            <div className="modal-header" style={{ background: 'var(--af-ink)', borderBottom: 'none' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: 'linear-gradient(135deg, #C9910A, #C9910A)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 15, flexShrink: 0 }}>
                   {(targetUser.prenom?.[0] || '?').toUpperCase()}

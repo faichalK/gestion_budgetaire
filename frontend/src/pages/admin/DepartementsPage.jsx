@@ -122,7 +122,7 @@ export default function DepartementsPage() {
                 key={dept.id}
                 className="card"
                 style={{
-                  borderTop: `3px solid ${dept.actif ? 'var(--color-primary-500)' : 'var(--color-gray-300)'}`,
+                  borderTop: `3px solid ${dept.actif ? 'var(--color-gold)' : 'var(--color-gray-300)'}`,
                   opacity: dept.actif ? 1 : 0.65,
                 }}
               >
@@ -131,8 +131,8 @@ export default function DepartementsPage() {
                   <div
                     className="w-11 h-11 rounded-[11px] shrink-0 flex items-center justify-center"
                     style={{
-                      background: dept.actif ? 'var(--color-primary-50)' : 'var(--color-gray-100)',
-                      color: dept.actif ? 'var(--color-primary-600)' : 'var(--color-gray-400)',
+                      background: dept.actif ? 'var(--color-gold-soft)' : 'var(--color-gray-100)',
+                      color: dept.actif ? 'var(--color-gold)' : 'var(--color-gray-400)',
                     }}
                   >
                     <Building2 size={20} strokeWidth={1.8} />

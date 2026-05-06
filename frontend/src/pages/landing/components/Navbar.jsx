@@ -48,8 +48,8 @@ export default function Navbar() {
           box-shadow: 0 1px 20px rgba(15,23,42,0.08);
           border-bottom-color: rgba(15,23,42,0.1);
         }
-        .nav-link:hover { color: #2563EB !important; background: rgba(37,99,235,0.06) !important; }
-        .nav-cta:hover  { background: #1D4ED8 !important; }
+        .nav-link:hover { color: var(--color-gold) !important; background: var(--color-gold-soft) !important; }
+        .nav-cta:hover  { background: var(--color-gold-dark) !important; }
       `}</style>
 
       <nav className={`nav-bar${scrolled ? ' scrolled' : ''}`} role="navigation" aria-label="Navigation principale"
@@ -60,9 +60,9 @@ export default function Navbar() {
           <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', flexShrink: 0 }} aria-label="Gestion budgétaire — Accueil">
             <div style={{
               width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-              background: 'linear-gradient(135deg, #2563EB, #60A5FA)',
+              background: 'linear-gradient(135deg, var(--color-gold), var(--color-gold-dark))',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 2px 12px rgba(37,99,235,0.3)',
+              boxShadow: '0 2px 12px rgba(184,134,74,0.3)',
             }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
@@ -95,15 +95,15 @@ export default function Navbar() {
               <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                 <a href="/login"
                   style={{ fontSize: 14, fontWeight: 500, color: '#475569', textDecoration: 'none', padding: '8px 4px', transition: 'color .15s' }}
-                  onMouseEnter={e => { e.currentTarget.style.color = '#2563EB' }}
+                  onMouseEnter={e => { e.currentTarget.style.color = 'var(--color-gold)' }}
                   onMouseLeave={e => { e.currentTarget.style.color = '#475569' }}
                 >Connexion</a>
                 <a href="/login" className="nav-cta"
                   style={{
                     fontSize: 14, fontWeight: 600, color: '#FFFFFF', textDecoration: 'none',
                     padding: '8px 20px', borderRadius: 8,
-                    background: '#2563EB',
-                    boxShadow: '0 2px 12px rgba(37,99,235,0.25)',
+                    background: 'var(--af-ink)',
+                    boxShadow: '0 2px 12px rgba(184,134,74,0.25)',
                     transition: 'background .15s',
                   }}
                 >Démarrer</a>
@@ -149,7 +149,7 @@ export default function Navbar() {
           <a href="/login" style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             padding: '12px 24px', borderRadius: 10,
-            background: '#2563EB', color: '#FFFFFF', textDecoration: 'none',
+            background: 'var(--af-ink)', color: '#FFFFFF', textDecoration: 'none',
             fontWeight: 600, fontSize: 15,
           }}>Démarrer</a>
         </div>

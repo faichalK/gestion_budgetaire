@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 
 const TRUST_BADGES = [
-  { label: 'BROUILLON', bg: 'rgba(37,99,235,0.1)',  color: '#2563EB', dot: '#2563EB' },
+  { label: 'BROUILLON', bg: 'rgba(14,42,71,0.1)',  color: '#0E2A47', dot: '#0E2A47' },
   { label: 'SOUMIS',    bg: 'rgba(245,158,11,0.1)', color: '#D97706', dot: '#F59E0B' },
   { label: 'APPROUVÉ',  bg: 'rgba(22,163,74,0.1)',  color: '#16A34A', dot: '#22C55E' },
   { label: 'REJETÉ',    bg: 'rgba(220,38,38,0.1)',  color: '#DC2626', dot: '#EF4444' },
@@ -28,8 +28,8 @@ export default function Hero() {
       <style>{`
         .hero-reveal { opacity:0; transform:translateY(24px); transition:opacity .8s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1); }
         .hero-active  { opacity:1 !important; transform:translateY(0) !important; }
-        .hero-btn-primary:hover   { background:#1D4ED8 !important; box-shadow:0 4px 20px rgba(37,99,235,0.35) !important; }
-        .hero-btn-secondary:hover { background:rgba(37,99,235,0.06) !important; border-color:rgba(37,99,235,0.3) !important; color:#2563EB !important; }
+        .hero-btn-primary:hover   { background:var(--color-gold-warm) !important; box-shadow:0 4px 20px rgba(184,134,74,0.4) !important; }
+        .hero-btn-secondary:hover { background:rgba(184,134,74,0.08) !important; border-color:rgba(184,134,74,0.4) !important; color:var(--color-gold) !important; }
         .dash-perspective { perspective:1800px; }
         .dash-3d { transform:rotateX(8deg) rotateY(-3deg) scale(0.97); transition:transform .6s cubic-bezier(.16,1,.3,1); }
         .dash-perspective:hover .dash-3d { transform:rotateX(5deg) rotateY(-1.5deg) scale(0.99); }
@@ -39,7 +39,7 @@ export default function Hero() {
       <section ref={heroRef} style={{
         position:'relative', minHeight:'100vh', paddingTop:120, paddingBottom:80,
         overflow:'hidden', display:'flex', flexDirection:'column', alignItems:'center',
-        background:'linear-gradient(160deg, #0F172A 0%, #1E3A8A 55%, #2563EB 100%)',
+        background:'linear-gradient(160deg, #0A1628 0%, var(--af-ink) 60%, #163A5F 100%)',
       }} aria-label="Section principale">
 
         {/* Subtle grid overlay */}
@@ -77,7 +77,7 @@ export default function Hero() {
           color:'#FFFFFF', textAlign:'center', maxWidth:820, marginBottom:20,
         }}>
           Pilotez vos budgets avec{' '}
-          <span style={{ background:'linear-gradient(135deg, #93C5FD, #FFFFFF)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent' }}>
+          <span style={{ background:'linear-gradient(135deg, var(--color-gold-warm), #FFFFFF)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent' }}>
             précision.
           </span>
         </h1>
@@ -92,7 +92,7 @@ export default function Hero() {
           <a href="/login" className="hero-btn-primary" style={{
             display:'inline-flex', alignItems:'center', gap:8,
             padding:'13px 28px', borderRadius:10,
-            background:'#FFFFFF', color:'#1E3A8A',
+            background:'#FFFFFF', color:'var(--af-ink)',
             fontWeight:700, fontSize:15, textDecoration:'none',
             boxShadow:'0 4px 24px rgba(0,0,0,0.25)',
             transition:'background .15s, box-shadow .15s',
@@ -107,7 +107,7 @@ export default function Hero() {
           <div aria-hidden="true" style={{
             position:'absolute', top:'30%', left:'50%', transform:'translate(-50%,-50%)',
             width:'70%', height:'60%',
-            background:'radial-gradient(ellipse at center, rgba(37,99,235,0.12) 0%, transparent 70%)',
+            background:'radial-gradient(ellipse at center, rgba(184,134,74,0.10) 0%, transparent 70%)',
             pointerEvents:'none', zIndex:0,
           }} />
 
@@ -150,15 +150,15 @@ export default function Hero() {
                 {[{ label:"Vue d'ensemble", active:true },{ label:'Budgets', active:false },{ label:'Dépenses', active:false },{ label:'Rapports', active:false }].map(item => (
                   <div key={item.label} style={{
                     display:'flex', alignItems:'center', gap:10, padding:'8px 10px', borderRadius:8,
-                    background:item.active ? 'rgba(37,99,235,0.08)' : 'transparent',
-                    border:item.active ? '1px solid rgba(37,99,235,0.15)' : '1px solid transparent',
-                    color:item.active ? '#2563EB' : '#64748B', fontSize:13,
+                    background:item.active ? 'rgba(184,134,74,0.12)' : 'transparent',
+                    border:item.active ? '1px solid rgba(184,134,74,0.25)' : '1px solid transparent',
+                    color:item.active ? 'var(--color-gold)' : '#64748B', fontSize:13,
                   }}>{item.label}</div>
                 ))}
-                <div style={{ marginTop:'auto', padding:'12px 10px', borderRadius:8, background:'rgba(37,99,235,0.05)', border:'1px solid rgba(37,99,235,0.1)' }}>
+                <div style={{ marginTop:'auto', padding:'12px 10px', borderRadius:8, background:'var(--color-gold-soft)', border:'1px solid var(--color-gold-line)' }}>
                   <div style={{ fontSize:10, color:'#64748B', marginBottom:6 }}>Budget Annuel</div>
-                  <div style={{ height:4, borderRadius:4, background:'rgba(37,99,235,0.12)', overflow:'hidden' }}>
-                    <div style={{ width:'75%', height:'100%', background:'#2563EB', borderRadius:4 }} />
+                  <div style={{ height:4, borderRadius:4, background:'rgba(14,42,71,0.1)', overflow:'hidden' }}>
+                    <div style={{ width:'75%', height:'100%', background:'var(--color-gold)', borderRadius:4 }} />
                   </div>
                   <div style={{ fontSize:10, color:'#64748B', marginTop:4 }}>75% consommé</div>
                 </div>
@@ -175,8 +175,8 @@ export default function Hero() {
                   ].map(card => (
                     <div key={card.label} style={{
                       padding:'14px 16px', borderRadius:10,
-                      background:card.accent ? 'rgba(37,99,235,0.06)' : '#F8FAFC',
-                      border:`1px solid ${card.accent ? 'rgba(37,99,235,0.2)' : 'rgba(15,23,42,0.08)'}`,
+                      background:card.accent ? 'var(--color-gold-soft)' : '#F8FAFC',
+                      border:`1px solid ${card.accent ? 'var(--color-gold-line)' : 'rgba(15,23,42,0.08)'}`,
                     }}>
                       <div style={{ fontSize:11, color:'#94A3B8', marginBottom:6 }}>{card.label}</div>
                       <div style={{ fontSize:18, fontWeight:700, color:'#0F172A', letterSpacing:'-0.02em', marginBottom:4 }}>{card.value}</div>

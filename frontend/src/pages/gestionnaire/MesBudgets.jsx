@@ -17,7 +17,7 @@ const TABS = [
   { key: 'SOUMIS',    label: 'Soumis',      color: '#D97706' },
   { key: 'APPROUVE',  label: 'Approuvés',   color: '#059669' },
   { key: 'REJETE',    label: 'Rejetés',     color: '#DC2626' },
-  { key: 'CLOTURE',   label: 'Clôturés',    color: '#7C3AED' },
+  { key: 'CLOTURE',   label: 'Clôturés',    color: '#0E2A47' },
 ]
 
 export default function MesBudgets() {

@@ -16,9 +16,9 @@ const fmt = (n) => formaterNombre(n, { maximumFractionDigits: 0 })
 const fmtMillions = (n) => `${formaterNombre(n / 1e6, { maximumFractionDigits: 1 })}M`
 
 function jaugeColor(taux) {
-  if (taux > 75) return '#F43F5E'
-  if (taux > 50) return '#F59E0B'
-  return '#22C55E'
+  if (taux > 75) return 'var(--color-danger-500)'
+  if (taux > 50) return 'var(--color-gold)'
+  return 'var(--color-success-600)'
 }
 
 export default function GestionnaireDashboard() {
@@ -112,7 +112,7 @@ export default function GestionnaireDashboard() {
         <KpiCard icon={<CheckCircle2 size={22} strokeWidth={1.8}/>} label="Approuvés"      value={approuves}                                                               color="#16A34A"  bgColor="#DCFCE7" trendText={approuves > 0 ? `${approuves} budget${approuves>1?'s':''} actifs` : 'Aucun approuvé'} />
         <KpiCard icon={<Clock size={22} strokeWidth={1.8}/>}        label="En validation"  value={soumis}                                                                  color="#D97706"  bgColor="#FEF3C7" trendText={soumis > 0 ? `${soumis} en attente` : 'Tout traité'} />
         <KpiCard icon={<XCircle size={22} strokeWidth={1.8}/>}      label="Rejetés"        value={rejetes}                                                                 color="#DC2626"  bgColor="#FEE2E2" trendText={rejetes > 0 ? `${rejetes} à corriger` : 'Aucun rejet'} trendPositive={rejetes === 0} />
-        <KpiCard icon={<Wallet size={22} strokeWidth={1.8}/>}       label="Montant total"  value={montantTotal >= 1e6 ? fmtMillions(montantTotal) : `${fmt(montantTotal)} F`} color="#7C3AED" bgColor="#EDE9FE" sparklineData={sparkMois.map(m => m.montant)} trendText="FCFA alloués" />
+        <KpiCard icon={<Wallet size={22} strokeWidth={1.8}/>}       label="Montant total"  value={montantTotal >= 1e6 ? fmtMillions(montantTotal) : `${fmt(montantTotal)} F`} color="#0E2A47" bgColor="rgba(14,42,71,0.08)" sparklineData={sparkMois.map(m => m.montant)} trendText="FCFA alloués" />
         <KpiCard icon={<ShieldAlert size={22} strokeWidth={1.8}/>}  label="Alertes"        value={critiques}                                                               color="#DC2626"  bgColor="#FEE2E2" trendText={alertes > 0 ? `+${alertes} avertissements` : 'Aucune alerte'} trendPositive={alertes === 0} />
       </div>
 
@@ -123,7 +123,7 @@ export default function GestionnaireDashboard() {
           {/* Alloué vs Consommé */}
           <div className="card" style={{ padding:'20px 24px' }}>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:16 }}>
-              <TrendingUp size={15} strokeWidth={2} color="var(--color-primary-600)" />
+              <TrendingUp size={15} strokeWidth={2} color="var(--color-gold)" />
               <span style={{ fontWeight:700, fontSize:14, color:'#111827' }}>Alloué vs Consommé</span>
               <span style={{ fontSize:11, color:'#9CA3AF' }}>(K FCFA)</span>
             </div>
@@ -143,7 +143,7 @@ export default function GestionnaireDashboard() {
           {/* Taux d'exécution */}
           <div className="card" style={{ padding:'20px 24px' }}>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:16 }}>
-              <Building2 size={15} strokeWidth={2} color="var(--color-primary-600)" />
+              <Building2 size={15} strokeWidth={2} color="var(--af-ink)" />
               <span style={{ fontWeight:700, fontSize:14, color:'#111827' }}>Taux d'exécution (%)</span>
             </div>
             <ResponsiveContainer width="100%" height={210}>
@@ -154,7 +154,7 @@ export default function GestionnaireDashboard() {
                 <Tooltip formatter={v => [`${v}%`, 'Taux d\'exécution']} contentStyle={{ fontSize:11, borderRadius:8, border:'1px solid #E5E7EB' }} />
                 <Bar dataKey="taux" name="taux" radius={[0,3,3,0]}>
                   {chartBudgets.map((e, i) => (
-                    <Cell key={i} fill={e.taux > 75 ? '#F43F5E' : e.taux > 50 ? '#F59E0B' : '#16A34A'} />
+                    <Cell key={i} fill={e.taux > 75 ? 'var(--color-danger-500)' : e.taux > 50 ? 'var(--color-gold)' : 'var(--color-success-500)'} />
                   ))}
                 </Bar>
               </BarChart>
@@ -168,16 +168,16 @@ export default function GestionnaireDashboard() {
         <div className="card" style={{ overflow: 'hidden', padding: 0 }}>
           {/* Header */}
           <div style={{
-            padding: '16px 22px', background: '#F8FAFF', borderBottom: '1px solid #E5E7EB',
+            padding: '16px 22px', background: 'var(--af-night)', borderBottom: '1px solid var(--af-line)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{
                 width: 38, height: 38, borderRadius: 10, flexShrink: 0,
-                background: 'var(--color-primary-50)',
+                background: 'var(--color-gold-soft)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <Sparkles size={18} strokeWidth={2} style={{ color: 'var(--color-primary-600)' }} />
+                <Sparkles size={18} strokeWidth={2} style={{ color: 'var(--color-gold)' }} />
               </div>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -220,7 +220,7 @@ export default function GestionnaireDashboard() {
               },
               {
                 icon: <TrendingUp size={19} strokeWidth={1.8} />,
-                iconBg: 'var(--color-primary-50)', iconColor: 'var(--color-primary-600)',
+                iconBg: 'var(--color-gold-soft)', iconColor: 'var(--color-gold)',
                 title: 'Prédictions',
                 desc: 'Projections de consommation et recommandations IA',
                 action: () => navigate('/ia'),
@@ -229,7 +229,7 @@ export default function GestionnaireDashboard() {
               },
               {
                 icon: <MessageSquare size={19} strokeWidth={1.8} />,
-                iconBg: 'var(--color-info-50)', iconColor: 'var(--color-info-600)',
+                iconBg: 'rgba(14,42,71,0.07)', iconColor: 'var(--af-ink)',
                 title: 'Assistant IA',
                 desc: 'Posez vos questions budgétaires à Claude',
                 action: () => window.dispatchEvent(new Event('open-chatbot')),
@@ -246,7 +246,7 @@ export default function GestionnaireDashboard() {
                   cursor: 'pointer', transition: 'background .15s',
                   display: 'flex', flexDirection: 'column', gap: 10,
                 }}
-                onMouseEnter={e => e.currentTarget.style.background = '#F8FAFF'}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--color-gold-soft)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -275,7 +275,7 @@ export default function GestionnaireDashboard() {
                   {item.desc}
                 </p>
                 <span style={{
-                  fontSize: '12px', fontWeight: 600, color: 'var(--color-primary-600)',
+                  fontSize: '12px', fontWeight: 600, color: 'var(--color-gold)',
                   display: 'flex', alignItems: 'center', gap: 5,
                 }}>
                   {item.label} <ArrowRight size={11} strokeWidth={2.5} />
@@ -304,7 +304,7 @@ export default function GestionnaireDashboard() {
             onClick={() => { setSelectedDept(null) }}
             style={{
               width: '100%', textAlign: 'left', padding: '10px 16px',
-              background: selectedDept === null ? 'var(--color-primary-50)' : 'transparent',
+              background: selectedDept === null ? 'var(--color-gold-soft)' : 'transparent',
               border: 'none', borderBottom: '1px solid var(--color-gray-100)',
               cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               transition: 'background .1s',
@@ -312,7 +312,7 @@ export default function GestionnaireDashboard() {
           >
             <span style={{
               fontSize: '13px', fontWeight: selectedDept === null ? 700 : 500,
-              color: selectedDept === null ? 'var(--color-primary-600)' : 'var(--color-gray-700)',
+              color: selectedDept === null ? 'var(--color-gold)' : 'var(--color-gray-700)',
             }}>
               Tous mes budgets
             </span>
@@ -333,7 +333,7 @@ export default function GestionnaireDashboard() {
                   onClick={() => toggle(dept.id)}
                   style={{
                     width: '100%', textAlign: 'left', padding: '10px 16px',
-                    background: isSelected ? 'var(--color-primary-50)' : 'transparent',
+                    background: isSelected ? 'var(--color-gold-soft)' : 'transparent',
                     border: 'none', cursor: 'pointer',
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8,
                     transition: 'background .1s',
@@ -344,19 +344,19 @@ export default function GestionnaireDashboard() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 7, flex: 1, minWidth: 0 }}>
                     <ChevronRight
                       size={12} strokeWidth={2.5}
-                      style={{ transition: 'transform .18s', transform: isOpen ? 'rotate(90deg)' : 'none', flexShrink: 0, color: isSelected ? 'var(--color-primary-500)' : 'var(--color-gray-400)' }}
+                      style={{ transition: 'transform .18s', transform: isOpen ? 'rotate(90deg)' : 'none', flexShrink: 0, color: isSelected ? 'var(--color-gold)' : 'var(--color-gray-400)' }}
                     />
                     <span style={{
                       fontSize: '13px', fontWeight: isSelected ? 700 : 400,
-                      color: isSelected ? 'var(--color-primary-600)' : 'var(--color-gray-700)',
+                      color: isSelected ? 'var(--color-gold)' : 'var(--color-gray-700)',
                       whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                     }}>
                       {dept.nom}
                     </span>
                   </div>
                   <span style={{
-                    background: deptBudgets.length > 0 ? 'var(--color-primary-100)' : 'var(--color-gray-100)',
-                    color: deptBudgets.length > 0 ? 'var(--color-primary-700)' : 'var(--color-gray-500)',
+                    background: deptBudgets.length > 0 ? 'rgba(184,134,74,0.15)' : 'var(--color-gray-100)',
+                    color: deptBudgets.length > 0 ? 'var(--color-gold-dark)' : 'var(--color-gray-500)',
                     borderRadius: 9999, padding: '1px 7px', fontSize: '11px', fontWeight: 700, flexShrink: 0,
                   }}>
                     {deptBudgets.length}
@@ -380,11 +380,11 @@ export default function GestionnaireDashboard() {
                           display: 'flex', flexDirection: 'column', gap: 3,
                           transition: 'background .1s',
                         }}
-                        onMouseEnter={e => e.currentTarget.style.background = 'var(--color-primary-50)'}
+                        onMouseEnter={e => e.currentTarget.style.background = 'var(--color-gold-soft)'}
                         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
-                          <span className="code-tag" style={{ background: 'var(--color-primary-100)', color: 'var(--color-primary-700)' }}>{b.code}</span>
+                          <span className="code-tag" style={{ background: 'rgba(184,134,74,0.15)', color: 'var(--color-gold-dark)' }}>{b.code}</span>
                           <StatutBadge statut={b.statut} />
                         </div>
                         <span style={{ fontSize: '12px', color: 'var(--color-gray-600)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>

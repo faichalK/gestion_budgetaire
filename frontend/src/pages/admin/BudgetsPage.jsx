@@ -18,9 +18,9 @@ const STATUTS = [
 ]
 
 const jaugeColor = (taux) => {
-  if (taux > 75) return '#F43F5E'
-  if (taux > 50) return '#F59E0B'
-  return '#22C55E'
+  if (taux > 75) return 'var(--color-danger-500)'
+  if (taux > 50) return 'var(--color-gold)'
+  return 'var(--color-success-600)'
 }
 
 export default function BudgetsPage() {
@@ -229,7 +229,7 @@ export default function BudgetsPage() {
                             onClick={(e) => handleRapport(b, e)}
                             disabled={actionBusy === b.id}
                             className="btn btn-sm"
-                            style={{ background: 'var(--color-info-600)', color: '#fff', border: 'none', gap: 4 }}
+                            style={{ background: 'var(--af-ink)', color: '#fff', border: 'none', gap: 4 }}
                           >
                             Rapport
                           </button>

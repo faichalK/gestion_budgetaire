@@ -43,7 +43,7 @@ export default function ComptableDashboard() {
 
   /* ── Données graphiques ── */
   const STATUT_LABELS = { BROUILLON:'Brouillon', SOUMIS:'En attente', APPROUVE:'Approuvé', REJETE:'Rejeté', CLOTURE:'Clôturé', ARCHIVE:'Archivé' }
-  const STATUT_COLORS_MAP = { BROUILLON:'#D1D5DB', SOUMIS:'#8B5CF6', APPROUVE:'#22C55E', REJETE:'#F43F5E', CLOTURE:'#F59E0B', ARCHIVE:'#7C3AED' }
+  const STATUT_COLORS_MAP = { BROUILLON:'#D1D5DB', SOUMIS:'#1E6B9E', APPROUVE:'#15803D', REJETE:'#C7263A', CLOTURE:'#B8864A', ARCHIVE:'#5A6B7E' }
   const statutData = Object.entries(
     tous.reduce((acc, b) => { acc[b.statut] = (acc[b.statut] || 0) + 1; return acc }, {})
   ).map(([statut, count]) => ({ name: STATUT_LABELS[statut] || statut, count, color: STATUT_COLORS_MAP[statut] || '#9CA3AF' }))
@@ -133,8 +133,8 @@ export default function ComptableDashboard() {
           icon={<Receipt size={22} strokeWidth={1.8} />}
           label="Dépenses En Attente"
           value={depSaisie.length}
-          color="#7C3AED"
-          bgColor="#EDE9FE"
+          color="#0E2A47"
+          bgColor="rgba(14,42,71,0.08)"
           trendText={depSaisie.length > 0 ? `${depSaisie.length} à examiner` : 'Tout traité'}
           onClick={depSaisie.length > 0 ? () => navigate('/depenses') : undefined}
         />
@@ -147,7 +147,7 @@ export default function ComptableDashboard() {
           {/* Répartition par statut */}
           <div className="card" style={{ padding:'20px 24px' }}>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:16 }}>
-              <BarChart2 size={15} strokeWidth={2} color="var(--color-primary-600)" />
+              <BarChart2 size={15} strokeWidth={2} color="var(--af-ink)" />
               <span style={{ fontWeight:700, fontSize:14, color:'#111827' }}>Répartition par statut</span>
             </div>
             <ResponsiveContainer width="100%" height={200}>
@@ -164,7 +164,7 @@ export default function ComptableDashboard() {
           {/* Top 5 consommation */}
           <div className="card" style={{ padding:'20px 24px' }}>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:16 }}>
-              <TrendingUp size={15} strokeWidth={2} color="var(--color-primary-600)" />
+              <TrendingUp size={15} strokeWidth={2} color="var(--color-gold)" />
               <span style={{ fontWeight:700, fontSize:14, color:'#111827' }}>Top 5 — Consommation</span>
               <span style={{ fontSize:11, color:'#9CA3AF' }}>(en milliers FCFA)</span>
             </div>
@@ -178,8 +178,8 @@ export default function ComptableDashboard() {
                   <YAxis type="category" dataKey="name" tick={{ fontSize:10, fill:'#6B7280' }} axisLine={false} tickLine={false} width={65} />
                   <Tooltip formatter={(v, n) => [`${v} K FCFA`, n === 'alloue' ? 'Alloué' : 'Consommé']} contentStyle={{ fontSize:11, borderRadius:8, border:'1px solid #E5E7EB' }} />
                   <Legend iconSize={7} iconType="circle" formatter={v => <span style={{ fontSize:11, color:'#6B7280' }}>{v === 'alloue' ? 'Alloué' : 'Consommé'}</span>} />
-                  <Bar dataKey="alloue"   name="alloue"   fill="#E0E7FF" radius={[0,3,3,0]} />
-                  <Bar dataKey="consomme" name="consomme" fill="#6366F1" radius={[0,3,3,0]} />
+                  <Bar dataKey="alloue"   name="alloue"   fill="rgba(14,42,71,.10)" radius={[0,3,3,0]} />
+                  <Bar dataKey="consomme" name="consomme" fill="var(--af-ink)"      radius={[0,3,3,0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -192,16 +192,16 @@ export default function ComptableDashboard() {
         <div className="card" style={{ overflow: 'hidden', padding: 0 }}>
           {/* Header */}
           <div style={{
-            padding: '16px 22px', background: '#F8FAFF', borderBottom: '1px solid #E5E7EB',
+            padding: '16px 22px', background: 'var(--af-night)', borderBottom: '1px solid var(--af-line)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{
                 width: 38, height: 38, borderRadius: 10, flexShrink: 0,
-                background: 'var(--color-primary-50)',
+                background: 'var(--color-gold-soft)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <Sparkles size={18} strokeWidth={2} style={{ color: 'var(--color-primary-600)' }} />
+                <Sparkles size={18} strokeWidth={2} style={{ color: 'var(--color-gold)' }} />
               </div>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -243,7 +243,7 @@ export default function ComptableDashboard() {
               },
               {
                 icon: <TrendingUp size={19} strokeWidth={1.8} />,
-                iconBg: 'var(--color-primary-50)', iconColor: 'var(--color-primary-600)',
+                iconBg: 'var(--color-gold-soft)', iconColor: 'var(--color-gold)',
                 title: 'Prédictions',
                 desc: 'Projections de consommation et recommandations IA',
                 action: () => navigate('/ia'),
@@ -251,7 +251,7 @@ export default function ComptableDashboard() {
               },
               {
                 icon: <MessageSquare size={19} strokeWidth={1.8} />,
-                iconBg: 'var(--color-info-50)', iconColor: 'var(--color-info-600)',
+                iconBg: 'rgba(14,42,71,0.07)', iconColor: 'var(--af-ink)',
                 title: 'Assistant IA',
                 desc: 'Posez vos questions budgétaires à Claude',
                 action: () => window.dispatchEvent(new Event('open-chatbot')),
@@ -267,7 +267,7 @@ export default function ComptableDashboard() {
                   cursor: 'pointer', transition: 'background .15s',
                   display: 'flex', flexDirection: 'column', gap: 10,
                 }}
-                onMouseEnter={e => e.currentTarget.style.background = '#F8FAFF'}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--color-gold-soft)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -299,7 +299,7 @@ export default function ComptableDashboard() {
                   {item.desc}
                 </p>
                 <span style={{
-                  fontSize: '12px', fontWeight: 600, color: 'var(--color-primary-600)',
+                  fontSize: '12px', fontWeight: 600, color: 'var(--color-gold)',
                   display: 'flex', alignItems: 'center', gap: 5,
                 }}>
                   {item.label} <ArrowRight size={11} strokeWidth={2.5} />
@@ -323,8 +323,8 @@ export default function ComptableDashboard() {
             </div>
             <button
               onClick={() => navigate('/depenses')}
-              className="inline-flex items-center gap-[5px] bg-none border-none text-primary-600 font-semibold text-[13px] cursor-pointer"
-              style={{ background: 'none', color: 'var(--color-primary-600)' }}
+              className="inline-flex items-center gap-[5px] bg-none border-none font-semibold text-[13px] cursor-pointer"
+              style={{ background: 'none', color: 'var(--color-gold)' }}
             >
               Voir tout <ArrowRight size={13} strokeWidth={2.5} />
             </button>
@@ -372,7 +372,7 @@ export default function ComptableDashboard() {
                 Budgets en attente de validation
               </h3>
               {aValider.length > 0 && (
-                <span className="bg-primary-50 text-primary-700 px-[9px] py-[2px] rounded-[20px] text-[12px] font-bold">
+                <span style={{ background:'rgba(184,134,74,0.15)', color:'var(--color-gold-dark)', padding:'2px 9px', borderRadius:9999, fontSize:12, fontWeight:700 }}>
                   {aValider.length}
                 </span>
               )}
@@ -380,7 +380,8 @@ export default function ComptableDashboard() {
             {aValider.length > 0 && (
               <button
                 onClick={() => navigate('/validation')}
-                className="inline-flex items-center gap-[5px] bg-none border-none text-primary-600 font-semibold text-[13px] cursor-pointer"
+                className="inline-flex items-center gap-[5px] bg-none border-none font-semibold text-[13px] cursor-pointer"
+                style={{ background:'none', color:'var(--color-gold)' }}
               >
                 Voir tout <ArrowRight size={13} strokeWidth={2.5} />
               </button>
@@ -427,7 +428,7 @@ export default function ComptableDashboard() {
                   key={b.id}
                   className="cursor-pointer"
                   onClick={() => navigate(`/validation/${b.id}`)}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--color-primary-50)'}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--color-gold-soft)'}
                   onMouseLeave={e => e.currentTarget.style.background = ''}
                 >
                   <td><span className="code-tag">{b.code}</span></td>

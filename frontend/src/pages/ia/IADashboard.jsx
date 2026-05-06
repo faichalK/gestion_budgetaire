@@ -171,7 +171,7 @@ export default function IADashboard() {
   const KPI_DATA = [
     { label: 'ANOMALIES CRITIQUES',  value: critiques.length,     icon: <Shield size={18} strokeWidth={1.8} />, accent: 'var(--color-danger-600)',  iconBg: 'var(--color-danger-50)',  iconColor: 'var(--color-danger-600)'  },
     { label: 'PRÉDICTIONS À RISQUE', value: risquesEleves.length, icon: <Zap    size={18} strokeWidth={1.8} />, accent: '#C2410C',                  iconBg: '#fff7ed',                 iconColor: '#C2410C'                  },
-    { label: 'TOTAL ANOMALIES',      value: anomalies.length,     icon: <Brain  size={18} strokeWidth={1.8} />, accent: 'var(--color-info-600)',    iconBg: 'var(--color-info-50)',    iconColor: 'var(--color-info-600)'    },
+    { label: 'TOTAL ANOMALIES',      value: anomalies.length,     icon: <Brain  size={18} strokeWidth={1.8} />, accent: 'var(--af-ink)',    iconBg: 'rgba(14,42,71,0.07)',    iconColor: 'var(--af-ink)'    },
     { label: 'TOTAL PRÉDICTIONS',    value: predictions.length,   icon: <TrendingUp size={18} strokeWidth={1.8} />, accent: 'var(--color-success-600)', iconBg: 'var(--color-success-50)', iconColor: 'var(--color-success-600)' },
   ]
 
@@ -183,9 +183,9 @@ export default function IADashboard() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div style={{
             width: 44, height: 44, borderRadius: 12, flexShrink: 0,
-            background: 'linear-gradient(135deg, var(--color-primary-600), var(--color-info-500))',
+            background: 'linear-gradient(135deg, var(--color-gold), var(--color-gold-dark))',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(37,99,235,.25)',
+            boxShadow: '0 4px 12px rgba(184,134,74,.25)',
           }}>
             <Brain size={22} strokeWidth={1.8} style={{ color: '#fff' }} />
           </div>
@@ -213,7 +213,7 @@ export default function IADashboard() {
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
           {scanMsg && (
             <span style={{
-              fontSize: '12px', color: scanning ? 'var(--color-primary-600)' : 'var(--color-success-600)',
+              fontSize: '12px', color: scanning ? 'var(--color-gold)' : 'var(--color-success-600)',
               fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5,
             }}>
               {scanning && <span className="spinner-sm" />}
@@ -297,8 +297,8 @@ export default function IADashboard() {
             onClick={() => setOnglet(t.key)}
             style={{
               padding: '9px 18px', border: 'none', background: 'transparent', cursor: 'pointer',
-              borderBottom: onglet === t.key ? '2px solid var(--color-primary-600)' : '2px solid transparent',
-              color: onglet === t.key ? 'var(--color-primary-600)' : '#6B7280',
+              borderBottom: onglet === t.key ? '2px solid var(--color-gold)' : '2px solid transparent',
+              color: onglet === t.key ? 'var(--color-gold)' : '#6B7280',
               fontWeight: onglet === t.key ? 700 : 500, fontSize: '13px',
               display: 'flex', alignItems: 'center', gap: 7, transition: 'color .15s',
             }}
@@ -307,7 +307,7 @@ export default function IADashboard() {
             {t.label}
             {t.count > 0 && (
               <span style={{
-                background: onglet === t.key ? 'var(--color-primary-600)' : '#E5E7EB',
+                background: onglet === t.key ? 'var(--color-gold)' : '#E5E7EB',
                 color: onglet === t.key ? '#fff' : '#6B7280',
                 fontSize: '10px', padding: '1px 7px', borderRadius: 9999, fontWeight: 700,
               }}>

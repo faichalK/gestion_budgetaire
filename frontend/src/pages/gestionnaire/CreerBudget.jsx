@@ -139,22 +139,22 @@ export default function CreerBudget() {
             <div style={{
               display: 'flex', alignItems: 'center', gap: 12,
               padding: '12px 16px', borderRadius: 10,
-              background: 'var(--color-primary-50)', border: '1px solid var(--color-primary-100)',
+              background: 'var(--color-gold-soft)', border: '1px solid rgba(184,134,74,0.15)',
               marginBottom: 22,
             }}>
-              <Calendar size={16} strokeWidth={2} style={{ color: 'var(--color-primary-500)', flexShrink: 0 }} />
+              <Calendar size={16} strokeWidth={2} style={{ color: 'var(--color-gold)', flexShrink: 0 }} />
               <div style={{ flex: 1 }}>
-                <span style={{ fontSize: '12px', color: 'var(--color-primary-500)', fontWeight: 600 }}>Exercice budgétaire</span>
+                <span style={{ fontSize: '12px', color: 'var(--color-gold)', fontWeight: 600 }}>Exercice budgétaire</span>
                 <span style={{
                   marginLeft: 10, fontWeight: 700,
-                  color: 'var(--color-primary-700)', fontSize: '14px',
+                  color: 'var(--color-gold-dark)', fontSize: '14px',
                 }}>
                   {exerciceChoisi?.periode_display ?? exerciceChoisi?.annee}
                 </span>
               </div>
               <span style={{
                 fontFamily: 'var(--font-mono)', fontWeight: 700,
-                color: 'var(--color-primary-700)', fontSize: '13px',
+                color: 'var(--color-gold-dark)', fontSize: '13px',
               }}>
                 {fmt(exerciceChoisi?.montant_disponible_global ?? 0)} FCFA disponibles
               </span>
@@ -172,10 +172,10 @@ export default function CreerBudget() {
                 <div style={{
                   display: 'flex', alignItems: 'flex-start', gap: 10,
                   padding: '10px 14px', borderRadius: 9,
-                  background: 'var(--color-primary-50)', border: '1px solid var(--color-primary-100)',
+                  background: 'var(--color-gold-soft)', border: '1px solid rgba(184,134,74,0.15)',
                 }}>
-                  <Info size={14} strokeWidth={2} style={{ color: 'var(--color-primary-500)', flexShrink: 0, marginTop: 1 }} />
-                  <p style={{ fontSize: '12px', color: 'var(--color-primary-600)', margin: 0 }}>
+                  <Info size={14} strokeWidth={2} style={{ color: 'var(--color-gold)', flexShrink: 0, marginTop: 1 }} />
+                  <p style={{ fontSize: '12px', color: 'var(--color-gold)', margin: 0 }}>
                     Aucune allocation départementale — le budget sera imputé sur l'enveloppe globale.
                   </p>
                 </div>
@@ -196,11 +196,11 @@ export default function CreerBudget() {
                   {allocChoisie && (
                     <div style={{
                       marginTop: 8, padding: '10px 14px', borderRadius: 9,
-                      background: 'var(--color-primary-50)', border: '1px solid var(--color-primary-100)',
+                      background: 'var(--color-gold-soft)', border: '1px solid rgba(184,134,74,0.15)',
                       fontSize: '13px', display: 'flex', gap: 8, alignItems: 'center',
                     }}>
-                      <span style={{ color: 'var(--color-primary-600)' }}>Disponible :</span>
-                      <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--color-primary-800)' }}>
+                      <span style={{ color: 'var(--color-gold)' }}>Disponible :</span>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--color-gold-dark)' }}>
                         {fmt(allocChoisie.montant_disponible)} FCFA
                       </span>
                       <span style={{ color: 'var(--color-gray-400)' }}>
@@ -339,10 +339,10 @@ export default function CreerBudget() {
       <div style={{
         marginTop: 16, display: 'flex', alignItems: 'flex-start', gap: 12,
         padding: '14px 18px', borderRadius: 10,
-        background: 'var(--color-primary-50)', border: '1px solid var(--color-primary-100)',
+        background: 'var(--color-gold-soft)', border: '1px solid rgba(184,134,74,0.15)',
       }}>
-        <Info size={15} strokeWidth={2} style={{ color: 'var(--color-primary-500)', flexShrink: 0, marginTop: 1 }} />
-        <p style={{ fontSize: '13px', color: 'var(--color-primary-700)', margin: 0 }}>
+        <Info size={15} strokeWidth={2} style={{ color: 'var(--color-gold)', flexShrink: 0, marginTop: 1 }} />
+        <p style={{ fontSize: '13px', color: 'var(--color-gold-dark)', margin: 0 }}>
           <strong>Étapes suivantes :</strong> après l'enregistrement, vous serez redirigé vers la page du budget où vous pourrez ajouter les lignes budgétaires, puis soumettre avec une pièce justificative.
         </p>
       </div>

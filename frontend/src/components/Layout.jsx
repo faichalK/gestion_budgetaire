@@ -12,9 +12,9 @@ import {
 
 /* ── Rôles ───────────────────────────────────────────────────────────────── */
 const ROLE_BADGE = {
-  ADMINISTRATEUR: { bg: 'rgba(201,145,10,.2)',  color: '#C9910A', label: 'Admin' },
-  GESTIONNAIRE  : { bg: 'rgba(27,124,62,.2)',   color: '#1B7C3E', label: 'Gestionnaire' },
-  COMPTABLE     : { bg: 'rgba(26,58,107,.25)',  color: '#8CB4E0', label: 'Comptable' },
+  ADMINISTRATEUR: { bg: 'rgba(184,134,74,.15)',  color: '#B8864A', label: 'Admin' },
+  GESTIONNAIRE  : { bg: 'rgba(21,128,61,.15)',   color: '#15803D', label: 'Gestionnaire' },
+  COMPTABLE     : { bg: 'rgba(14,42,71,.15)',    color: '#4A8CB0', label: 'Comptable' },
 }
 
 /* ── Navigation par rôle ─────────────────────────────────────────────────── */
@@ -93,14 +93,14 @@ function NavItem({ item, collapsed }) {
         gap: 10, padding: collapsed ? '10px 0' : '9px 12px',
         justifyContent: collapsed ? 'center' : 'flex-start',
         borderRadius: 8, marginBottom: 2,
-        color: isActive ? '#FFFFFF' : 'rgba(255,255,255,.55)',
-        background: isActive ? 'rgba(59,130,246,.25)' : 'transparent',
+        color: isActive ? '#FFFFFF' : 'var(--af-side-mute)',
+        background: isActive ? 'rgba(184,134,74,.14)' : 'transparent',
         fontWeight: isActive ? 600 : 400,
         fontSize: '13px',
         transition: 'all .12s',
         textDecoration: 'none',
         minHeight: 44,
-        border: isActive ? '1px solid rgba(59,130,246,.4)' : '1px solid transparent',
+        boxShadow: isActive ? 'inset 2px 0 0 var(--color-gold)' : 'none',
       })}
     >
       {({ isActive }) => (
@@ -108,11 +108,11 @@ function NavItem({ item, collapsed }) {
           <IconComp
             size={16}
             strokeWidth={isActive ? 2 : 1.8}
-            style={{ flexShrink: 0, color: isActive ? '#93C5FD' : 'rgba(255,255,255,.45)' }}
+            style={{ flexShrink: 0, color: isActive ? 'var(--color-gold-warm)' : 'rgba(232,238,245,.45)' }}
           />
-          {!collapsed && <span style={{ flex: 1 }}>{item.label}</span>}
+          {!collapsed && <span style={{ flex: 1, color: isActive ? 'var(--af-side-text)' : 'var(--af-side-mute)' }}>{item.label}</span>}
           {!collapsed && isActive && (
-            <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#93C5FD', flexShrink: 0 }} />
+            <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--color-gold)', flexShrink: 0 }} />
           )}
         </>
       )}
@@ -155,7 +155,7 @@ export default function Layout({ children }) {
     || items.find(i => i.to === location.pathname)
 
   return (
-    <div className="flex h-full" style={{ background: '#F8FAFC' }}>
+    <div className="flex h-full" style={{ background: 'var(--af-night)' }}>
 
       {/* ── Mobile overlay ────────────────────────────────────────────── */}
       {isMobile && mobileSidebarOpen && (
@@ -163,7 +163,7 @@ export default function Layout({ children }) {
           onClick={() => setMobileSidebarOpen(false)}
           style={{
             position: 'fixed', inset: 0, zIndex: 98,
-            background: 'rgba(0,0,0,.55)', backdropFilter: 'blur(2px)',
+            background: 'rgba(14,42,71,.6)', backdropFilter: 'blur(4px)',
           }}
         />
       )}
@@ -181,8 +181,8 @@ export default function Layout({ children }) {
           minWidth: isMobile ? 'var(--sidebar-w)' : (collapsed ? 60 : 'var(--sidebar-w)'),
           transform: isMobile ? (mobileSidebarOpen ? 'translateX(0)' : 'translateX(-100%)') : 'none',
           transition: 'width .22s cubic-bezier(.4,0,.2,1), min-width .22s, transform .25s cubic-bezier(.4,0,.2,1)',
-          background: '#1E3A8A',
-          boxShadow: '1px 0 0 0 #D1D8E0',
+          background: 'var(--af-ink)',
+          borderRight: '1px solid rgba(255,255,255,.06)',
         }}
       >
 
@@ -193,20 +193,25 @@ export default function Layout({ children }) {
             height: 'var(--topbar-h)',
             padding: collapsed ? '0' : '0 16px 0 18px',
             justifyContent: collapsed ? 'center' : 'flex-start',
-            borderBottomColor: 'rgba(255,255,255,.05)',
+            borderBottomColor: 'rgba(255,255,255,.06)',
           }}
         >
-          <img
-            src="/budget.jpg"
-            alt="Gestion Budgétaire"
-            style={{ width: 34, height: 34, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }}
-          />
+          {/* Atlas Finance logo mark — gradient square */}
+          <div style={{
+            width: 26, height: 26, borderRadius: 6, flexShrink: 0,
+            background: 'linear-gradient(135deg, var(--color-gold), var(--color-gold-dark))',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', fontFamily: 'var(--font-display)', letterSpacing: '-.01em' }}>
+              A
+            </span>
+          </div>
           {!collapsed && (
             <div>
-              <div style={{ fontWeight: 600, fontSize: '14px', color: '#F0F5FF', lineHeight: 1.2, fontFamily: 'IBM Plex Sans, sans-serif' }}>
+              <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--af-side-text)', lineHeight: 1.2, fontFamily: 'var(--font-display)', letterSpacing: '-.01em' }}>
                 {t('topbar_titre')}
               </div>
-              <div style={{ fontSize: '9px', color: 'rgba(255,255,255,.3)', letterSpacing: '.08em', marginTop: 2, textTransform: 'uppercase' }}>
+              <div style={{ fontSize: '9px', color: 'rgba(232,238,245,.35)', letterSpacing: '.10em', marginTop: 2, textTransform: 'uppercase', fontFamily: 'var(--font-sans)' }}>
                 {t('plateforme')}
               </div>
             </div>
@@ -222,8 +227,12 @@ export default function Layout({ children }) {
             <div key={si} className="mb-2">
               {!collapsed && section.label && (
                 <div
-                  className="text-[10px] font-bold tracking-[1px] text-white/25 px-3 pb-[5px]"
-                  style={{ marginTop: si > 0 ? 8 : 0 }}
+                  style={{
+                    fontSize: '9px', fontWeight: 500, letterSpacing: '.18em',
+                    color: 'rgba(232,238,245,.25)', textTransform: 'uppercase',
+                    padding: '0 12px 5px', marginTop: si > 0 ? 8 : 0,
+                    fontFamily: 'var(--font-sans)',
+                  }}
                 >
                   {section.label}
                 </div>
@@ -236,7 +245,7 @@ export default function Layout({ children }) {
         </nav>
 
         {/* ── Sidebar bottom: profil accordéon ────────────────────────── */}
-        <div className="shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,.08)' }}>
+        <div className="shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,.06)' }}>
 
           {/* Menu déroulant — visible quand profileOpen */}
           {profileOpen && !collapsed && (
@@ -246,16 +255,16 @@ export default function Layout({ children }) {
                 style={({ isActive }) => ({
                   display: 'flex', alignItems: 'center', gap: 10,
                   padding: '8px 12px', borderRadius: 8, marginBottom: 2,
-                  color: isActive ? '#FFFFFF' : 'rgba(255,255,255,.6)',
-                  background: isActive ? 'rgba(59,130,246,.25)' : 'transparent',
+                  color: isActive ? 'var(--af-side-text)' : 'var(--af-side-mute)',
+                  background: isActive ? 'rgba(184,134,74,.14)' : 'transparent',
                   fontWeight: isActive ? 600 : 400, fontSize: '13px',
                   transition: 'all .12s', textDecoration: 'none', minHeight: 38,
-                  border: isActive ? '1px solid rgba(59,130,246,.4)' : '1px solid transparent',
+                  boxShadow: isActive ? 'inset 2px 0 0 var(--color-gold)' : 'none',
                 })}
               >
                 {({ isActive }) => (
                   <>
-                    <User size={14} strokeWidth={isActive ? 2 : 1.8} style={{ flexShrink: 0, color: isActive ? '#93C5FD' : 'rgba(255,255,255,.45)' }} />
+                    <User size={14} strokeWidth={isActive ? 2 : 1.8} style={{ flexShrink: 0, color: isActive ? 'var(--color-gold-warm)' : 'rgba(232,238,245,.45)' }} />
                     <span style={{ flex: 1 }}>{t('mon_profil')}</span>
                   </>
                 )}
@@ -265,12 +274,12 @@ export default function Layout({ children }) {
                 style={{
                   width: '100%', display: 'flex', alignItems: 'center', gap: 10,
                   padding: '8px 12px', borderRadius: 8, marginBottom: 6,
-                  color: 'rgba(255,255,255,.5)', background: 'transparent',
+                  color: 'rgba(232,238,245,.5)', background: 'transparent',
                   fontWeight: 400, fontSize: '13px', transition: 'all .12s',
-                  border: '1px solid transparent', cursor: 'pointer', minHeight: 38,
+                  border: 'none', cursor: 'pointer', minHeight: 38,
                 }}
                 onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,.15)'; e.currentTarget.style.color = '#FCA5A5' }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,.5)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(232,238,245,.5)' }}
               >
                 <LogOut size={14} strokeWidth={1.8} style={{ flexShrink: 0 }} />
                 <span>{t('deconnexion')}</span>
@@ -285,9 +294,9 @@ export default function Layout({ children }) {
                 style={({ isActive }) => ({
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   padding: '8px 0', borderRadius: 8, minHeight: 36,
-                  color: isActive ? '#93C5FD' : 'rgba(255,255,255,.45)',
-                  background: isActive ? 'rgba(59,130,246,.25)' : 'transparent',
-                  textDecoration: 'none', border: '1px solid transparent',
+                  color: isActive ? 'var(--color-gold-warm)' : 'rgba(232,238,245,.45)',
+                  background: isActive ? 'rgba(184,134,74,.14)' : 'transparent',
+                  textDecoration: 'none',
                 })}
               >
                 {({ isActive }) => <User size={15} strokeWidth={isActive ? 2 : 1.8} />}
@@ -297,11 +306,11 @@ export default function Layout({ children }) {
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   padding: '8px 0', borderRadius: 8, minHeight: 36,
-                  color: 'rgba(255,255,255,.45)', background: 'transparent',
-                  border: '1px solid transparent', cursor: 'pointer', width: '100%',
+                  color: 'rgba(232,238,245,.45)', background: 'transparent',
+                  border: 'none', cursor: 'pointer', width: '100%',
                 }}
                 onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,.15)'; e.currentTarget.style.color = '#FCA5A5' }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,.45)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(232,238,245,.45)' }}
               >
                 <LogOut size={15} strokeWidth={1.8} />
               </button>
@@ -325,23 +334,24 @@ export default function Layout({ children }) {
               {/* Initiales */}
               <div style={{
                 width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
-                background: '#1D4ED8', display: 'flex', alignItems: 'center',
-                justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff',
+                background: 'rgba(184,134,74,.25)', border: '1px solid rgba(184,134,74,.4)',
+                display: 'flex', alignItems: 'center',
+                justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'var(--color-gold-warm)',
               }}>
                 {((user?.prenom?.[0] || '') + (user?.nom?.[0] || '') || user?.email?.[0] || '?').toUpperCase()}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#F0F5FF', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--af-side-text)', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {user?.prenom} {user?.nom}
                 </div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: 10, color: 'rgba(232,238,245,.4)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {user?.email}
                 </div>
               </div>
               <ChevronDown
                 size={12} strokeWidth={2.5}
                 style={{
-                  color: 'rgba(255,255,255,.35)', flexShrink: 0,
+                  color: 'rgba(232,238,245,.35)', flexShrink: 0,
                   transform: profileOpen ? 'rotate(180deg)' : 'none',
                   transition: 'transform .2s',
                 }}
@@ -360,9 +370,9 @@ export default function Layout({ children }) {
           className="shrink-0 flex items-center px-5 gap-[12px] z-50"
           style={{
             height: 'var(--topbar-h)',
-            background: '#FFFFFF',
-            borderBottom: '1px solid #E2E8F0',
-            boxShadow: '0 1px 3px rgba(15,23,42,.06)',
+            background: 'var(--af-slate)',
+            borderBottom: '1px solid var(--af-line)',
+            boxShadow: 'var(--shadow-xs)',
           }}
         >
           {/* Toggle sidebar */}
@@ -371,22 +381,22 @@ export default function Layout({ children }) {
             aria-label={collapsed ? 'Étendre le menu' : 'Réduire le menu'}
             style={{
               width: 34, height: 34, borderRadius: 9,
-              border: '1.5px solid #E2E8F0', background: '#F8FAFC',
-              color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              border: '1px solid var(--af-line-2)', background: 'var(--af-night)',
+              color: 'var(--af-cream)', display: 'flex', alignItems: 'center', justifyContent: 'center',
               transition: 'all .12s', flexShrink: 0, cursor: 'pointer',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#EFF6FF'; e.currentTarget.style.borderColor = '#BFDBFE'; e.currentTarget.style.color = '#1D4ED8' }}
-            onMouseLeave={e => { e.currentTarget.style.background = '#F8FAFC'; e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.color = '#475569' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-gold-soft)'; e.currentTarget.style.borderColor = 'var(--color-gold-line)'; e.currentTarget.style.color = 'var(--color-gold)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'var(--af-night)'; e.currentTarget.style.borderColor = 'var(--af-line-2)'; e.currentTarget.style.color = 'var(--af-cream)' }}
           >
             <Menu size={15} strokeWidth={2} />
           </button>
 
           {/* Breadcrumb */}
           {currentItem && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '13px', color: '#94A3B8' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '13px', color: 'var(--af-cream)' }}>
               <span style={{ fontWeight: 500 }}>Gestion Budgétaire</span>
               <ChevronRight size={12} strokeWidth={2.5} />
-              <span style={{ color: '#1E3A8A', fontWeight: 700, letterSpacing: '-.01em' }}>{currentItem.label}</span>
+              <span style={{ color: 'var(--af-ink)', fontWeight: 700, letterSpacing: '-.01em' }}>{currentItem.label}</span>
             </div>
           )}
 
@@ -399,14 +409,14 @@ export default function Layout({ children }) {
             style={{
               display: 'flex', alignItems: 'center', gap: 7,
               height: 34, padding: '0 12px', borderRadius: 8,
-              border: '1.5px solid #BFDBFE',
-              background: '#EFF6FF',
-              color: '#1D4ED8', fontSize: '12px', fontWeight: 600,
+              border: '1px solid var(--color-gold-line)',
+              background: 'var(--color-gold-soft)',
+              color: 'var(--color-gold)', fontSize: '12px', fontWeight: 600,
               cursor: 'pointer', transition: 'all .12s', flexShrink: 0,
               letterSpacing: '.01em',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#DBEAFE'; e.currentTarget.style.borderColor = '#93C5FD' }}
-            onMouseLeave={e => { e.currentTarget.style.background = '#EFF6FF'; e.currentTarget.style.borderColor = '#BFDBFE' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(184,134,74,.2)'; e.currentTarget.style.borderColor = 'var(--color-gold)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'var(--color-gold-soft)'; e.currentTarget.style.borderColor = 'var(--color-gold-line)' }}
           >
             <Sparkles size={13} strokeWidth={2} />
             {t('topbar_assistance')}
@@ -417,7 +427,7 @@ export default function Layout({ children }) {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto" style={{ padding: isMobile ? '16px 14px' : '28px 32px', background: '#F8FAFC' }}>
+        <main className="flex-1 overflow-y-auto" style={{ padding: isMobile ? '16px 14px' : '28px 32px', background: 'var(--af-night)' }}>
           <div className="page-content">
             {children}
           </div>
@@ -430,14 +440,14 @@ export default function Layout({ children }) {
 
 /* ── helpers notifications ───────────────────────────────────────────────── */
 const NOTIF_META = {
-  BUDGET_CREE:      { Icon: FileText,    color: '#1D4ED8', bg: '#EFF6FF', border: '#BFDBFE', label: 'Nouveau budget'    },
-  BUDGET_APPROUVE:  { Icon: CheckCircle2,color: '#16A34A', bg: '#F0FDF4', border: '#BBF7D0', label: 'Budget approuvé'   },
-  BUDGET_REJETE:    { Icon: XCircle,     color: '#DC2626', bg: '#FFF1F2', border: '#FECDD3', label: 'Budget rejeté'     },
-  BUDGET_SOUMIS:    { Icon: Upload,      color: '#7C3AED', bg: '#F5F3FF', border: '#DDD6FE', label: 'Budget soumis'     },
-  DEPENSE_SAISIE:   { Icon: DollarSign,  color: '#0F766E', bg: '#F0FDFA', border: '#99F6E4', label: 'Dépense enregistrée' },
-  DEPENSE_VALIDEE:  { Icon: CreditCard,  color: '#0891B2', bg: '#ECFEFF', border: '#A5F3FC', label: 'Dépense validée'   },
-  DEPENSE_REJETEE:  { Icon: Ban,         color: '#EA580C', bg: '#FFF7ED', border: '#FED7AA', label: 'Dépense rejetée'   },
-  DEFAULT:          { Icon: Bell,        color: '#2563EB', bg: '#EFF6FF', border: '#BFDBFE', label: 'Info'              },
+  BUDGET_CREE:      { Icon: FileText,    color: 'var(--af-ink)',          bg: 'var(--color-gold-soft)', border: 'var(--color-gold-line)', label: 'Nouveau budget'    },
+  BUDGET_APPROUVE:  { Icon: CheckCircle2,color: '#15803D',                bg: 'rgba(21,128,61,.08)',    border: 'rgba(21,128,61,.25)',     label: 'Budget approuvé'   },
+  BUDGET_REJETE:    { Icon: XCircle,     color: '#B91C1C',                bg: 'rgba(220,38,38,.06)',    border: 'rgba(220,38,38,.2)',      label: 'Budget rejeté'     },
+  BUDGET_SOUMIS:    { Icon: Upload,      color: 'var(--color-gold)',      bg: 'var(--color-gold-soft)', border: 'var(--color-gold-line)', label: 'Budget soumis'     },
+  DEPENSE_SAISIE:   { Icon: DollarSign,  color: '#0F766E',                bg: 'rgba(15,118,110,.08)',   border: 'rgba(15,118,110,.25)',    label: 'Dépense enregistrée' },
+  DEPENSE_VALIDEE:  { Icon: CreditCard,  color: '#0891B2',                bg: 'rgba(8,145,178,.08)',    border: 'rgba(8,145,178,.25)',     label: 'Dépense validée'   },
+  DEPENSE_REJETEE:  { Icon: Ban,         color: '#B91C1C',                bg: 'rgba(220,38,38,.06)',    border: 'rgba(220,38,38,.2)',      label: 'Dépense rejetée'   },
+  DEFAULT:          { Icon: Bell,        color: 'var(--color-gold)',      bg: 'var(--color-gold-soft)', border: 'var(--color-gold-line)', label: 'Info'              },
 }
 const notifMeta = (type) => NOTIF_META[type] || NOTIF_META.DEFAULT
 
@@ -502,7 +512,6 @@ function NotificationBell({ navigate, t }) {
     }).catch(() => {})
   }
 
-  // Polling rapide sur le compteur seul (requête légère ?non_lues=1)
   const loadBadge = () => {
     getNotifications({ non_lues: '1' }).then(r => {
       setNbNonLues(r.data?.nb_non_lues ?? 0)
@@ -511,11 +520,8 @@ function NotificationBell({ navigate, t }) {
 
   useEffect(() => {
     loadNotifs()
-    // Badge : toutes les 5s (requête légère)
     const badgeTimer = setInterval(loadBadge, 5000)
-    // Liste complète : toutes les 30s (si le panel est ouvert, on recharge à l'ouverture)
     const fullTimer  = setInterval(loadNotifs, 30000)
-    // Écouter l'événement custom émis après chaque action métier
     const onRefresh = () => loadNotifs()
     window.addEventListener('budgetflow:notif-refresh', onRefresh)
     return () => {
@@ -568,20 +574,20 @@ function NotificationBell({ navigate, t }) {
         aria-label="Notifications"
         style={{
           position: 'relative', width: 36, height: 36, borderRadius: 8,
-          border: '1.5px solid #E2E8F0',
-          background: open ? '#EFF6FF' : '#F8FAFC',
+          border: '1px solid var(--af-line-2)',
+          background: open ? 'var(--color-gold-soft)' : 'var(--af-night)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer', color: '#475569', transition: 'all .12s', flexShrink: 0,
+          cursor: 'pointer', color: 'var(--af-cream)', transition: 'all .12s', flexShrink: 0,
         }}
-        onMouseEnter={e => { e.currentTarget.style.background = '#EFF6FF'; e.currentTarget.style.borderColor = '#BFDBFE'; e.currentTarget.style.color = '#1D4ED8' }}
-        onMouseLeave={e => { e.currentTarget.style.background = open ? '#EFF6FF' : '#F8FAFC'; e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.color = '#475569' }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-gold-soft)'; e.currentTarget.style.borderColor = 'var(--color-gold-line)'; e.currentTarget.style.color = 'var(--color-gold)' }}
+        onMouseLeave={e => { e.currentTarget.style.background = open ? 'var(--color-gold-soft)' : 'var(--af-night)'; e.currentTarget.style.borderColor = 'var(--af-line-2)'; e.currentTarget.style.color = 'var(--af-cream)' }}
       >
         <Bell size={16} strokeWidth={2} />
         {nbNonLues > 0 && (
           <span style={{
             position: 'absolute', top: -4, right: -4,
             minWidth: 17, height: 17, borderRadius: 9999,
-            background: '#C0392B', border: '2px solid #FFFFFF',
+            background: '#C0392B', border: '2px solid var(--af-slate)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '9px', fontWeight: 800, color: '#fff', padding: '0 3px',
           }}>
@@ -600,10 +606,10 @@ function NotificationBell({ navigate, t }) {
             right: 8,
             width: 'min(400px, calc(100vw - 16px))',
             maxHeight: 'calc(100vh - var(--topbar-h) - 24px)',
-            background: '#fff',
+            background: 'var(--af-slate)',
             borderRadius: 16,
-            border: '1px solid #E5E7EB',
-            boxShadow: '0 20px 60px rgba(0,0,0,.18), 0 4px 16px rgba(0,0,0,.08)',
+            border: '1px solid var(--af-line)',
+            boxShadow: 'var(--shadow-xl)',
             zIndex: 9999,
             display: 'flex',
             flexDirection: 'column',
@@ -614,21 +620,21 @@ function NotificationBell({ navigate, t }) {
           {/* ── Header ── */}
           <div style={{
             padding: '16px 18px 14px',
-            background: '#1E3A8A',
+            background: 'var(--af-ink)',
             flexShrink: 0,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{
                   width: 32, height: 32, borderRadius: 8,
-                  background: 'rgba(255,255,255,.15)',
+                  background: 'rgba(255,255,255,.12)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
                   <Bell size={16} strokeWidth={2} color="#fff" />
                 </div>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: '14px', color: '#fff' }}>{t('notif_titre')}</div>
-                  <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.6)', marginTop: 1 }}>
+                  <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.55)', marginTop: 1 }}>
                     {nbNonLues > 0 ? `${nbNonLues} non lue${nbNonLues > 1 ? 's' : ''}` : t('notif_a_jour')}
                   </div>
                 </div>
@@ -640,7 +646,7 @@ function NotificationBell({ navigate, t }) {
                     disabled={loading}
                     style={{
                       fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,.85)',
-                      background: 'rgba(255,255,255,.15)', border: '1px solid rgba(255,255,255,.25)',
+                      background: 'rgba(255,255,255,.12)', border: '1px solid rgba(255,255,255,.2)',
                       borderRadius: 6, padding: '4px 10px', cursor: 'pointer',
                     }}
                   >
@@ -666,12 +672,12 @@ function NotificationBell({ navigate, t }) {
           {nbNonLues > 0 && (
             <div style={{
               padding: '8px 18px',
-              background: '#EFF6FF',
-              borderBottom: '1px solid #BFDBFE',
-              fontSize: '12px', color: '#1E40AF', fontWeight: 600,
+              background: 'var(--color-gold-soft)',
+              borderBottom: '1px solid var(--color-gold-line)',
+              fontSize: '12px', color: 'var(--af-ink)', fontWeight: 600,
               display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
             }}>
-              <Bell size={13} strokeWidth={2} style={{ color: '#2563EB', flexShrink: 0 }} />
+              <Bell size={13} strokeWidth={2} style={{ color: 'var(--color-gold)', flexShrink: 0 }} />
               {nbNonLues} {t('notif_attente')}
             </div>
           )}
@@ -681,10 +687,10 @@ function NotificationBell({ navigate, t }) {
             {notifs.length === 0 ? (
               <div style={{ padding: '40px 24px', textAlign: 'center' }}>
                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
-                  <Bell size={32} strokeWidth={1.2} style={{ color: '#CBD5E1' }} />
+                  <Bell size={32} strokeWidth={1.2} style={{ color: 'var(--color-gray-150)' }} />
                 </div>
-                <div style={{ fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: 4 }}>{t('notif_aucune')}</div>
-                <div style={{ fontSize: '12px', color: '#9CA3AF' }}>{t('notif_vous_a_jour')}</div>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--af-ink)', marginBottom: 4 }}>{t('notif_aucune')}</div>
+                <div style={{ fontSize: '12px', color: 'var(--af-cream)' }}>{t('notif_vous_a_jour')}</div>
               </div>
             ) : notifs.map((n, i) => {
               const meta = notifMeta(n.type_notif)
@@ -695,14 +701,14 @@ function NotificationBell({ navigate, t }) {
                   style={{
                     width: '100%', textAlign: 'left',
                     padding: '12px 18px',
-                    background: n.lu ? '#fff' : meta.bg,
+                    background: n.lu ? 'var(--af-slate)' : meta.bg,
                     border: 'none',
-                    borderBottom: i < notifs.length - 1 ? '1px solid #F3F4F6' : 'none',
+                    borderBottom: i < notifs.length - 1 ? '1px solid var(--af-line)' : 'none',
                     cursor: 'pointer', transition: 'background .1s',
                     display: 'flex', gap: 12, alignItems: 'flex-start',
                   }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#F9FAFB'}
-                  onMouseLeave={e => e.currentTarget.style.background = n.lu ? '#fff' : meta.bg}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--color-gray-50)'}
+                  onMouseLeave={e => e.currentTarget.style.background = n.lu ? 'var(--af-slate)' : meta.bg}
                 >
                   {/* Icône type */}
                   <div style={{
@@ -728,24 +734,24 @@ function NotificationBell({ navigate, t }) {
                       {!n.lu && (
                         <span style={{
                           width: 7, height: 7, borderRadius: '50%',
-                          background: '#2563EB', flexShrink: 0,
+                          background: 'var(--color-gold)', flexShrink: 0,
                         }} />
                       )}
                     </div>
                     <div style={{
                       fontSize: '12.5px',
                       fontWeight: n.lu ? 400 : 600,
-                      color: '#111827',
+                      color: 'var(--af-ink)',
                       lineHeight: 1.5,
                       marginBottom: 4,
                     }}>
                       {n.message}
                     </div>
-                    <div style={{ fontSize: '11px', color: '#9CA3AF', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <div style={{ fontSize: '11px', color: 'var(--af-cream)', display: 'flex', alignItems: 'center', gap: 4 }}>
                       <Clock size={11} strokeWidth={2} style={{ flexShrink: 0 }} />
                       {fmtDate(n.date)}
                       {n.lien && (
-                        <span style={{ marginLeft: 6, color: '#2563EB', fontWeight: 600 }}>
+                        <span style={{ marginLeft: 6, color: 'var(--color-gold)', fontWeight: 600 }}>
                           Voir →
                         </span>
                       )}
@@ -759,10 +765,10 @@ function NotificationBell({ navigate, t }) {
           {/* ── Footer ── */}
           <div style={{
             padding: '10px 18px',
-            borderTop: '1px solid #F3F4F6',
-            background: '#F9FAFB',
+            borderTop: '1px solid var(--af-line)',
+            background: 'var(--color-gray-50)',
             flexShrink: 0,
-            fontSize: '11px', color: '#9CA3AF', textAlign: 'center',
+            fontSize: '11px', color: 'var(--af-cream)', textAlign: 'center',
           }}>
             {t('notif_rafraich')}
           </div>
@@ -807,7 +813,7 @@ function AvatarMenu({ user, roleInfo, onLogout, navigate }) {
       >
         <div
           className="w-[30px] h-[30px] rounded-full shrink-0 flex items-center justify-center text-white font-bold text-[11px]"
-          style={{ background: '#1D4ED8' }}
+          style={{ background: 'rgba(184,134,74,.3)', color: 'var(--color-gold-warm)' }}
         >
           {initials}
         </div>
@@ -842,7 +848,7 @@ function AvatarMenu({ user, roleInfo, onLogout, navigate }) {
             <div className="text-[12px] text-[#6B7280] mb-[6px]">
               {user?.email}
             </div>
-            <span className="inline-block text-[10px] font-bold px-2 py-[2px] rounded-[20px] tracking-[.3px]" style={{ background: '#FEF9EC', color: '#78350F', border: '1px solid #F3D07A' }}>
+            <span className="inline-block text-[10px] font-bold px-2 py-[2px] rounded-[20px] tracking-[.3px]" style={{ background: 'var(--color-gold-soft)', color: 'var(--color-gold)', border: '1px solid var(--color-gold-line)' }}>
               {roleInfo?.label || user?.role}
             </span>
           </div>

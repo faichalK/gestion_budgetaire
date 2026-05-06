@@ -4,14 +4,14 @@ import { ClipboardList, AlertTriangle, RotateCcw } from 'lucide-react'
 
 const ACTION_STYLE = {
   CREATE:  { bg: 'var(--color-success-50)',  color: 'var(--color-success-700)', label: 'Création'      },
-  UPDATE:  { bg: 'var(--color-primary-50)',  color: 'var(--color-primary-700)', label: 'Modification'  },
+  UPDATE:  { bg: 'var(--color-gold-soft)',  color: 'var(--color-gold-dark)', label: 'Modification'  },
   DELETE:  { bg: 'var(--color-danger-50)',   color: 'var(--color-danger-700)',  label: 'Suppression'   },
   LOGIN:   { bg: '#f5f3ff',                  color: '#7c3aed',                  label: 'Connexion'     },
   LOGOUT:  { bg: 'var(--color-gray-100)',    color: 'var(--color-gray-600)',    label: 'Déconnexion'   },
   APPROVE: { bg: 'var(--color-success-50)',  color: 'var(--color-success-700)', label: 'Approbation'   },
   REJECT:  { bg: 'var(--color-danger-50)',   color: 'var(--color-danger-700)',  label: 'Rejet'         },
   SUBMIT:  { bg: 'var(--color-warning-50)',  color: 'var(--color-warning-700)', label: 'Soumission'    },
-  VIEW:    { bg: 'var(--color-info-50)',     color: 'var(--color-info-700)',    label: 'Consultation'  },
+  VIEW:    { bg: 'rgba(14,42,71,0.07)',     color: 'var(--af-ink)',    label: 'Consultation'  },
   EXPORT:  { bg: '#fdf4ff',                  color: '#9333ea',                  label: 'Export'        },
 }
 
@@ -174,7 +174,7 @@ export default function AuditLogsPage({ embedded = false }) {
                       <td>
                         {log.valeur_avant && log.valeur_apres && (
                           <details className="cursor-pointer">
-                            <summary className="text-[12px] text-primary-600 font-semibold select-none">
+                            <summary className="text-[12px] font-semibold select-none" style={{ color: 'var(--color-gold)' }}>
                               Voir tout
                             </summary>
                             <div className="mt-[6px] text-[11px] text-[#4B5563] whitespace-pre-wrap max-w-[280px] bg-[#F9FAFB] p-[8px_10px] rounded-[7px] border border-[#E5E7EB] font-mono">

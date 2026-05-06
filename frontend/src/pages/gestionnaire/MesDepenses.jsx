@@ -18,7 +18,7 @@ const STATUT = {
 }
 
 const TABS = [
-  { key: '',        label: 'Toutes',     color: 'var(--color-primary-600)' },
+  { key: '',        label: 'Toutes',     color: 'var(--color-gold)' },
   { key: 'SAISIE',  label: 'En attente', color: '#D97706' },
   { key: 'VALIDEE', label: 'Validées',   color: '#059669' },
   { key: 'REJETEE', label: 'Rejetées',   color: '#DC2626' },
@@ -107,7 +107,7 @@ export default function MesDepenses() {
           { label: 'EN ATTENTE', val: countFor('SAISIE'),  sub: 'budget(s)', color: 'var(--color-warning-600)', bg: 'var(--color-warning-50)'  },
           { label: 'VALIDÉES',   val: countFor('VALIDEE'), sub: 'budget(s)', color: 'var(--color-success-600)', bg: 'var(--color-success-50)'  },
           { label: 'REJETÉES',   val: countFor('REJETEE'), sub: 'budget(s)', color: 'var(--color-danger-600)',  bg: 'var(--color-danger-50)'   },
-          { label: 'TOTAL',      val: countFor(''),        sub: 'budgets',   color: 'var(--color-primary-600)', bg: 'var(--color-primary-50)'  },
+          { label: 'TOTAL',      val: countFor(''),        sub: 'budgets',   color: 'var(--color-gold)', bg: 'var(--color-gold-soft)'  },
         ].map(k => (
           <div key={k.label} className="card" style={{ borderTop: `3px solid ${k.color}` }}>
             <div style={{ fontSize: '10px', fontWeight: 700, color: k.color, textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 8 }}>{k.label}</div>

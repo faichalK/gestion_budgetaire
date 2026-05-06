@@ -104,7 +104,7 @@ function BudgetAnnuelCard({ ba, expanded, onToggle, onEdit, onDelete }) {
     <div
       className="card mb-[4px]"
       style={{
-        border: `1.5px solid ${expanded ? 'var(--color-primary-400)' : 'var(--color-gray-200)'}`,
+        border: `1.5px solid ${expanded ? 'var(--color-gold)' : 'var(--color-gray-200)'}`,
         borderBottom: expanded ? 'none' : undefined,
         borderBottomLeftRadius: expanded ? 0 : undefined,
         borderBottomRightRadius: expanded ? 0 : undefined,
@@ -134,7 +134,7 @@ function BudgetAnnuelCard({ ba, expanded, onToggle, onEdit, onDelete }) {
       <div className="grid grid-cols-2 gap-[10px] mb-[14px]">
         <div>
           <div className="text-[10px] text-[#9CA3AF] font-semibold tracking-[.4px] mb-[3px]">BUDGET GLOBAL</div>
-          <div className="font-mono font-bold text-[13px] text-primary-600">{fmt(ba.montant_global)} FCFA</div>
+          <div className="font-mono font-bold text-[13px]" style={{ color: 'var(--color-gold)' }}>{fmt(ba.montant_global)} FCFA</div>
         </div>
         <div>
           <div className="text-[10px] text-[#9CA3AF] font-semibold tracking-[.4px] mb-[3px]">DISPONIBLE</div>
@@ -155,7 +155,7 @@ function BudgetAnnuelCard({ ba, expanded, onToggle, onEdit, onDelete }) {
         <div className="exec-bar mb-[12px]">
           <div className="exec-bar-fill" style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${jaugeColor(Math.max(0, pct - 20))}, ${color})` }} />
         </div>
-        <div className="flex items-center justify-center gap-[5px] text-[11px] font-semibold" style={{ color: expanded ? 'var(--color-primary-600)' : '#9CA3AF' }}>
+        <div className="flex items-center justify-center gap-[5px] text-[11px] font-semibold" style={{ color: expanded ? 'var(--color-gold)' : '#9CA3AF' }}>
           <Building2 size={12} strokeWidth={2} />
           {expanded ? 'Masquer les départements' : 'Voir les départements'}
           <ChevronDown size={12} strokeWidth={2.5} style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }} />
@@ -179,7 +179,7 @@ function AllocationsInline({ budgetAnnuelId }) {
 
   return (
     <div className="card mb-[16px]" style={{
-      border: '1.5px solid var(--color-primary-400)',
+      border: '1.5px solid var(--color-gold)',
       borderTop: 'none',
       borderTopLeftRadius: 0,
       borderTopRightRadius: 0,

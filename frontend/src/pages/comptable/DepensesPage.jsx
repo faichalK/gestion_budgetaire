@@ -19,7 +19,7 @@ const STATUT = {
 }
 
 const TABS = [
-  { key: '',        label: 'Toutes',     color: 'var(--color-primary-600)' },
+  { key: '',        label: 'Toutes',     color: 'var(--color-gold)' },
   { key: 'SAISIE',  label: 'En attente', color: '#D97706' },
   { key: 'VALIDEE', label: 'Validées',   color: '#059669' },
   { key: 'REJETEE', label: 'Rejetées',   color: '#DC2626' },
@@ -108,7 +108,7 @@ export default function DepensesPage() {
           { label: 'EN ATTENTE', val: countFor('SAISIE'),  sub: 'budget(s)', color: 'var(--color-warning-600)', bg: 'var(--color-warning-50)'  },
           { label: 'VALIDÉES',   val: countFor('VALIDEE'), sub: 'budget(s)', color: 'var(--color-success-600)', bg: 'var(--color-success-50)'  },
           { label: 'REJETÉES',   val: countFor('REJETEE'), sub: 'budget(s)', color: 'var(--color-danger-600)',  bg: 'var(--color-danger-50)'   },
-          { label: 'TOTAL',      val: countFor(''),        sub: 'budgets',   color: 'var(--color-primary-600)', bg: 'var(--color-primary-50)'  },
+          { label: 'TOTAL',      val: countFor(''),        sub: 'budgets',   color: 'var(--color-gold)', bg: 'var(--color-gold-soft)'  },
         ].map(k => (
           <div key={k.label} className="card" style={{ borderTop: `3px solid ${k.color}` }}>
             <div style={{ fontSize: '10px', fontWeight: 700, color: k.color, textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 8 }}>{k.label}</div>
@@ -294,7 +294,7 @@ function DepenseGroupDetail({ group, onClose, onRefresh }) {
         <div className="modal-panel" onClick={e => e.stopPropagation()} style={{ maxWidth: 720, padding: 0, overflow: 'hidden' }}>
 
           {/* ── Header navy — même couleur que BudgetDetail ── */}
-          <div style={{ background: '#1E3A8A', padding: '20px 24px 16px', color: '#fff', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ background: 'var(--af-ink)', padding: '20px 24px 16px', color: '#fff', position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,.06)', pointerEvents: 'none' }} />
             <button onClick={onClose} style={{ position: 'absolute', top: 14, right: 14, background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 7, padding: '5px 8px', cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center' }}>
               <X size={15} strokeWidth={2} />
@@ -371,7 +371,7 @@ function DepenseGroupDetail({ group, onClose, onRefresh }) {
                         {s.label}
                       </span>
                       {d.piece_justificative_url && (
-                        <Paperclip size={10} strokeWidth={2} style={{ color: 'var(--color-primary-400)' }} />
+                        <Paperclip size={10} strokeWidth={2} style={{ color: 'var(--color-gold)' }} />
                       )}
                     </div>
                     <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--color-gray-800)', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

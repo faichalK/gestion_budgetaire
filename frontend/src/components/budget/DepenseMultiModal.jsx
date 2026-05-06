@@ -155,11 +155,11 @@ export default function DepenseMultiModal({ budgetId: propBudgetId = null, onClo
           </div>
           {/* Indicateur d'étapes */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '11px' }}>
-            <span style={{ fontWeight: step === 1 ? 700 : 400, color: step === 1 ? 'var(--color-primary-600)' : 'var(--color-gray-400)' }}>
+            <span style={{ fontWeight: step === 1 ? 700 : 400, color: step === 1 ? 'var(--color-gold)' : 'var(--color-gray-400)' }}>
               1. Budget
             </span>
             <span style={{ color: 'var(--color-gray-300)' }}>→</span>
-            <span style={{ fontWeight: step === 2 ? 700 : 400, color: step === 2 ? 'var(--color-primary-600)' : 'var(--color-gray-400)' }}>
+            <span style={{ fontWeight: step === 2 ? 700 : 400, color: step === 2 ? 'var(--color-gold)' : 'var(--color-gray-400)' }}>
               2. Lignes & montants
             </span>
           </div>
@@ -204,7 +204,7 @@ export default function DepenseMultiModal({ budgetId: propBudgetId = null, onClo
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                       transition: 'all .12s',
                     }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-primary-400)'; e.currentTarget.style.background = 'var(--color-primary-50)' }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-gold)'; e.currentTarget.style.background = 'var(--color-gold-soft)' }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-gray-200)'; e.currentTarget.style.background = '#fff' }}
                   >
                     <div>
@@ -261,7 +261,7 @@ export default function DepenseMultiModal({ budgetId: propBudgetId = null, onClo
                     <button
                       type="button"
                       onClick={() => { setStep(1); setSelection({}); setCategories([]) }}
-                      style={{ fontSize: '11px', color: 'var(--color-primary-600)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+                      style={{ fontSize: '11px', color: 'var(--color-gold)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}
                     >
                       ← Changer de budget
                     </button>
@@ -305,7 +305,7 @@ export default function DepenseMultiModal({ budgetId: propBudgetId = null, onClo
                             {catSel > 0 && (
                               <span style={{
                                 fontSize: '10px', fontWeight: 700, padding: '1px 7px', borderRadius: 9999,
-                                background: 'var(--color-primary-100)', color: 'var(--color-primary-700)',
+                                background: 'rgba(184,134,74,0.15)', color: 'var(--color-gold-dark)',
                                 marginLeft: 4, flexShrink: 0,
                               }}>
                                 {catSel} ✓
@@ -368,9 +368,9 @@ export default function DepenseMultiModal({ budgetId: propBudgetId = null, onClo
                                       padding: '7px 14px 7px 46px', gap: 6,
                                       borderBottom: '0.5px solid var(--color-gray-50)',
                                       cursor: epuisee ? 'not-allowed' : 'pointer',
-                                      background: isSel ? 'var(--color-primary-50)' : epuisee ? '#fafafa' : '#fff',
+                                      background: isSel ? 'var(--color-gold-soft)' : epuisee ? '#fafafa' : '#fff',
                                       opacity: epuisee ? 0.5 : 1,
-                                      borderLeft: isSel ? '3px solid var(--color-primary-500)' : '3px solid transparent',
+                                      borderLeft: isSel ? '3px solid var(--color-gold)' : '3px solid transparent',
                                       alignItems: 'center',
                                       transition: 'background .1s',
                                     }}
@@ -379,7 +379,7 @@ export default function DepenseMultiModal({ budgetId: propBudgetId = null, onClo
                                     <div style={{
                                       width: 15, height: 15, borderRadius: 4, flexShrink: 0,
                                       border: isSel ? 'none' : '2px solid var(--color-gray-300)',
-                                      background: isSel ? 'var(--color-primary-600)' : '#fff',
+                                      background: isSel ? 'var(--color-gold)' : '#fff',
                                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     }}>
                                       {isSel && <Check size={9} strokeWidth={3} color="#fff" />}
@@ -513,11 +513,11 @@ export default function DepenseMultiModal({ budgetId: propBudgetId = null, onClo
                     {/* Total */}
                     <div style={{
                       padding: '10px 14px', borderRadius: 8, marginBottom: 14,
-                      background: 'var(--color-primary-50)', border: '1px solid var(--color-primary-200)',
+                      background: 'var(--color-gold-soft)', border: '1px solid rgba(184,134,74,0.30)',
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                     }}>
-                      <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--color-primary-800)' }}>Total dépense</span>
-                      <span style={{ fontSize: '15px', fontWeight: 800, fontFamily: 'var(--font-mono)', color: 'var(--color-primary-700)' }}>
+                      <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--color-gold-dark)' }}>Total dépense</span>
+                      <span style={{ fontSize: '15px', fontWeight: 800, fontFamily: 'var(--font-mono)', color: 'var(--color-gold-dark)' }}>
                         {fmt(total)} FCFA
                       </span>
                     </div>
