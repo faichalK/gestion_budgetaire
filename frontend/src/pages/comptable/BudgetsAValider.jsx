@@ -666,7 +666,7 @@ export function BudgetValidationDetail({ basePath = '/validation' }) {
                 onClick={handleCloturer}
                 disabled={saving}
                 className="inline-flex items-center gap-[7px] px-[22px] py-[10px] rounded-[9px] border-none text-white font-bold text-[14px] cursor-pointer"
-                style={{ background: 'linear-gradient(135deg, #0E2A47, #6D28D9)', boxShadow: '0 2px 14px rgba(124,58,237,.4)' }}
+                style={{ background: 'linear-gradient(135deg, #0E2A47, #163A5F)', boxShadow: '0 2px 14px rgba(14,42,71,.35)' }}
               >
                 Clôturer le budget
               </button>
