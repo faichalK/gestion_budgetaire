@@ -14,7 +14,7 @@ const TR = {
     section_assistance:'ASSISTANCE', section_systeme:'SYSTÈME', section_budgets:'BUDGETS',
     section_depenses:'DÉPENSES', section_validation:'VALIDATION',
     mon_profil:'Mon profil', deconnexion:'Déconnexion', plateforme:'Plateforme budgétaire',
-    topbar_titre:'Gestion Budgétaire', topbar_assistance:'Assistance',
+    topbar_titre:'Atlas Finance', topbar_assistance:'Assistance',
     notif_titre:'Notifications', notif_a_jour:'Tout est à jour', notif_tout_lire:'Tout lire',
     notif_aucune:'Aucune notification', notif_vous_a_jour:'Vous êtes à jour !',
     notif_attente:'notification(s) en attente de lecture', notif_rafraich:'Rafraîchissement automatique toutes les 15 secondes',
@@ -42,7 +42,7 @@ const TR = {
     section_assistance:'ASSISTANCE', section_systeme:'SYSTEM', section_budgets:'BUDGETS',
     section_depenses:'EXPENSES', section_validation:'VALIDATION',
     mon_profil:'My Profile', deconnexion:'Log Out', plateforme:'Budget Platform',
-    topbar_titre:'Budget Management', topbar_assistance:'Assistant',
+    topbar_titre:'Atlas Finance', topbar_assistance:'Assistant',
     notif_titre:'Notifications', notif_a_jour:'All up to date', notif_tout_lire:'Mark all read',
     notif_aucune:'No notifications', notif_vous_a_jour:'You are up to date!',
     notif_attente:'notification(s) pending', notif_rafraich:'Auto-refresh every 15 seconds',
@@ -64,12 +64,25 @@ const TR = {
 }
 
 function loadLang() {
-  try { const v = localStorage.getItem('pref_lang'); return v === 'en' ? 'en' : 'fr' } catch { return 'fr' }
+  try {
+    const v = localStorage.getItem('pref_lang')
+    return v === 'en' ? 'en' : 'fr'
+  } catch {
+    return 'fr'
+  }
+}
+
+function getStoredAccessToken() {
+  try {
+    return localStorage.getItem('access_token')
+  } catch {
+    return null
+  }
 }
 
 export function AuthProvider({ children }) {
   const [user,    setUser]    = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(() => Boolean(getStoredAccessToken()))
   const [lang,    setLangState] = useState(loadLang)
 
   useEffect(() => {
@@ -77,14 +90,24 @@ export function AuthProvider({ children }) {
   }, [lang])
 
   useEffect(() => {
-    const token = localStorage.getItem('access_token')
-    if (token) {
-      api.get('/accounts/me/')
-        .then(({ data }) => setUser(data))
-        .catch(() => { localStorage.clear(); setUser(null) })
-        .finally(() => setLoading(false))
-    } else {
-      setLoading(false)
+    const token = getStoredAccessToken()
+    if (!token) return undefined
+
+    let active = true
+    api.get('/accounts/me/')
+      .then(({ data }) => {
+        if (active) setUser(data)
+      })
+      .catch(() => {
+        localStorage.clear()
+        if (active) setUser(null)
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+
+    return () => {
+      active = false
     }
   }, [])
 
@@ -104,7 +127,11 @@ export function AuthProvider({ children }) {
 
   const setLanguage = useCallback((l) => {
     setLangState(l)
-    try { localStorage.setItem('pref_lang', l) } catch {}
+    try {
+      localStorage.setItem('pref_lang', l)
+    } catch {
+      // Ignore storage errors on locked-down browsers.
+    }
     document.documentElement.setAttribute('lang', l)
   }, [])
 
@@ -115,11 +142,18 @@ export function AuthProvider({ children }) {
   const isGestionnaire= user?.role === 'GESTIONNAIRE'
   const isComptable   = user?.role === 'COMPTABLE'
 
+  const refreshUser = useCallback(async () => {
+    const { data } = await api.get('/accounts/me/')
+    setUser(data)
+    return data
+  }, [])
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading, isAdmin, isGestionnaire, isComptable, lang, setLanguage, t }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, isAdmin, isGestionnaire, isComptable, lang, setLanguage, t, refreshUser }}>
       {children}
     </AuthContext.Provider>
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext)

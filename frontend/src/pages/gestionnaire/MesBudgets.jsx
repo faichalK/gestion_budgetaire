@@ -5,7 +5,9 @@ import { StatutBadge } from '../../components/StatusBadge'
 import {
   Search, Plus, Wallet, Eye, Send, Edit2, Receipt,
   ChevronRight,
-} from 'lucide-react'
+} from '../../components/AtlasIcons'
+import { cn } from '../../lib/cn'
+import Card from '../../components/ui/Card'
 import { notifRefresh } from '../../utils/notifRefresh'
 import { ConfirmModal } from '../../components/ui'
 import { formaterNombre } from '../../utils/formatters'
@@ -68,26 +70,21 @@ export default function MesBudgets() {
 
   return (
     <div>
-      {/* Page header */}
-      <div className="page-header">
+      <div className="mb-7 flex items-end gap-6">
         <div>
-          <h1 className="page-title">Mes budgets</h1>
-          <p className="page-subtitle">{budgets.length} budget{budgets.length !== 1 ? 's' : ''} au total</p>
+          <div className="text-[10px] tracking-[0.20em] uppercase text-[#B8864A] mb-2 font-medium">Gestionnaire</div>
+          <h1 className="text-[32px] font-normal tracking-[-0.02em] leading-[1.1] text-[#0E2A47] mb-1">Mes budgets</h1>
+          <div className="text-[13px] text-[#5A6B7E]">{budgets.length} budget{budgets.length !== 1 ? 's' : ''} au total</div>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button
-            onClick={() => navigate('/creer-budget')}
-            className="btn btn-primary btn-md"
-            style={{ gap: 7 }}
-          >
-            <Plus size={16} strokeWidth={2.5} />
-            Créer un budget
+        <div className="ml-auto flex gap-2.5">
+          <button onClick={() => navigate('/creer-budget')} className="btn btn-primary btn-sm">
+            <Plus size={14} strokeWidth={2.5} /> Créer un budget
           </button>
         </div>
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 18, borderBottom: '1px solid var(--color-gray-200)', paddingBottom: 0 }}>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 18, borderBottom: '1px solid var(--af-line)', paddingBottom: 0 }}>
         {TABS.map(t => {
           const cnt   = countFor(t.key)
           const active = tab === t.key
@@ -99,7 +96,7 @@ export default function MesBudgets() {
                 background: 'none', border: 'none', cursor: 'pointer',
                 padding: '8px 18px 10px',
                 fontSize: '13px', fontWeight: active ? 700 : 500,
-                color: active ? t.color : 'var(--color-gray-500)',
+                color: active ? t.color : 'var(--af-mute)',
                 borderBottom: active ? `2.5px solid ${t.color}` : '2.5px solid transparent',
                 display: 'flex', alignItems: 'center', gap: 6,
                 transition: 'color .15s',
@@ -107,8 +104,8 @@ export default function MesBudgets() {
             >
               {t.label}
               <span style={{
-                background: active ? t.color : 'var(--color-gray-200)',
-                color: active ? '#fff' : 'var(--color-gray-600)',
+                background: active ? t.color : 'var(--af-line)',
+                color: active ? '#fff' : 'var(--af-cream)',
                 fontSize: '10px', fontWeight: 700,
                 padding: '1px 6px', borderRadius: 9,
               }}>
@@ -131,10 +128,7 @@ export default function MesBudgets() {
           />
         </div>
         {search && (
-          <button
-            onClick={() => setSearch('')}
-            className="btn btn-secondary btn-sm"
-          >
+          <button onClick={() => setSearch('')} className="btn btn-secondary btn-sm">
             ✕ Effacer
           </button>
         )}
@@ -144,7 +138,7 @@ export default function MesBudgets() {
       {visible.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon">
-            <Wallet size={28} strokeWidth={1.5} style={{ color: 'var(--color-gray-400)' }} />
+            <Wallet size={28} strokeWidth={1.5} style={{ color: 'var(--af-mute)' }} />
           </div>
           <p className="empty-title">Aucun budget</p>
           <p className="empty-body">
@@ -156,18 +150,18 @@ export default function MesBudgets() {
           </p>
         </div>
       ) : (
-        <div className="card p-0 overflow-hidden" style={{ overflowX: 'auto' }}>
+        <Card.Table className="overflow-x-auto">
           {/* Header */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: '1fr 160px 140px 160px',
             minWidth: 560,
             padding: '8px 20px',
-            background: 'var(--color-gray-50)',
-            borderBottom: '1px solid var(--color-gray-200)',
+            background: '#EDE7DA',
+            borderBottom: '1px solid rgba(14,42,71,0.08)',
             fontSize: '10px', fontWeight: 700,
             textTransform: 'uppercase', letterSpacing: '.4px',
-            color: 'var(--color-gray-500)',
+            color: 'rgba(90,107,126,0.7)',
           }}>
             <span>Budget</span>
             <span style={{ textAlign: 'right' }}>Montant global</span>
@@ -187,12 +181,12 @@ export default function MesBudgets() {
                   gridTemplateColumns: '1fr 160px 140px 160px',
                   minWidth: 560,
                   padding: '14px 20px',
-                  borderBottom: i < visible.length - 1 ? '1px solid var(--color-gray-100)' : 'none',
+                  borderBottom: i < visible.length - 1 ? '1px solid rgba(14,42,71,0.08)' : 'none',
                   alignItems: 'center',
                   cursor: 'pointer',
                   transition: 'background .12s',
                 }}
-                onMouseEnter={e => e.currentTarget.style.background = 'var(--color-gray-50)'}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--af-steel)'}
                 onMouseLeave={e => e.currentTarget.style.background = ''}
                 onClick={() => navigate(`/mes-budgets/${b.id}`)}
               >
@@ -204,13 +198,13 @@ export default function MesBudgets() {
                   </div>
                   <div style={{
                     fontWeight: 600, fontSize: '14px',
-                    color: 'var(--color-gray-900)',
+                    color: 'var(--af-ink)',
                     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                     marginBottom: 2,
                   }}>
                     {b.nom}
                   </div>
-                  <div style={{ fontSize: '11px', color: 'var(--color-gray-400)' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--af-mute)' }}>
                     {b.departement_nom} · {b.date_debut} → {b.date_fin}
                   </div>
                   {b.comptable_nom && (
@@ -222,10 +216,10 @@ export default function MesBudgets() {
 
                 {/* Montant */}
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '14px', color: 'var(--color-gray-900)' }}>
+                  <div style={{ fontFamily: 'var(--af-mono)', fontWeight: 700, fontSize: '14px', color: 'var(--af-ink)' }}>
                     {fmt(b.montant_global)}
                   </div>
-                  <div style={{ fontSize: '10px', color: 'var(--color-gray-400)', marginTop: 1 }}>FCFA</div>
+                  <div style={{ fontSize: '10px', color: 'var(--af-mute)', marginTop: 1 }}>FCFA</div>
                 </div>
 
                 {/* Jauge */}
@@ -236,7 +230,7 @@ export default function MesBudgets() {
                       style={{ width: `${Math.min(taux, 100)}%` }}
                     />
                   </div>
-                  <div style={{ fontSize: '10px', color: 'var(--color-gray-500)', textAlign: 'center', marginTop: 3, fontWeight: 600 }}>
+                  <div style={{ fontSize: '10px', color: 'var(--af-mute)', textAlign: 'center', marginTop: 3, fontWeight: 600 }}>
                     {taux}%
                   </div>
                 </div>
@@ -250,7 +244,7 @@ export default function MesBudgets() {
                   <button
                     title="Voir le détail"
                     onClick={() => navigate(`/mes-budgets/${b.id}`)}
-                    style={btnStyle('#C9910A')}
+                    style={btnStyle('#B8864A')}
                   >
                     <Eye size={13} strokeWidth={2} />
                   </button>
@@ -289,12 +283,12 @@ export default function MesBudgets() {
                     </button>
                   )}
 
-                  <ChevronRight size={14} strokeWidth={2} style={{ color: 'var(--color-gray-300)', marginLeft: 2 }} />
+                  <ChevronRight size={14} strokeWidth={2} style={{ color: 'var(--af-line-2)', marginLeft: 2 }} />
                 </div>
               </div>
             )
           })}
-        </div>
+        </Card.Table>
       )}
       {confirmModal && <ConfirmModal {...confirmModal} onClose={() => setConfirmModal(null)} />}
     </div>

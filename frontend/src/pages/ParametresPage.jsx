@@ -107,7 +107,7 @@ const NAV_SYSTEM_USER  = { group: 'Système', items: [{ id: 'about', label: 'À 
 const NAV_ADMIN_GROUP  = { group: 'Administration', items: [{ id: 'audit', label: "Journal d'audit" }] }
 
 export default function ParametresPage() {
-  const { user, isAdmin, lang, setLanguage } = useAuth()
+  const { user, isAdmin, lang, setLanguage, refreshUser } = useAuth()
   const [section, setSection] = useState('profil')
 
   const [theme,   setThemeState]   = useState(() => ls('pref_theme',   'light'))
@@ -121,6 +121,12 @@ export default function ParametresPage() {
   const [editProfil,   setEditProfil]   = useState(false)
   const [profilForm,   setProfilForm]   = useState({ prenom: '', nom: '' })
   const [profilSaving, setProfilSaving] = useState(false)
+
+  const [twofa,   setTwofa]   = useState(() => ls('pref_2fa',    true))
+  const [autoBan, setAutoBan] = useState(() => ls('pref_autoban', true))
+
+  const [webhookUrl, setWebhookUrl] = useState('')
+  const [webhookModal, setWebhookModal] = useState(false)
 
   const [pwForm,   setPwForm]   = useState({ ancien: '', nouveau: '', confirm: '' })
   const [pwSaving, setPwSaving] = useState(false)
@@ -159,9 +165,26 @@ export default function ParametresPage() {
 
   const handleProfilSave = async (e) => {
     e.preventDefault(); setProfilSaving(true)
-    try { await updateMe(profilForm); setEditProfil(false); flash('Profil mis à jour') }
-    catch { flash('Erreur lors de la mise à jour', 'error') }
+    try {
+      await updateMe(profilForm)
+      await refreshUser()
+      setEditProfil(false)
+      flash('Profil mis à jour')
+    } catch { flash('Erreur lors de la mise à jour', 'error') }
     finally { setProfilSaving(false) }
+  }
+
+  const handleToggleSecurity = (setter, key) => v => {
+    setter(v); lsSet(key, v)
+    flash(v ? 'Protection activée' : 'Protection désactivée')
+  }
+
+  const handleAddWebhook = (e) => {
+    e.preventDefault()
+    if (!webhookUrl.trim()) return
+    flash(`Webhook enregistré : ${webhookUrl.trim()}`)
+    setWebhookUrl('')
+    setWebhookModal(false)
   }
 
   const handlePasswordChange = async (e) => {
@@ -345,8 +368,10 @@ export default function ParametresPage() {
             <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)]">
               <div className="flex items-center justify-between px-5 py-3 border-b border-[rgba(14,42,71,0.08)]"><div className="text-[13px] font-semibold text-[#0E2A47]">Sécurité du compte</div><div className="text-[11px] text-[#8A9CB0]">JWT · Argon2id</div></div>
               <div style={{ padding: '0 20px' }}>
-                <Row label="Authentification 2FA" description="Code TOTP via authenticator." control={<div className="af-toggle on" />} />
-                <Row label="Blocage auto" description="Verrouillage après 3 tentatives · 15 min." control={<div className="af-toggle on" />} />
+                <Row label="Authentification 2FA" description="Code TOTP via authenticator."
+                  control={<Toggle checked={twofa}   onChange={handleToggleSecurity(setTwofa,   'pref_2fa')} />} />
+                <Row label="Blocage auto" description="Verrouillage après 3 tentatives · 15 min."
+                  control={<Toggle checked={autoBan} onChange={handleToggleSecurity(setAutoBan, 'pref_autoban')} />} />
                 <Row label="Durée de session" last description="Token 15 min · Refresh 7 jours." control={<span className="af-tag-method">15min / 7j</span>} />
               </div>
             </div>
@@ -488,9 +513,47 @@ export default function ParametresPage() {
                 ))}
               </div>
               <div style={{ padding: '12px 20px', borderTop: '1px solid var(--af-line)' }}>
-                <button className="btn btn-secondary btn-sm" style={{ fontSize: 12 }}>+ Ajouter un webhook</button>
+                <button className="btn btn-secondary btn-sm" style={{ fontSize: 12 }} onClick={() => setWebhookModal(true)}>
+                  + Ajouter un webhook
+                </button>
               </div>
             </div>
+
+            {/* Modal webhook */}
+            {webhookModal && (
+              <div className="modal-overlay" onClick={() => setWebhookModal(false)}>
+                <div className="modal-panel" style={{ maxWidth: 440 }} onClick={e => e.stopPropagation()}>
+                  <div className="modal-header">
+                    <h2 style={{ fontSize: 15, fontWeight: 700 }}>Ajouter un webhook</h2>
+                    <button onClick={() => setWebhookModal(false)} className="btn btn-ghost btn-sm" style={{ marginLeft: 'auto' }}>✕</button>
+                  </div>
+                  <form onSubmit={handleAddWebhook}>
+                    <div className="modal-body">
+                      <div className="mb-[18px]">
+                        <label className="form-label">URL de destination</label>
+                        <input className="form-input" type="url" required placeholder="https://example.com/webhook"
+                          value={webhookUrl} onChange={e => setWebhookUrl(e.target.value)} />
+                      </div>
+                      <div className="mb-[18px]">
+                        <label className="form-label">Événement</label>
+                        <select className="form-select">
+                          <option>budget.soumis</option>
+                          <option>budget.approuve</option>
+                          <option>depense.validee</option>
+                        </select>
+                      </div>
+                      <p style={{ fontSize: 12, color: 'var(--af-cream)', lineHeight: 1.6 }}>
+                        Un payload JSON sera envoyé à cette URL à chaque déclenchement de l'événement.
+                      </p>
+                    </div>
+                    <div className="modal-footer">
+                      <button type="button" onClick={() => setWebhookModal(false)} className="btn btn-secondary btn-sm">Annuler</button>
+                      <button type="submit" className="btn btn-primary btn-sm">Enregistrer</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
           </>)}
 
           {/* ── À PROPOS ───────────────────────────────────────────────────── */}

@@ -2,61 +2,29 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { forgotPassword } from '../api/accounts'
-import { Eye, EyeOff, X, KeyRound, ArrowRight } from 'lucide-react'
+import { Eye, EyeOff, X, KeyRound } from '../components/AtlasIcons'
 
-const S = {
-  login: {
-    width: '100%', height: '100vh',
-    display: 'grid', gridTemplateColumns: '1fr 1fr',
-    background: 'var(--af-night)', color: 'var(--af-ink)',
-    fontFamily: "var(--font-sans)",
-  },
-  left: {
-    background: 'var(--af-ink)', padding: 48,
-    color: 'var(--af-side-text)',
-    display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-    position: 'relative', overflow: 'hidden',
-  },
-  leftGlow: {
-    content: '""', position: 'absolute', bottom: -200, right: -200,
-    width: 500, height: 500,
-    background: 'radial-gradient(closest-side, rgba(184,134,74,0.30), transparent 70%)',
-    filter: 'blur(20px)', pointerEvents: 'none',
-  },
-  quote: {
-    fontFamily: 'var(--font-display)', fontSize: 28, lineHeight: 1.2,
-    fontStyle: 'italic', color: 'var(--af-side-text)', maxWidth: 400,
-    position: 'relative',
-  },
-  attrib: {
-    fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase',
-    color: 'rgba(232,238,245,0.65)', marginTop: 24,
-  },
-  right: {
-    padding: 48, display: 'flex', flexDirection: 'column',
-    justifyContent: 'center', alignItems: 'center',
-    background: '#fff',
-  },
-  form: { width: '100%', maxWidth: 320 },
-  eyebrow: {
-    fontSize: 10, letterSpacing: '0.20em', textTransform: 'uppercase',
-    color: 'var(--color-gold)', marginBottom: 8, fontWeight: 500,
-  },
-  lead: { fontSize: 13, color: 'var(--af-cream)', marginBottom: 30 },
-  roles: {
-    display: 'flex', gap: 8, marginTop: 18, paddingTop: 18,
-    borderTop: '1px solid var(--af-line)',
-  },
-  role: (active) => ({
-    flex: 1, padding: 10, textAlign: 'center',
-    border: `1px solid ${active ? 'var(--color-gold)' : 'var(--af-line-2)'}`,
-    borderRadius: 6, fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase',
-    color: active ? 'var(--color-gold)' : 'var(--af-cream)',
-    background: active ? 'var(--color-gold-soft)' : '#fff',
-    cursor: 'pointer', transition: 'all .15s',
-  }),
+/* ── Icônes inline légères ──────────────────────────────────────────────── */
+function IconUser() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="4"/>
+      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+    </svg>
+  )
+}
+function IconLock() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2"/>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+    </svg>
+  )
 }
 
+/* ── Modal mot de passe oublié ─────────────────────────────────────────── */
 function ForgotPasswordModal({ onClose }) {
   const [email,   setEmail]   = useState('')
   const [loading, setLoading] = useState(false)
@@ -83,51 +51,74 @@ function ForgotPasswordModal({ onClose }) {
       position: 'fixed', inset: 0,
       background: 'rgba(14,42,71,.55)', backdropFilter: 'blur(4px)',
       zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: 20, animation: 'fadeIn .15s ease',
+      padding: 20,
     }}>
       <div style={{
-        background: '#fff', borderRadius: 16, width: '100%', maxWidth: 420,
-        boxShadow: '0 20px 60px rgba(14,42,71,.18)', border: '1px solid var(--af-line)',
-        overflow: 'hidden', animation: 'scaleIn .2s cubic-bezier(.34,1.56,.64,1)',
+        background: '#fff', borderRadius: 14, width: '100%', maxWidth: 420,
+        boxShadow: '0 20px 60px rgba(0,0,0,.18)', overflow: 'hidden',
       }}>
-        <div style={{ background: 'var(--af-ink)', padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{
+          background: '#0F1B3D', padding: '18px 24px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <KeyRound size={15} strokeWidth={1.8} color="var(--color-gold-warm)" />
+            <div style={{
+              width: 32, height: 32, borderRadius: 8,
+              background: 'rgba(255,255,255,.12)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <KeyRound size={15} strokeWidth={1.8} color="#B8864A" />
             </div>
             <div>
               <div style={{ fontWeight: 600, fontSize: 14, color: '#fff' }}>Mot de passe oublié</div>
               <div style={{ fontSize: 11, color: 'rgba(255,255,255,.45)', marginTop: 1 }}>Un lien vous sera envoyé par email</div>
             </div>
           </div>
-          <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: 6, background: 'rgba(255,255,255,.1)', border: 'none', color: 'rgba(255,255,255,.7)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <button onClick={onClose} style={{
+            width: 28, height: 28, borderRadius: 6,
+            background: 'rgba(255,255,255,.1)', border: 'none',
+            color: 'rgba(255,255,255,.7)', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
             <X size={14} strokeWidth={2} />
           </button>
         </div>
+
         <div style={{ padding: 24 }}>
           {done ? (
             <div style={{ textAlign: 'center', padding: '8px 0' }}>
-              <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(21,128,61,.1)', border: '2px solid rgba(21,128,61,.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: 20 }}>✉️</div>
-              <p style={{ fontSize: 14, color: 'var(--af-ink)', fontWeight: 600, marginBottom: 6 }}>Email envoyé !</p>
-              <p style={{ fontSize: 13, color: 'var(--af-cream)', lineHeight: 1.7, marginBottom: 20 }}>
-                Si un compte correspond à cet email, vous recevrez un lien de réinitialisation. Vérifiez vos spams.
+              <div style={{
+                width: 52, height: 52, borderRadius: '50%',
+                background: 'rgba(31,95,63,.08)', border: '2px solid rgba(31,95,63,.25)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                margin: '0 auto 16px', fontSize: 22,
+              }}>✉️</div>
+              <p style={{ fontSize: 14, color: '#0F1B3D', fontWeight: 600, marginBottom: 6 }}>Email envoyé !</p>
+              <p style={{ fontSize: 13, color: '#64748B', lineHeight: 1.7, marginBottom: 20 }}>
+                Si un compte correspond à cet email, vous recevrez un lien de réinitialisation.
               </p>
-              <button onClick={onClose} className="btn btn-secondary btn-sm" style={{ width: '100%', justifyContent: 'center' }}>Fermer</button>
+              <button onClick={onClose} style={btnOutlineStyle}>Fermer</button>
             </div>
           ) : (
             <form onSubmit={handleSubmit} noValidate>
-              <p style={{ fontSize: 13, color: 'var(--af-cream)', lineHeight: 1.7, marginBottom: 20 }}>
+              <p style={{ fontSize: 13, color: '#64748B', lineHeight: 1.7, marginBottom: 20 }}>
                 Entrez l'adresse email associée à votre compte.
               </p>
-              <div className="form-field" style={{ marginBottom: 16 }}>
-                <label className="form-label" htmlFor="forgot-email">Adresse email <span style={{ color: 'var(--color-danger-500)' }}>*</span></label>
-                <input id="forgot-email" type="email" required autoFocus value={email} onChange={e => setEmail(e.target.value)} placeholder="votre@email.com" className="form-input" />
+              <div style={{ marginBottom: 14 }}>
+                <label style={labelStyle}>Adresse email</label>
+                <input
+                  type="email" required autoFocus
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="votre@email.com"
+                  style={inputStyle}
+                />
               </div>
-              {error && <div className="alert alert-error" style={{ marginBottom: 16 }}><span>{error}</span></div>}
+              {error && <div style={{ fontSize: 12, color: '#DC2626', marginBottom: 12 }}>{error}</div>}
               <div style={{ display: 'flex', gap: 10 }}>
-                <button type="button" onClick={onClose} className="btn btn-secondary btn-sm" style={{ flex: 1, justifyContent: 'center' }}>Annuler</button>
-                <button type="submit" disabled={loading} className="btn btn-primary btn-sm" style={{ flex: 2, justifyContent: 'center' }}>
-                  {loading ? <><span className="spinner-sm" /> Envoi…</> : 'Envoyer le lien'}
+                <button type="button" onClick={onClose} style={{ ...btnOutlineStyle, flex: 1 }}>Annuler</button>
+                <button type="submit" disabled={loading} style={{ ...btnPrimaryStyle, flex: 2 }}>
+                  {loading ? 'Envoi…' : 'Envoyer le lien'}
                 </button>
               </div>
             </form>
@@ -138,6 +129,38 @@ function ForgotPasswordModal({ onClose }) {
   )
 }
 
+/* ── Styles partagés ────────────────────────────────────────────────────── */
+const inputStyle = {
+  width: '100%', padding: '12px 14px 12px 42px',
+  border: '1.5px solid #CBD5E1', borderRadius: 8,
+  fontSize: 14, color: '#1E293B', outline: 'none',
+  boxSizing: 'border-box', background: '#fff',
+  fontFamily: 'inherit',
+  transition: 'border-color .15s',
+}
+const labelStyle = {
+  display: 'block', fontSize: 12, fontWeight: 600,
+  color: '#475569', marginBottom: 6, letterSpacing: '.02em',
+}
+const btnPrimaryStyle = {
+  width: '100%', padding: '13px 16px',
+  background: '#1F5F3F', color: '#fff',
+  border: 'none', borderRadius: 8,
+  fontSize: 14, fontWeight: 700,
+  cursor: 'pointer', letterSpacing: '.06em',
+  textTransform: 'uppercase', justifyContent: 'center',
+  display: 'flex', alignItems: 'center', gap: 6,
+  transition: 'background .15s',
+}
+const btnOutlineStyle = {
+  padding: '11px 16px', borderRadius: 8,
+  border: '1.5px solid #CBD5E1', background: '#fff',
+  fontSize: 13, fontWeight: 600, color: '#475569',
+  cursor: 'pointer', display: 'flex', alignItems: 'center',
+  justifyContent: 'center', transition: 'all .15s', width: '100%',
+}
+
+/* ── Page principale ────────────────────────────────────────────────────── */
 export default function LoginPage() {
   const { login }   = useAuth()
   const navigate    = useNavigate()
@@ -159,7 +182,7 @@ export default function LoginPage() {
       setError(
         err?.response?.status === 403
           ? detail || 'Compte bloqué après 3 tentatives. Contactez votre administrateur.'
-          : detail || 'Email ou mot de passe incorrect. Vérifiez vos identifiants.'
+          : detail || 'Identifiant ou mot de passe incorrect.'
       )
     } finally {
       setLoading(false)
@@ -167,132 +190,218 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={S.login}>
+    <div className="af-login-page">
       {showForgot && <ForgotPasswordModal onClose={() => setShowForgot(false)} />}
 
-      {/* Panneau gauche — dark navy */}
-      <div style={S.left}>
-        <div style={S.leftGlow} aria-hidden="true" />
+      {/* ══════════════ PANNEAU GAUCHE : image ══════════════ */}
+      <div
+        className="af-login-img-panel"
+        style={{ backgroundImage: "url('/gestion.jpg')" }}
+      >
+        {/* Overlay dégradé navy */}
+        <div className="af-login-overlay" />
 
-        {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, position: 'relative' }}>
+        {/* Contenu texte */}
+        <div style={{
+          position: 'relative', zIndex: 1,
+          height: '100%', padding: '52px 56px',
+          display: 'flex', flexDirection: 'column',
+          justifyContent: 'flex-end',
+        }}>
+          {/* Logo petit en haut à gauche */}
           <div style={{
-            width: 28, height: 28, borderRadius: 6,
-            background: 'linear-gradient(135deg, var(--color-gold), #8C6534)',
-            display: 'grid', placeItems: 'center',
+            position: 'absolute', top: 40, left: 52,
+            display: 'flex', alignItems: 'center', gap: 10,
           }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: '#fff', fontFamily: 'var(--font-display)' }}>A</span>
+            <div style={{
+              width: 34, height: 34, borderRadius: 8,
+              background: 'linear-gradient(135deg, #B8864A, #8C6534)',
+              display: 'grid', placeItems: 'center',
+            }}>
+              <span style={{ fontSize: 16, fontWeight: 900, color: '#fff' }}>A</span>
+            </div>
+            <span style={{ fontSize: 15, fontWeight: 600, color: 'rgba(255,255,255,.85)', letterSpacing: '0.01em' }}>
+              Atlas Finance
+            </span>
           </div>
-          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 500, fontSize: 18, color: 'var(--af-side-text)', letterSpacing: '0.01em' }}>
-            Atlas Finance
-          </span>
-        </div>
 
-        {/* Citation */}
-        <div style={{ position: 'relative' }}>
-          <div style={S.quote}>
-            <span style={{ fontSize: 72, color: 'var(--color-gold-warm)', lineHeight: 0, verticalAlign: -20, fontFamily: 'var(--font-display)' }}>"</span>
-            Le budget n'est pas une contrainte — c'est l'expression chiffrée d'une stratégie.
+          {/* Titre principal */}
+          <h1 style={{
+            fontSize: 'clamp(2rem, 3.5vw, 3rem)',
+            fontWeight: 800, lineHeight: 1.15,
+            color: '#fff', margin: '0 0 18px',
+            textShadow: '0 2px 12px rgba(0,0,0,.3)',
+          }}>
+            Connectez-vous à votre compte{' '}
+            <span style={{ color: '#B8864A' }}>Atlas Finance</span>
+          </h1>
+
+          <p style={{
+            fontSize: 15, color: 'rgba(255,255,255,.72)',
+            lineHeight: 1.65, maxWidth: 420, margin: 0,
+          }}>
+            Restez connecté et gérez vos budgets, dépenses et rapports financiers en toute sécurité.
+          </p>
+
+          {/* Badge version */}
+          <div style={{
+            marginTop: 36,
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            background: 'rgba(255,255,255,.12)', backdropFilter: 'blur(8px)',
+            borderRadius: 20, padding: '6px 14px', width: 'fit-content',
+          }}>
+            <span style={{
+              width: 8, height: 8, borderRadius: '50%',
+              background: '#4ADE80', display: 'inline-block',
+            }} />
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,.8)', fontWeight: 500 }}>
+              Système opérationnel · v 2.4.1
+            </span>
           </div>
-          <div style={S.attrib}>— Manuel de gouvernance financière, 2026</div>
-        </div>
-
-        {/* Version */}
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'rgba(232,238,245,0.4)', position: 'relative' }}>
-          v 2.4.1 · Hébergé en UE · ISO 27001
         </div>
       </div>
 
-      {/* Panneau droit — formulaire */}
-      <div style={S.right}>
-        <div style={S.form}>
-          <div style={S.eyebrow}>Espace sécurisé · JWT + Argon2</div>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 28, margin: '0 0 6px', letterSpacing: '-0.02em', color: 'var(--af-ink)' }}>
-            Connexion
-          </h2>
-          <div style={S.lead}>Accédez à votre espace de pilotage budgétaire.</div>
+      {/* ══════════════ PANNEAU DROIT : formulaire ══════════════ */}
+      <div className="af-login-form-panel">
+        <div style={{ width: '100%', maxWidth: 360 }}>
 
+          {/* Logo + nom centré */}
+          <div style={{ textAlign: 'center', marginBottom: 38 }}>
+            <div style={{
+              width: 72, height: 72, borderRadius: 18, margin: '0 auto 18px',
+              background: 'linear-gradient(135deg, #B8864A 0%, #8C6534 100%)',
+              display: 'grid', placeItems: 'center',
+              boxShadow: '0 8px 24px rgba(201,162,75,.30)',
+            }}>
+              <span style={{ fontSize: 32, fontWeight: 900, color: '#fff', lineHeight: 1 }}>A</span>
+            </div>
+            <div style={{
+              fontSize: 30, fontWeight: 800,
+              color: '#0F1B3D', letterSpacing: '-0.03em',
+              lineHeight: 1,
+            }}>
+              Atlas Finance
+            </div>
+          </div>
+
+          {/* Formulaire */}
           <form onSubmit={handleSubmit} noValidate>
-            {/* Email */}
-            <div className="form-field" style={{ marginBottom: 18 }}>
-              <label className="form-label" htmlFor="email">Identifiant</label>
-              <input
-                id="email" type="email" required autoComplete="email" autoFocus
-                value={form.email}
-                onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                placeholder="votre@email.com"
-                className="form-input"
-              />
+
+            {/* ── Identifiant ── */}
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ position: 'relative' }}>
+                <span style={{
+                  position: 'absolute', left: 13, top: '50%',
+                  transform: 'translateY(-50%)', color: '#94A3B8',
+                  display: 'flex', pointerEvents: 'none',
+                }}>
+                  <IconUser />
+                </span>
+                <input
+                  id="email" type="email" required autoComplete="email" autoFocus
+                  value={form.email}
+                  onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                  placeholder="Entrez votre identifiant"
+                  style={inputStyle}
+                  onFocus={e => e.target.style.borderColor = '#B8864A'}
+                  onBlur={e => e.target.style.borderColor = '#CBD5E1'}
+                />
+              </div>
             </div>
 
-            {/* Mot de passe */}
-            <div className="form-field" style={{ marginBottom: 18, position: 'relative' }}>
-              <label className="form-label" htmlFor="password">Mot de passe</label>
+            {/* ── Mot de passe ── */}
+            <div style={{ marginBottom: 22 }}>
               <div style={{ position: 'relative' }}>
+                <span style={{
+                  position: 'absolute', left: 13, top: '50%',
+                  transform: 'translateY(-50%)', color: '#94A3B8',
+                  display: 'flex', pointerEvents: 'none',
+                }}>
+                  <IconLock />
+                </span>
                 <input
                   id="password"
                   type={showPwd ? 'text' : 'password'}
                   required autoComplete="current-password"
                   value={form.password}
                   onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                  placeholder="••••••••"
-                  className="form-input"
-                  style={{ paddingRight: 40 }}
+                  placeholder="Entrez votre mot de passe"
+                  style={{ ...inputStyle, paddingRight: 42 }}
+                  onFocus={e => e.target.style.borderColor = '#B8864A'}
+                  onBlur={e => e.target.style.borderColor = '#CBD5E1'}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPwd(s => !s)}
                   aria-label={showPwd ? 'Masquer' : 'Afficher'}
-                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--af-cream)', display: 'flex', alignItems: 'center' }}
+                  style={{
+                    position: 'absolute', right: 12, top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: '#94A3B8', display: 'flex', alignItems: 'center',
+                    padding: 0,
+                  }}
                 >
                   {showPwd ? <EyeOff size={15} strokeWidth={1.8} /> : <Eye size={15} strokeWidth={1.8} />}
                 </button>
               </div>
             </div>
 
-            {/* Erreur */}
+            {/* ── Erreur ── */}
             {error && (
-              <div className="alert alert-error" role="alert" style={{ marginBottom: 16, fontSize: 12 }}>
-                <span>{error}</span>
+              <div style={{
+                fontSize: 12.5, color: '#DC2626', marginBottom: 16,
+                padding: '9px 12px',
+                background: 'rgba(220,38,38,0.06)',
+                border: '1px solid rgba(220,38,38,0.20)',
+                borderRadius: 7, lineHeight: 1.5,
+              }}>
+                {error}
               </div>
             )}
 
-            {/* Bouton */}
+            {/* ── Bouton LOGIN ── */}
             <button
               type="submit"
               disabled={loading}
-              className="btn btn-primary btn-md"
-              style={{ width: '100%', justifyContent: 'center', marginBottom: 14 }}
+              style={{
+                ...btnPrimaryStyle,
+                background: loading ? '#2D7A52' : '#1F5F3F',
+                marginBottom: 18,
+              }}
+              onMouseEnter={e => { if (!loading) e.currentTarget.style.background = '#174D31' }}
+              onMouseLeave={e => { if (!loading) e.currentTarget.style.background = '#1F5F3F' }}
             >
-              {loading
-                ? <><span className="spinner-sm" /> Connexion…</>
-                : <>Se connecter <ArrowRight size={14} strokeWidth={2.5} /></>
-              }
+              {loading ? 'CONNEXION EN COURS…' : 'SE CONNECTER'}
             </button>
 
-            {/* Mot de passe oublié */}
-            <div style={{ textAlign: 'center' }}>
+            {/* ── Liens bas ── */}
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
               <button
                 type="button"
                 onClick={() => setShowForgot(true)}
-                style={{ fontSize: 12, color: 'var(--color-gold)', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontSize: 13, color: '#475569', fontWeight: 500,
+                  padding: 0, textDecoration: 'underline',
+                  textDecorationColor: 'rgba(71,85,105,.35)',
+                }}
               >
                 Mot de passe oublié ?
               </button>
             </div>
           </form>
 
-          {/* Pills rôles */}
-          <div style={S.roles}>
-            {['Admin', 'Gestionnaire', 'Comptable'].map((r, i) => (
-              <div key={r} style={S.role(i === 0)}>{r}</div>
-            ))}
-          </div>
-          <div style={{ fontSize: 10, color: 'var(--af-mute)', textAlign: 'center', marginTop: 16, lineHeight: 1.5 }}>
-            Comptes démo pré-créés · Données fictives uniquement
+          {/* ── Pied de page ── */}
+          <div style={{
+            marginTop: 48, textAlign: 'center',
+            fontSize: 11, color: '#94A3B8',
+          }}>
+            © {new Date().getFullYear()} Atlas Finance · Gestion budgétaire sécurisée
           </div>
         </div>
       </div>
+
     </div>
   )
 }

@@ -1,63 +1,53 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getUtilisateurs, createUtilisateur, updateUtilisateur, deleteUtilisateur, adminResetPassword, debloquerUtilisateur, getUtilisateurActivite } from '../../api/accounts'
-import { Plus, KeyRound, Trash2, UserCheck, UserX, Building2, Search, X, Activity, Wallet, CreditCard, CheckCircle2, ChevronRight, ShieldOff } from 'lucide-react'
 import { ConfirmModal } from '../../components/ui'
-import { RoleBadge, StatutBadge } from '../../components/StatusBadge'
+import { Icon } from '../../components/AtlasIcons'
 import { formaterNombre } from '../../utils/formatters'
 
-const fmt = (n) => formaterNombre(n, { maximumFractionDigits: 0 })
+const fmt     = n => formaterNombre(n, { maximumFractionDigits: 0 })
 const fmtDate = iso => iso ? new Date(iso).toLocaleDateString('fr-FR') : '—'
+
+const ROLES = ['ADMINISTRATEUR', 'GESTIONNAIRE', 'COMPTABLE']
 
 const STATUT_COLOR = {
   BROUILLON: '#9CA3AF', SOUMIS: '#D97706', APPROUVE: '#16A34A',
   REJETE: '#EF4444', SAISIE: '#D97706', VALIDEE: '#16A34A', REJETEE: '#EF4444',
 }
 
-const ROLES = ['ADMINISTRATEUR', 'GESTIONNAIRE', 'COMPTABLE']
+const ROLE_COLOR = {
+  ADMINISTRATEUR: 'var(--af-gold)',
+  GESTIONNAIRE:   '#0E7490',
+  COMPTABLE:      '#6D28D9',
+}
 
-function TabBtn({ label, icon, count, active, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        padding: '10px 18px', border: 'none', background: 'transparent',
-        borderBottom: active ? '2px solid #C9910A' : '2px solid transparent',
-        cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
-        fontSize: 13, fontWeight: active ? 700 : 500,
-        color: active ? 'var(--af-ink)' : 'var(--af-cream)',
-        transition: 'all .15s',
-      }}
-    >
-      {icon} {label}
-      {count !== undefined && (
-        <span style={{ background: active ? '#FEF9EC' : '#F3F4F6', color: active ? '#78350F' : '#6B7280', fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 99, border: active ? '1px solid #F3D07A' : 'none' }}>
-          {count ?? '…'}
-        </span>
-      )}
-    </button>
-  )
+const DEPT_COLORS = ['#C9A961','#3B82F6','#10B981','#8B5CF6','#E5A53D','#7DD3FC']
+
+function getInitials(prenom, nom, email) {
+  if (prenom && nom) return (prenom[0] + nom[0]).toUpperCase()
+  if (prenom) return prenom.slice(0, 2).toUpperCase()
+  return (email?.[0] || '?').toUpperCase()
 }
 
 export default function UtilisateursPage() {
   const navigate = useNavigate()
-  const [users,      setUsers]      = useState([])
-  const [loading,    setLoading]    = useState(true)
-  const [modal,      setModal]      = useState(null)   // null | 'create' | 'resetPwd' | 'activite'
-  const [targetUser, setTargetUser] = useState(null)
-  const [saving,     setSaving]     = useState(false)
-  const [error,      setError]      = useState('')
-  const [success,    setSuccess]    = useState('')
-  const [createForm, setCreateForm] = useState({ email: '', matricule: '', nom: '', prenom: '', role: 'GESTIONNAIRE', password: '' })
-  const [pwdForm,    setPwdForm]    = useState({ nouveau_password: '', confirmer: '' })
-  const [search,       setSearch]       = useState('')
-  const [filterRole,   setFilterRole]   = useState('')
-  const [filterActif,  setFilterActif]  = useState('')
-  const [visibleCount, setVisibleCount] = useState(10)
-  const [activite,     setActivite]     = useState(null)
-  const [activiteTab,  setActiviteTab]  = useState('budgets')
+  const [users,       setUsers]       = useState([])
+  const [loading,     setLoading]     = useState(true)
+  const [modal,       setModal]       = useState(null)
+  const [targetUser,  setTargetUser]  = useState(null)
+  const [saving,      setSaving]      = useState(false)
+  const [error,       setError]       = useState('')
+  const [success,     setSuccess]     = useState('')
+  const [createForm,  setCreateForm]  = useState({ email: '', matricule: '', nom: '', prenom: '', role: 'GESTIONNAIRE', password: '' })
+  const [pwdForm,     setPwdForm]     = useState({ nouveau_password: '', confirmer: '' })
+  const [search,      setSearch]      = useState('')
+  const [filterRole,  setFilterRole]  = useState('')
+  const [filterActif, setFilterActif] = useState('')
+  const [visibleCount,setVisibleCount]= useState(15)
+  const [activite,    setActivite]    = useState(null)
+  const [activiteTab, setActiviteTab] = useState('budgets')
   const [activiteLoading, setActiviteLoading] = useState(false)
-  const [confirmModal,    setConfirmModal]    = useState(null)
+  const [confirmModal,    setConfirmModal]     = useState(null)
 
   const load = () => {
     setLoading(true)
@@ -68,7 +58,7 @@ export default function UtilisateursPage() {
 
   useEffect(() => { load() }, [])
 
-  const handleCreate = async (e) => {
+  const handleCreate = async e => {
     e.preventDefault(); setError(''); setSaving(true)
     try {
       const payload = { ...createForm }
@@ -82,64 +72,54 @@ export default function UtilisateursPage() {
     } finally { setSaving(false) }
   }
 
-  const handleToggle = async (user) => {
-    try {
-      await updateUtilisateur(user.id, { actif: !user.actif })
-      load()
-    } catch (err) {
-      alert(err.response?.data?.detail || 'Erreur')
-    }
+  const handleToggle = async user => {
+    try { await updateUtilisateur(user.id, { actif: !user.actif }); load() }
+    catch (err) { alert(err.response?.data?.detail || 'Erreur') }
   }
 
-  const handleDelete = (user) => {
+  const handleDelete = user => {
     setConfirmModal({
       title: "Supprimer l'utilisateur",
-      message: `Supprimer définitivement le compte de ${user.prenom} ${user.nom} (${user.email}) ? Cette action est irréversible.`,
+      message: `Supprimer définitivement ${user.prenom} ${user.nom} (${user.email}) ? Cette action est irréversible.`,
       confirmLabel: 'Supprimer',
       onConfirm: async () => {
         try { await deleteUtilisateur(user.id); load() }
-        catch (err) { alert(err.response?.data?.detail || 'Impossible de supprimer cet utilisateur.') }
+        catch (err) { alert(err.response?.data?.detail || 'Impossible de supprimer.') }
       },
     })
   }
 
-  const openResetPwd = (user) => {
-    setTargetUser(user)
-    setPwdForm({ nouveau_password: '', confirmer: '' })
-    setError(''); setSuccess('')
-    setModal('resetPwd')
+  const openResetPwd = user => {
+    setTargetUser(user); setPwdForm({ nouveau_password: '', confirmer: '' }); setError(''); setSuccess(''); setModal('resetPwd')
   }
 
-  const handleDebloquer = (user) => {
+  const handleDebloquer = user => {
     setConfirmModal({
       title: 'Débloquer le compte',
-      message: `Débloquer le compte de ${user.prenom} ${user.nom} ? Le compteur de tentatives sera réinitialisé.`,
+      message: `Débloquer le compte de ${user.prenom} ${user.nom} ?`,
       confirmLabel: 'Débloquer',
       variant: 'warning',
       onConfirm: async () => {
         try { await debloquerUtilisateur(user.id); load() }
-        catch (err) { alert(err.response?.data?.detail || 'Erreur lors du déblocage.') }
+        catch (err) { alert(err.response?.data?.detail || 'Erreur.') }
       },
     })
   }
 
-  const openActivite = (user) => {
-    setTargetUser(user)
-    setActivite(null)
+  const openActivite = user => {
+    setTargetUser(user); setActivite(null)
     setActiviteTab(user.role === 'COMPTABLE' ? 'validees' : 'budgets')
-    setModal('activite')
-    setActiviteLoading(true)
+    setModal('activite'); setActiviteLoading(true)
     getUtilisateurActivite(user.id)
       .then(r => setActivite(r.data))
       .catch(() => setActivite({ error: true }))
       .finally(() => setActiviteLoading(false))
   }
 
-  const handleResetPwd = async (e) => {
+  const handleResetPwd = async e => {
     e.preventDefault(); setError(''); setSaving(true)
     if (pwdForm.nouveau_password !== pwdForm.confirmer) {
-      setError('Les mots de passe ne correspondent pas.')
-      setSaving(false); return
+      setError('Les mots de passe ne correspondent pas.'); setSaving(false); return
     }
     try {
       await adminResetPassword(targetUser.id, { nouveau_password: pwdForm.nouveau_password })
@@ -147,279 +127,222 @@ export default function UtilisateursPage() {
       setPwdForm({ nouveau_password: '', confirmer: '' })
       setTimeout(() => { setModal(null); setSuccess('') }, 2000)
     } catch (err) {
-      setError(err.response?.data?.detail || JSON.stringify(err.response?.data) || 'Erreur')
+      setError(err.response?.data?.detail || 'Erreur')
     } finally { setSaving(false) }
   }
 
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase().trim()
-    return users.filter(u => {
-      if (q && !(
-        u.prenom?.toLowerCase().includes(q) ||
-        u.nom?.toLowerCase().includes(q) ||
-        u.email?.toLowerCase().includes(q) ||
-        u.matricule?.toLowerCase().includes(q) ||
-        u.departement_detail?.nom?.toLowerCase().includes(q)
-      )) return false
-      if (filterRole && u.role !== filterRole) return false
-      if (filterActif === 'actif'   && !u.actif)  return false
-      if (filterActif === 'inactif' && u.actif)   return false
-      if (filterActif === 'bloque'  && !u.bloque) return false
-      return true
-    })
-  }, [users, search, filterRole, filterActif])
-
-  const hasFilters   = search || filterRole || filterActif
+  const q = search.toLowerCase().trim()
+  const filtered = users.filter(u => {
+    if (q && !(
+      u.prenom?.toLowerCase().includes(q) ||
+      u.nom?.toLowerCase().includes(q) ||
+      u.email?.toLowerCase().includes(q) ||
+      u.matricule?.toLowerCase().includes(q)
+    )) return false
+    if (filterRole && u.role !== filterRole) return false
+    if (filterActif === 'actif'   && !u.actif)  return false
+    if (filterActif === 'inactif' && u.actif)   return false
+    if (filterActif === 'bloque'  && !u.bloque) return false
+    return true
+  })
   const visibleUsers = filtered.slice(0, visibleCount)
   const hasMore      = visibleCount < filtered.length
+  const hasFilters   = search || filterRole || filterActif
 
-  if (loading) return <div className="page-loader"><div className="spinner" /></div>
+  if (loading) return (
+    <div className="af-loader"><div className="af-spinner"/><span>Chargement…</span></div>
+  )
 
   return (
     <div>
-      {/* Header */}
-      <div className="page-header">
+      <div className="mb-7 flex items-end gap-6">
         <div>
-          <h1 className="page-title">Utilisateurs</h1>
-          <p className="page-subtitle">
-            {filtered.length} / {users.length} compte{users.length !== 1 ? 's' : ''}
-          </p>
+          <div className="text-[10px] tracking-[0.20em] uppercase text-[#B8864A] mb-2 font-medium">{users.length} utilisateurs · {users.filter(u => u.actif).length} actifs</div>
+          <h1 className="text-[32px] font-normal tracking-[-0.02em] leading-[1.1] text-[#0E2A47] mb-1">Gestion des accès</h1>
+          <div className="text-[13px] text-[#5A6B7E]">Rôles, départements, dernière connexion.</div>
         </div>
-        <button
-          onClick={() => { setCreateForm({ email: '', matricule: '', nom: '', prenom: '', role: 'GESTIONNAIRE', password: '' }); setError(''); setModal('create') }}
-          className="btn btn-primary btn-md gap-[7px]"
-        >
-          <Plus size={16} strokeWidth={2.5} /> Nouvel utilisateur
-        </button>
+        <div className="ml-auto flex gap-2.5">
+          <button className="btn btn-primary btn-sm" onClick={() => { setCreateForm({ email: '', matricule: '', nom: '', prenom: '', role: 'GESTIONNAIRE', password: '' }); setError(''); setModal('create') }}>
+            {Icon.plus} Inviter un utilisateur
+          </button>
+        </div>
       </div>
 
-      {/* Barre de recherche + filtres */}
-      <div className="flex gap-3 mb-5 items-center" style={{ flexWrap: 'nowrap' }}>
-        {/* Search */}
-        <div className="relative flex-1 min-w-[200px] max-w-[340px]">
-          <Search size={15} strokeWidth={2} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-          <input
-            type="text"
-            placeholder="Rechercher par nom, email, matricule…"
-            value={search}
-            onChange={e => { setSearch(e.target.value); setVisibleCount(10) }}
-            className="form-input"
-            style={{ paddingLeft: 34, height: 38, fontSize: 13 }}
-          />
-          {search && (
-            <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-              <X size={14} />
+      <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)]">
+        {/* ── Barre recherche + filtres ───────────────────────────────────── */}
+        <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--af-line)', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'nowrap' }}>
+          <div style={{ position: 'relative', flex: '1 1 160px', minWidth: 0 }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+              style={{ width: 13, height: 13, position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--af-mute)', pointerEvents: 'none' }}>
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input
+              type="text"
+              placeholder="Nom, email, matricule…"
+              value={search}
+              onChange={e => { setSearch(e.target.value); setVisibleCount(15) }}
+              className="form-input"
+              style={{ paddingLeft: 32, fontSize: 12, height: 34, width: '100%' }}
+            />
+          </div>
+          <select className="form-select" value={filterRole} onChange={e => { setFilterRole(e.target.value); setVisibleCount(15) }}
+            style={{ fontSize: 12, height: 34, width: 148, flexShrink: 0 }}>
+            <option value="">Tous les rôles</option>
+            {ROLES.map(r => <option key={r} value={r}>{r.charAt(0) + r.slice(1).toLowerCase()}</option>)}
+          </select>
+          <select className="form-select" value={filterActif} onChange={e => { setFilterActif(e.target.value); setVisibleCount(15) }}
+            style={{ fontSize: 12, height: 34, width: 140, flexShrink: 0 }}>
+            <option value="">Tous les statuts</option>
+            <option value="actif">Actifs</option>
+            <option value="inactif">Inactifs</option>
+            <option value="bloque">Bloqués</option>
+          </select>
+          {hasFilters && (
+            <button className="btn btn-ghost btn-sm" onClick={() => { setSearch(''); setFilterRole(''); setFilterActif('') }}
+              style={{ fontSize: 12, height: 34, flexShrink: 0 }}>
+              ✕
             </button>
           )}
+          <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--af-mute)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+            {filtered.length} / {users.length}
+          </span>
         </div>
 
-        {/* Filtre rôle */}
-        <select
-          value={filterRole}
-          onChange={e => { setFilterRole(e.target.value); setVisibleCount(10) }}
-          className="form-select"
-          style={{ height: 38, fontSize: 13, minWidth: 160 }}
-        >
-          <option value="">Tous les rôles</option>
-          {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-        </select>
-
-        {/* Filtre statut */}
-        <select
-          value={filterActif}
-          onChange={e => { setFilterActif(e.target.value); setVisibleCount(10) }}
-          className="form-select"
-          style={{ height: 38, fontSize: 13, minWidth: 140 }}
-        >
-          <option value="">Tous les statuts</option>
-          <option value="actif">Actifs</option>
-          <option value="inactif">Inactifs</option>
-          <option value="bloque">Bloqués</option>
-        </select>
-
-        {/* Réinitialiser */}
-        {hasFilters && (
-          <button
-            onClick={() => { setSearch(''); setFilterRole(''); setFilterActif('') }}
-            className="btn btn-secondary btn-sm gap-[5px]"
-          >
-            <X size={13} /> Réinitialiser
-          </button>
-        )}
-      </div>
-
-      {/* Grille utilisateurs */}
-      <div className="grid gap-[14px]" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
-        {visibleUsers.length === 0 && (
-          <div className="col-span-full text-center py-12 text-gray-400 text-sm">
-            Aucun utilisateur ne correspond à votre recherche.
+        {visibleUsers.length === 0 ? (
+          <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--af-mute)', fontSize: 13 }}>
+            Aucun utilisateur ne correspond à la recherche.
           </div>
+        ) : (
+          <table className="af-table">
+            <thead>
+              <tr>
+                <th>Utilisateur</th><th>Rôle</th><th>Département</th>
+                <th>Dernière connexion</th><th>Statut</th><th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleUsers.map((u, i) => (
+                <tr key={u.id} style={{ opacity: u.actif ? 1 : 0.65 }}>
+                  <td>
+                    <div className="af-audit-user">
+                      <div className="av" style={{ background: u.actif ? 'var(--af-gold)' : 'var(--af-line)' }}>
+                        {getInitials(u.prenom, u.nom, u.email)}
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--af-ivory)' }}>
+                          {u.prenom} {u.nom}
+                          {u.bloque && <span className="af-badge reject" style={{ marginLeft: 6, fontSize: 9 }}>BLOQUÉ</span>}
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--af-cream)' }}>{u.email}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span className="af-pill" style={{ color: ROLE_COLOR[u.role] || 'var(--af-ivory)', borderColor: u.role === 'ADMINISTRATEUR' ? 'var(--af-gold)' : 'var(--af-line)' }}>
+                      {u.role}
+                    </span>
+                  </td>
+                  <td>
+                    {u.departement_detail?.nom ? (
+                      <span className="af-dept-chip">
+                        <span className="d" style={{ background: DEPT_COLORS[i % DEPT_COLORS.length] }}/>
+                        {u.departement_detail.nom.replace(/^Ministère (de |du |des |de l')?/i, '').trim().slice(0, 26)}
+                      </span>
+                    ) : <span className="muted">—</span>}
+                  </td>
+                  <td className="muted">{u.derniere_connexion ? fmtDate(u.derniere_connexion) : '—'}</td>
+                  <td>
+                    {u.actif
+                      ? <span className="af-badge approve">ACTIF</span>
+                      : <span className="af-badge draft">INACTIF</span>}
+                  </td>
+                  <td onClick={e => e.stopPropagation()}>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      {(u.role === 'GESTIONNAIRE' || u.role === 'COMPTABLE') && (
+                        <button className="btn btn-ghost btn-sm" title="Activité" onClick={() => openActivite(u)}>
+                          {Icon.kpi}
+                        </button>
+                      )}
+                      <button
+                        className={u.actif ? 'btn btn-secondary btn-sm' : 'btn btn-primary btn-sm'}
+                        title={u.actif ? 'Désactiver' : 'Activer'}
+                        onClick={() => handleToggle(u)}
+                        style={{ fontSize: 11, padding: '4px 8px' }}
+                      >
+                        {u.actif ? 'Désactiver' : 'Activer'}
+                      </button>
+                      <button className="btn btn-ghost btn-sm" title="Réinitialiser mot de passe" onClick={() => openResetPwd(u)}>
+                        {Icon.settings}
+                      </button>
+                      {u.bloque && (
+                        <button className="btn btn-secondary btn-sm" onClick={() => handleDebloquer(u)} style={{ fontSize: 11, padding: '4px 8px' }}>
+                          Débloquer
+                        </button>
+                      )}
+                      <button className="btn btn-danger btn-sm" title="Supprimer" onClick={() => handleDelete(u)} style={{ gap: 5 }}>
+                        {Icon.reject} Suppr.
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
-        {visibleUsers.map(u => (
-          <div
-            key={u.id}
-            className="card"
-            style={{ opacity: u.actif ? 1 : 0.65, outline: u.bloque ? '2px solid #EF4444' : 'none' }}
-          >
-            {/* Avatar + nom */}
-            <div className="flex items-center gap-3 mb-[14px]">
-              <div
-                className="w-11 h-11 rounded-full shrink-0 flex items-center justify-center text-white font-bold text-[16px]"
-                style={{
-                  background: u.actif
-                    ? 'linear-gradient(135deg, var(--color-gold), var(--color-gold-dark))'
-                    : 'var(--color-gray-300)',
-                }}
-              >
-                {(u.prenom?.[0] || u.email[0]).toUpperCase()}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-[7px]">
-                  <span className="font-bold text-[14px] overflow-hidden text-ellipsis whitespace-nowrap text-gray-900">
-                    {u.prenom} {u.nom}
-                  </span>
-                  {u.bloque && (
-                    <span className="text-[9px] font-bold px-[6px] py-[1px] rounded-[20px] bg-[#FEE2E2] text-[#DC2626] shrink-0 tracking-[.3px]">
-                      BLOQUÉ
-                    </span>
-                  )}
-                  {!u.actif && !u.bloque && (
-                    <span className="text-[9px] font-bold px-[6px] py-[1px] rounded-[20px] bg-[#E5E7EB] text-[#6B7280] shrink-0 tracking-[.3px]">
-                      INACTIF
-                    </span>
-                  )}
-                </div>
-                <div className="text-[12px] text-[#9CA3AF] overflow-hidden text-ellipsis whitespace-nowrap">
-                  {u.email}
-                </div>
-              </div>
-            </div>
-
-            {/* Badges */}
-            <div className="flex gap-[7px] flex-wrap mb-[10px]">
-              <RoleBadge role={u.role} />
-              {u.matricule && (
-                <span className="px-[10px] py-[3px] rounded-[20px] text-[11px] font-semibold bg-[#F3F4F6] text-[#4B5563] font-mono">
-                  {u.matricule}
-                </span>
-              )}
-            </div>
-
-            {u.departement_detail?.nom && (
-              <div className="flex items-center gap-[6px] mb-[14px] text-[12px] text-[#6B7280]">
-                <Building2 size={12} strokeWidth={2} />
-                {u.departement_detail.nom}
-              </div>
-            )}
-
-            {/* Actions */}
-            <div className="card-footer">
-              {(u.role === 'GESTIONNAIRE' || u.role === 'COMPTABLE') && (
-                <button
-                  onClick={() => openActivite(u)}
-                  className="btn btn-secondary btn-sm gap-[5px] flex-1"
-                  title="Voir l'activité"
-                >
-                  <Activity size={12} strokeWidth={2} /> Activité
-                </button>
-              )}
-              <button
-                onClick={() => handleToggle(u)}
-                className={`btn btn-sm gap-[5px] ${u.actif ? 'btn-warning' : 'btn-success'}`}
-                title={u.actif ? 'Désactiver' : 'Activer'}
-              >
-                {u.actif ? <UserX size={12} strokeWidth={2} /> : <UserCheck size={12} strokeWidth={2} />}
-              </button>
-              <button
-                onClick={() => openResetPwd(u)}
-                className="btn btn-secondary btn-sm gap-[5px]"
-                title="Réinitialiser mot de passe"
-              >
-                <KeyRound size={12} strokeWidth={2} />
-              </button>
-              {u.bloque && (
-                <button
-                  onClick={() => handleDebloquer(u)}
-                  className="btn btn-sm gap-[5px]"
-                  title="Débloquer le compte"
-                  style={{ background: '#FEE2E2', color: '#DC2626', border: '1px solid #FECACA' }}
-                >
-                  <ShieldOff size={12} strokeWidth={2} /> Débloquer
-                </button>
-              )}
-              <button
-                onClick={() => handleDelete(u)}
-                className="btn btn-danger btn-sm gap-[5px]"
-                title="Supprimer"
-              >
-                <Trash2 size={12} strokeWidth={2} />
-              </button>
-            </div>
-          </div>
-        ))}
       </div>
 
       {hasMore && (
-        <div className="flex flex-col items-center gap-[6px] mt-[20px]">
-          <button
-            onClick={() => setVisibleCount(c => c + 10)}
-            className="btn btn-secondary btn-md gap-[7px]"
-            style={{ minWidth: 180 }}
-          >
-            Charger plus
-            <span style={{ background: 'var(--color-gray-200)', color: 'var(--color-gray-600)', fontSize: '11px', padding: '1px 7px', borderRadius: 8, fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
-              +{Math.min(10, filtered.length - visibleCount)}
-            </span>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, marginTop: 16 }}>
+          <button className="btn btn-secondary btn-sm" onClick={() => setVisibleCount(c => c + 15)}>
+            Charger plus ({Math.min(15, filtered.length - visibleCount)} utilisateurs)
           </button>
-          <p style={{ fontSize: '11px', color: 'var(--color-gray-400)' }}>
-            {visibleCount} sur {filtered.length} utilisateurs affichés
-          </p>
+          <p style={{ fontSize: 11, color: 'var(--af-mute)' }}>{visibleCount} sur {filtered.length} affichés</p>
         </div>
       )}
 
       {/* Modal création */}
       {modal === 'create' && (
         <div className="modal-overlay" onClick={() => setModal(null)}>
-          <div className="modal-panel max-w-[500px]" onClick={e => e.stopPropagation()}>
+          <div className="modal-panel" style={{ maxWidth: 500 }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2 className="font-display font-bold text-[15px]">Créer un utilisateur</h2>
+              <h2 style={{ fontSize: 15, fontWeight: 700, fontFamily: 'var(--af-serif)' }}>Créer un utilisateur</h2>
             </div>
             <form onSubmit={handleCreate}>
               <div className="modal-body">
-                <div className="grid form-grid-2 gap-[14px]" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
-                  <div>
-                    <label className="form-label">Prénom</label>
-                    <input className="form-input" required value={createForm.prenom} onChange={e => setCreateForm(f => ({ ...f, prenom: e.target.value }))} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                  <div className="mb-[18px]">
+                    <label>Prénom</label>
+                    <input className="form-input" required value={createForm.prenom} onChange={e => setCreateForm(f => ({ ...f, prenom: e.target.value }))}/>
                   </div>
-                  <div>
-                    <label className="form-label">Nom</label>
-                    <input className="form-input" required value={createForm.nom} onChange={e => setCreateForm(f => ({ ...f, nom: e.target.value }))} />
+                  <div className="mb-[18px]">
+                    <label>Nom</label>
+                    <input className="form-input" required value={createForm.nom} onChange={e => setCreateForm(f => ({ ...f, nom: e.target.value }))}/>
                   </div>
                 </div>
-                <div className="mt-[14px]">
-                  <label className="form-label">Email</label>
-                  <input className="form-input" type="email" required value={createForm.email} onChange={e => setCreateForm(f => ({ ...f, email: e.target.value }))} />
+                <div className="mb-[18px]" style={{ marginTop: 14 }}>
+                  <label>Email</label>
+                  <input className="form-input" type="email" required value={createForm.email} onChange={e => setCreateForm(f => ({ ...f, email: e.target.value }))}/>
                 </div>
-                <div className="mt-[14px]">
-                  <label className="form-label">Matricule</label>
-                  <input className="form-input" required value={createForm.matricule} onChange={e => setCreateForm(f => ({ ...f, matricule: e.target.value }))} />
+                <div className="mb-[18px]" style={{ marginTop: 14 }}>
+                  <label>Matricule</label>
+                  <input className="form-input" required value={createForm.matricule} onChange={e => setCreateForm(f => ({ ...f, matricule: e.target.value }))}/>
                 </div>
-                <div className="mt-[14px]">
-                  <label className="form-label">Rôle</label>
+                <div className="mb-[18px]" style={{ marginTop: 14 }}>
+                  <label>Rôle</label>
                   <select className="form-select" value={createForm.role} onChange={e => setCreateForm(f => ({ ...f, role: e.target.value }))}>
                     {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
                   </select>
                 </div>
-                <div className="mt-[14px]">
-                  <label className="form-label">Mot de passe temporaire</label>
-                  <input className="form-input" type="password" required minLength={4} value={createForm.password} onChange={e => setCreateForm(f => ({ ...f, password: e.target.value }))} placeholder="Minimum 4 caractères" />
+                <div className="mb-[18px]" style={{ marginTop: 14 }}>
+                  <label>Mot de passe temporaire</label>
+                  <input className="form-input" type="password" required minLength={4} value={createForm.password} onChange={e => setCreateForm(f => ({ ...f, password: e.target.value }))} placeholder="Minimum 4 caractères"/>
                 </div>
-                {error && <p className="text-[#DC2626] text-[12px] mt-[10px]">{error}</p>}
+                {error && <p style={{ fontSize: 12, color: 'var(--af-st-reject)', marginTop: 10 }}>{error}</p>}
               </div>
               <div className="modal-footer">
-                <button type="button" onClick={() => setModal(null)} className="btn btn-secondary btn-md">Annuler</button>
-                <button type="submit" disabled={saving} className="btn btn-primary btn-md">
-                  {saving ? <><span className="spinner-sm" /> Création…</> : 'Créer'}
+                <button type="button" onClick={() => setModal(null)} className="btn btn-secondary btn-sm">Annuler</button>
+                <button type="submit" disabled={saving} className="btn btn-primary btn-sm">
+                  {saving ? 'Création…' : 'Créer'}
                 </button>
               </div>
             </form>
@@ -427,107 +350,99 @@ export default function UtilisateursPage() {
         </div>
       )}
 
-      {/* ── Modal activité ── */}
+      {/* Modal activité */}
       {modal === 'activite' && targetUser && (
         <div className="modal-overlay" onClick={() => setModal(null)}>
-          <div className="modal-panel" style={{ maxWidth: 720, width: '95vw' }} onClick={e => e.stopPropagation()}>
-
-            {/* Header */}
+          <div className="modal-panel" style={{ maxWidth: 720 }} onClick={e => e.stopPropagation()}>
             <div className="modal-header" style={{ background: 'var(--af-ink)', borderBottom: 'none' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: 'linear-gradient(135deg, #C9910A, #C9910A)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 15, flexShrink: 0 }}>
-                  {(targetUser.prenom?.[0] || '?').toUpperCase()}
+                <div className="av" style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--af-gold)', color: 'var(--af-ink)', fontWeight: 800, fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {getInitials(targetUser.prenom, targetUser.nom, targetUser.email)}
                 </div>
                 <div>
-                  <h2 style={{ fontFamily: 'Lora, serif', fontWeight: 700, fontSize: 15, color: '#F8FAFC', margin: 0 }}>
+                  <h2 style={{ fontFamily: 'var(--af-serif)', fontWeight: 700, fontSize: 15, color: 'var(--af-ivory)', margin: 0 }}>
                     {targetUser.prenom} {targetUser.nom}
                   </h2>
-                  <div style={{ fontSize: 11, color: 'rgba(201,168,76,.7)', marginTop: 2, letterSpacing: '.4px' }}>
-                    {targetUser.role} — {targetUser.email}
-                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--af-gold)', marginTop: 2 }}>{targetUser.role} — {targetUser.email}</div>
                 </div>
               </div>
-              <button onClick={() => setModal(null)} style={{ background: 'rgba(255,255,255,.1)', border: 'none', borderRadius: 6, width: 28, height: 28, cursor: 'pointer', color: 'rgba(255,255,255,.7)', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+              <button onClick={() => setModal(null)} className="btn btn-ghost btn-sm">{Icon.close}</button>
             </div>
 
-            {/* Onglets */}
-            <div style={{ display: 'flex', borderBottom: '1px solid #F3F4F6', background: '#FAFAFA' }}>
+            <div style={{ display: 'flex', borderBottom: '1px solid var(--af-line)' }}>
               {targetUser.role !== 'COMPTABLE' && (
-                <TabBtn label="Budgets créés" icon={<Wallet size={13} />} count={activite?.budgets_crees?.length} active={activiteTab === 'budgets'} onClick={() => setActiviteTab('budgets')} />
+                <button onClick={() => setActiviteTab('budgets')} style={{ padding: '10px 18px', border: 'none', background: 'transparent', borderBottom: activiteTab === 'budgets' ? '2px solid var(--af-gold)' : '2px solid transparent', cursor: 'pointer', fontSize: 13, fontWeight: activiteTab === 'budgets' ? 700 : 500, color: activiteTab === 'budgets' ? 'var(--af-ivory)' : 'var(--af-cream)' }}>
+                  {Icon.budget} Budgets créés
+                </button>
               )}
               {targetUser.role !== 'COMPTABLE' && (
-                <TabBtn label="Dépenses saisies" icon={<CreditCard size={13} />} count={activite?.depenses_enregistrees?.length} active={activiteTab === 'depenses'} onClick={() => setActiviteTab('depenses')} />
+                <button onClick={() => setActiviteTab('depenses')} style={{ padding: '10px 18px', border: 'none', background: 'transparent', borderBottom: activiteTab === 'depenses' ? '2px solid var(--af-gold)' : '2px solid transparent', cursor: 'pointer', fontSize: 13, fontWeight: activiteTab === 'depenses' ? 700 : 500, color: activiteTab === 'depenses' ? 'var(--af-ivory)' : 'var(--af-cream)' }}>
+                  {Icon.expense} Dépenses saisies
+                </button>
               )}
               {targetUser.role === 'COMPTABLE' && (
-                <TabBtn label="Dépenses validées" icon={<CheckCircle2 size={13} />} count={activite?.depenses_validees?.length} active={activiteTab === 'validees'} onClick={() => setActiviteTab('validees')} />
+                <button onClick={() => setActiviteTab('validees')} style={{ padding: '10px 18px', border: 'none', background: 'transparent', borderBottom: activiteTab === 'validees' ? '2px solid var(--af-gold)' : '2px solid transparent', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: 'var(--af-ivory)' }}>
+                  {Icon.validate} Dépenses validées
+                </button>
               )}
             </div>
 
-            {/* Contenu */}
-            <div style={{ maxHeight: 420, overflowY: 'auto' }}>
+            <div style={{ maxHeight: 400, overflowY: 'auto' }}>
               {activiteLoading ? (
-                <div style={{ padding: '40px', textAlign: 'center' }}><div className="spinner mx-auto" /></div>
+                <div className="af-loader"><div className="af-spinner"/><span>Chargement…</span></div>
               ) : activite?.error ? (
-                <div style={{ padding: '40px', textAlign: 'center', color: '#9CA3AF', fontSize: 13 }}>Erreur de chargement</div>
+                <div style={{ padding: 40, textAlign: 'center', color: 'var(--af-mute)', fontSize: 13 }}>Erreur de chargement</div>
               ) : (
                 <>
-                  {/* Budgets créés */}
                   {activiteTab === 'budgets' && (
-                    <table className="data-table">
-                      <thead><tr><th>Code</th><th>Nom</th><th>Montant global</th><th>Statut</th><th>Date</th><th></th></tr></thead>
+                    <table className="af-table">
+                      <thead><tr><th>Code</th><th>Nom</th><th>Montant</th><th>Statut</th><th>Date</th></tr></thead>
                       <tbody>
                         {(activite?.budgets_crees || []).length === 0 ? (
-                          <tr><td colSpan={6} style={{ textAlign: 'center', color: '#9CA3AF', fontStyle: 'italic', padding: '24px' }}>Aucun budget créé</td></tr>
+                          <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--af-mute)', padding: 24 }}>Aucun budget créé</td></tr>
                         ) : (activite?.budgets_crees || []).map(b => (
-                          <tr key={b.id} className="clickable" onClick={() => { setModal(null); navigate(`/budgets/${b.id}`) }}>
-                            <td><span className="code-tag">{b.code}</span></td>
-                            <td style={{ fontWeight: 500, maxWidth: 180 }}><div className="truncate">{b.nom}</div></td>
-                            <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{fmt(b.montant_global)} FCFA</td>
-                            <td><span style={{ fontSize: 11, fontWeight: 700, color: STATUT_COLOR[b.statut] || '#6B7280' }}>{b.statut}</span></td>
-                            <td style={{ color: '#9CA3AF', fontSize: 12 }}>{fmtDate(b.date_creation)}</td>
-                            <td><ChevronRight size={13} style={{ color: '#D1D5DB' }} /></td>
+                          <tr key={b.id} style={{ cursor: 'pointer' }} onClick={() => { setModal(null); navigate(`/budgets/${b.id}`) }}>
+                            <td className="ref">{b.code}</td>
+                            <td>{b.nom}</td>
+                            <td className="num">{fmt(b.montant_global)} FCFA</td>
+                            <td><span style={{ fontSize: 11, fontWeight: 700, color: STATUT_COLOR[b.statut] || 'var(--af-mute)' }}>{b.statut}</span></td>
+                            <td className="muted">{fmtDate(b.date_creation)}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   )}
-
-                  {/* Dépenses saisies */}
                   {activiteTab === 'depenses' && (
-                    <table className="data-table">
-                      <thead><tr><th>Référence</th><th>Budget</th><th>Ligne</th><th>Montant</th><th>Statut</th><th>Date</th></tr></thead>
+                    <table className="af-table">
+                      <thead><tr><th>Réf.</th><th>Budget</th><th>Montant</th><th>Statut</th><th>Date</th></tr></thead>
                       <tbody>
                         {(activite?.depenses_enregistrees || []).length === 0 ? (
-                          <tr><td colSpan={6} style={{ textAlign: 'center', color: '#9CA3AF', fontStyle: 'italic', padding: '24px' }}>Aucune dépense saisie</td></tr>
+                          <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--af-mute)', padding: 24 }}>Aucune dépense saisie</td></tr>
                         ) : (activite?.depenses_enregistrees || []).map(d => (
                           <tr key={d.id}>
-                            <td><span className="code-tag">{d.reference}</span></td>
-                            <td style={{ fontSize: 12 }}>{d.budget_code}</td>
-                            <td style={{ fontSize: 12, maxWidth: 160 }}><div className="truncate">{d.ligne_designation}</div></td>
-                            <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{fmt(d.montant)} FCFA</td>
-                            <td><span style={{ fontSize: 11, fontWeight: 700, color: STATUT_COLOR[d.statut] || '#6B7280' }}>{d.statut}</span></td>
-                            <td style={{ color: '#9CA3AF', fontSize: 12 }}>{fmtDate(d.date)}</td>
+                            <td className="ref">{d.reference}</td>
+                            <td className="muted">{d.budget_code}</td>
+                            <td className="num">{fmt(d.montant)} FCFA</td>
+                            <td><span style={{ fontSize: 11, fontWeight: 700, color: STATUT_COLOR[d.statut] || 'var(--af-mute)' }}>{d.statut}</span></td>
+                            <td className="muted">{fmtDate(d.date)}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   )}
-
-                  {/* Dépenses validées (comptable) */}
                   {activiteTab === 'validees' && (
-                    <table className="data-table">
-                      <thead><tr><th>Référence</th><th>Budget</th><th>Saisie par</th><th>Montant</th><th>Statut</th><th>Date</th></tr></thead>
+                    <table className="af-table">
+                      <thead><tr><th>Réf.</th><th>Budget</th><th>Saisie par</th><th>Montant</th><th>Date</th></tr></thead>
                       <tbody>
                         {(activite?.depenses_validees || []).length === 0 ? (
-                          <tr><td colSpan={6} style={{ textAlign: 'center', color: '#9CA3AF', fontStyle: 'italic', padding: '24px' }}>Aucune dépense traitée</td></tr>
+                          <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--af-mute)', padding: 24 }}>Aucune dépense traitée</td></tr>
                         ) : (activite?.depenses_validees || []).map(d => (
                           <tr key={d.id}>
-                            <td><span className="code-tag">{d.reference}</span></td>
-                            <td style={{ fontSize: 12 }}>{d.budget_code}</td>
-                            <td style={{ fontSize: 12 }}>{d.enregistre_par}</td>
-                            <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{fmt(d.montant)} FCFA</td>
-                            <td><span style={{ fontSize: 11, fontWeight: 700, color: STATUT_COLOR[d.statut] || '#6B7280' }}>{d.statut}</span></td>
-                            <td style={{ color: '#9CA3AF', fontSize: 12 }}>{fmtDate(d.date)}</td>
+                            <td className="ref">{d.reference}</td>
+                            <td className="muted">{d.budget_code}</td>
+                            <td className="muted">{d.enregistre_par}</td>
+                            <td className="num">{fmt(d.montant)} FCFA</td>
+                            <td className="muted">{fmtDate(d.date)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -536,43 +451,40 @@ export default function UtilisateursPage() {
                 </>
               )}
             </div>
-
             <div className="modal-footer">
-              <button onClick={() => setModal(null)} className="btn btn-secondary btn-md">Fermer</button>
+              <button onClick={() => setModal(null)} className="btn btn-secondary btn-sm">Fermer</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal réinitialisation mot de passe */}
+      {/* Modal réinitialisation MDP */}
       {modal === 'resetPwd' && targetUser && (
         <div className="modal-overlay" onClick={() => setModal(null)}>
-          <div className="modal-panel max-w-[440px]" onClick={e => e.stopPropagation()}>
+          <div className="modal-panel" style={{ maxWidth: 440 }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2 className="font-display font-bold text-[15px]">Réinitialiser le mot de passe</h2>
+              <h2 style={{ fontSize: 15, fontWeight: 700 }}>Réinitialiser le mot de passe</h2>
             </div>
             <form onSubmit={handleResetPwd}>
               <div className="modal-body">
-                <div className="mb-[18px] px-[14px] py-[10px] rounded-[9px] bg-[#FEF9EC] border border-[#F3D07A] text-[13px] text-[#78350F]">
-                  Utilisateur : <strong>{targetUser.prenom} {targetUser.nom}</strong> ({targetUser.email})
+                <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 9, background: 'rgba(201,169,97,.1)', border: '1px solid rgba(201,169,97,.3)', fontSize: 13, color: 'var(--af-cream)' }}>
+                  Utilisateur : <strong style={{ color: 'var(--af-ivory)' }}>{targetUser.prenom} {targetUser.nom}</strong> ({targetUser.email})
                 </div>
-                <div className="mb-[14px]">
-                  <label className="form-label">Nouveau mot de passe</label>
-                  <input className="form-input" type="password" required minLength={8} value={pwdForm.nouveau_password}
-                    onChange={e => setPwdForm(f => ({ ...f, nouveau_password: e.target.value }))} placeholder="Minimum 8 caractères" />
+                <div className="mb-[18px]">
+                  <label>Nouveau mot de passe</label>
+                  <input className="form-input" type="password" required minLength={8} value={pwdForm.nouveau_password} onChange={e => setPwdForm(f => ({ ...f, nouveau_password: e.target.value }))} placeholder="Minimum 8 caractères"/>
                 </div>
-                <div>
-                  <label className="form-label">Confirmer le mot de passe</label>
-                  <input className="form-input" type="password" required value={pwdForm.confirmer}
-                    onChange={e => setPwdForm(f => ({ ...f, confirmer: e.target.value }))} placeholder="••••••••" />
+                <div className="mb-[18px]" style={{ marginTop: 14 }}>
+                  <label>Confirmer le mot de passe</label>
+                  <input className="form-input" type="password" required value={pwdForm.confirmer} onChange={e => setPwdForm(f => ({ ...f, confirmer: e.target.value }))} placeholder="••••••••"/>
                 </div>
-                {error   && <p className="text-[#DC2626]  text-[12px] mt-[10px]">{error}</p>}
-                {success && <p className="text-[#16A34A] text-[12px] mt-[10px]">{success}</p>}
+                {error   && <p style={{ fontSize: 12, color: 'var(--af-st-reject)',   marginTop: 10 }}>{error}</p>}
+                {success && <p style={{ fontSize: 12, color: 'var(--af-st-approve)', marginTop: 10 }}>{success}</p>}
               </div>
               <div className="modal-footer">
-                <button type="button" onClick={() => setModal(null)} className="btn btn-secondary btn-md">Annuler</button>
-                <button type="submit" disabled={saving} className="btn btn-primary btn-md">
-                  {saving ? <><span className="spinner-sm" /> Réinitialisation…</> : 'Réinitialiser'}
+                <button type="button" onClick={() => setModal(null)} className="btn btn-secondary btn-sm">Annuler</button>
+                <button type="submit" disabled={saving} className="btn btn-primary btn-sm">
+                  {saving ? 'Réinitialisation…' : 'Réinitialiser'}
                 </button>
               </div>
             </form>
