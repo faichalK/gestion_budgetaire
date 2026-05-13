@@ -3,19 +3,12 @@ import {
   getBudgetAnnuels, createBudgetAnnuel, updateBudgetAnnuel, deleteBudgetAnnuel,
   getAllocations,
 } from '../../api/budget'
-import { Plus, Pencil, Trash2, CalendarDays, AlertTriangle, ChevronDown, Building2 } from 'lucide-react'
+import { Plus, Pencil, Trash2, CalendarDays, AlertTriangle, ChevronDown, Building2 } from '../../components/AtlasIcons'
 import { ConfirmModal } from '../../components/ui'
 import { formaterNombre } from '../../utils/formatters'
 
 const fmt = (n) => formaterNombre(n ?? 0)
 
-const jaugeColor = (pct) => {
-  if (pct > 75) return 'var(--color-danger-600)'
-  if (pct > 50) return 'var(--color-warning-600)'
-  return 'var(--color-success-600)'
-}
-
-/* ─── Page principale ──────────────────────────────────────────────────────── */
 export default function BudgetAnnuelPage() {
   const [budgets,      setBudgets]      = useState([])
   const [loading,      setLoading]      = useState(true)
@@ -24,47 +17,51 @@ export default function BudgetAnnuelPage() {
   const [confirmModal, setConfirmModal] = useState(null)
   const [expandedId,   setExpandedId]   = useState(null)
 
-  const load = () => {
+  const reloadBudgets = () => {
     setLoading(true)
     getBudgetAnnuels()
       .then(r => setBudgets(r.data.results ?? r.data))
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    let cancelled = false
+    const t = window.setTimeout(() => {
+      setLoading(true)
+      getBudgetAnnuels()
+        .then(r => { if (!cancelled) setBudgets(r.data.results ?? r.data) })
+        .finally(() => { if (!cancelled) setLoading(false) })
+    }, 0)
+    return () => { cancelled = true; window.clearTimeout(t) }
+  }, [])
 
   return (
     <div>
-      {/* Header */}
-      <div className="page-header">
+      <div className="mb-7 flex items-end gap-6">
         <div>
-          <h1 className="page-title">Budget annuel</h1>
-          <p className="page-subtitle">Budget global voté par l'entreprise</p>
+          <div className="text-[10px] tracking-[0.20em] uppercase text-[#B8864A] mb-2 font-medium">Administration · Budget global</div>
+          <h1 className="text-[32px] font-normal tracking-[-0.02em] leading-[1.1] text-[#0E2A47] mb-1">Budget annuel</h1>
         </div>
-        <div className="flex gap-[10px]">
-          <button onClick={() => setShowNewBA(true)} className="btn btn-primary btn-md gap-[7px]">
-            <Plus size={16} strokeWidth={2.5} /> Voter le budget annuel
+        <div className="ml-auto flex gap-2.5">
+          <button onClick={() => setShowNewBA(true)} className="btn btn-primary btn-sm" style={{ gap: 7 }}>
+            <Plus size={14} strokeWidth={2.5} /> Voter le budget
           </button>
         </div>
       </div>
 
       {loading ? (
-        <div className="page-loader"><div className="spinner" /></div>
+        <div className="af-loader"><div className="af-spinner" /></div>
       ) : budgets.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-icon">
-            <CalendarDays size={28} strokeWidth={1.5} className="text-gray-400" />
-          </div>
-          <p className="empty-title">Aucun budget annuel voté</p>
-          <p className="empty-body">
-            L'entreprise vote un budget global unique par exercice.
-          </p>
-          <button onClick={() => setShowNewBA(true)} className="btn btn-primary btn-md mt-4 gap-[7px]">
-            <Plus size={16} strokeWidth={2.5} /> Voter le budget annuel
+        <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)]" style={{ padding: '48px 24px', textAlign: 'center' }}>
+          <CalendarDays size={28} strokeWidth={1.5} style={{ color: 'var(--af-mute)', margin: '0 auto 12px', display: 'block' }} />
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--af-ivory)', marginBottom: 6 }}>Aucun budget annuel voté</div>
+          <div style={{ fontSize: 13, color: 'var(--af-mute)', marginBottom: 20 }}>Votez un budget global pour démarrer l'exercice.</div>
+          <button onClick={() => setShowNewBA(true)} className="btn btn-primary btn-sm" style={{ gap: 7 }}>
+            <Plus size={14} strokeWidth={2.5} /> Voter le budget
           </button>
         </div>
       ) : (
-        <div className="max-w-[760px]">
+        <div style={{ maxWidth: 760 }}>
           {budgets.map(ba => (
             <div key={ba.id}>
               <BudgetAnnuelCard
@@ -76,7 +73,7 @@ export default function BudgetAnnuelPage() {
                   title: 'Supprimer le budget annuel',
                   message: `Supprimer définitivement le budget annuel "${ba.periode_display ?? ba.annee}" ?`,
                   confirmLabel: 'Supprimer',
-                  onConfirm: () => deleteBudgetAnnuel(ba.id).then(() => { if (expandedId === ba.id) setExpandedId(null); load() }),
+                  onConfirm: () => deleteBudgetAnnuel(ba.id).then(() => { if (expandedId === ba.id) setExpandedId(null); reloadBudgets() }),
                 })}
               />
               {expandedId === ba.id && (
@@ -87,8 +84,8 @@ export default function BudgetAnnuelPage() {
         </div>
       )}
 
-      {showNewBA && <BudgetAnnuelModal onClose={() => setShowNewBA(false)} onSaved={() => { setShowNewBA(false); load() }} />}
-      {editBA    && <BudgetAnnuelModal initial={editBA} onClose={() => setEditBA(null)} onSaved={() => { setEditBA(null); load() }} />}
+      {showNewBA && <BudgetAnnuelModal onClose={() => setShowNewBA(false)} onSaved={() => { setShowNewBA(false); reloadBudgets() }} />}
+      {editBA    && <BudgetAnnuelModal initial={editBA} onClose={() => setEditBA(null)} onSaved={() => { setEditBA(null); reloadBudgets() }} />}
       {confirmModal && <ConfirmModal {...confirmModal} onClose={() => setConfirmModal(null)} />}
     </div>
   )
@@ -98,136 +95,134 @@ export default function BudgetAnnuelPage() {
 function BudgetAnnuelCard({ ba, expanded, onToggle, onEdit, onDelete }) {
   const pct     = ba.montant_global > 0 ? Math.min(100, (ba.montant_alloue_depts / ba.montant_global) * 100) : 0
   const restant = ba.montant_disponible_global
-  const color   = jaugeColor(pct)
 
   return (
     <div
-      className="card mb-[4px]"
+      className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)]"
       style={{
-        border: `1.5px solid ${expanded ? 'var(--color-gold)' : 'var(--color-gray-200)'}`,
-        borderBottom: expanded ? 'none' : undefined,
+        marginBottom: expanded ? 0 : 8,
+        border: expanded ? '1.5px solid var(--af-gold)' : undefined,
         borderBottomLeftRadius: expanded ? 0 : undefined,
         borderBottomRightRadius: expanded ? 0 : undefined,
         cursor: 'pointer',
       }}
       onClick={onToggle}
     >
-      <div className="flex items-start justify-between mb-[14px]">
-        <div>
-          <div className="font-display font-extrabold text-[15px] text-gray-900">
-            Exercice {ba.periode_display ?? ba.annee}
+      <div style={{ padding: '16px 20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--af-ivory)' }}>
+              Exercice {ba.periode_display ?? ba.annee}
+            </div>
+            {ba.description && (
+              <div style={{ fontSize: 12, color: 'var(--af-mute)', marginTop: 3 }}>{ba.description}</div>
+            )}
           </div>
-          {ba.description && (
-            <div className="text-[#9CA3AF] text-[12px] mt-[3px]">{ba.description}</div>
-          )}
-        </div>
-        <div className="flex gap-[5px]" onClick={e => e.stopPropagation()}>
-          <button onClick={onEdit} className="btn btn-secondary btn-sm" title="Modifier">
-            <Pencil size={12} strokeWidth={2} />
-          </button>
-          <button onClick={onDelete} className="btn btn-danger btn-sm" title="Supprimer">
-            <Trash2 size={12} strokeWidth={2} />
-          </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-[10px] mb-[14px]">
-        <div>
-          <div className="text-[10px] text-[#9CA3AF] font-semibold tracking-[.4px] mb-[3px]">BUDGET GLOBAL</div>
-          <div className="font-mono font-bold text-[13px]" style={{ color: 'var(--color-gold)' }}>{fmt(ba.montant_global)} FCFA</div>
-        </div>
-        <div>
-          <div className="text-[10px] text-[#9CA3AF] font-semibold tracking-[.4px] mb-[3px]">DISPONIBLE</div>
-          <div
-            className="font-mono font-bold text-[13px]"
-            style={{ color: restant < 0 ? 'var(--color-danger-600)' : 'var(--color-success-600)' }}
-          >
-            {fmt(restant)} FCFA
+          <div style={{ display: 'flex', gap: 5 }} onClick={e => e.stopPropagation()}>
+            <button onClick={onEdit} className="btn btn-secondary btn-sm" title="Modifier">
+              <Pencil size={12} strokeWidth={2} />
+            </button>
+            <button onClick={onDelete} className="btn btn-danger btn-sm" title="Supprimer">
+              <Trash2 size={12} strokeWidth={2} />
+            </button>
           </div>
         </div>
-      </div>
 
-      <div>
-        <div className="flex justify-between text-[11px] text-[#6B7280] mb-[5px]">
-          <span>Alloué aux départements</span>
-          <span className="font-bold font-mono" style={{ color }}>{Math.round(pct)}%</span>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+          <div>
+            <div style={{ fontSize: 10, color: 'var(--af-mute)', fontWeight: 700, letterSpacing: '.4px', textTransform: 'uppercase', marginBottom: 3 }}>Budget global</div>
+            <div style={{ fontFamily: 'var(--af-mono)', fontWeight: 700, fontSize: 13, color: 'var(--af-gold)' }}>{fmt(ba.montant_global)} FCFA</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 10, color: 'var(--af-mute)', fontWeight: 700, letterSpacing: '.4px', textTransform: 'uppercase', marginBottom: 3 }}>Disponible</div>
+            <div style={{ fontFamily: 'var(--af-mono)', fontWeight: 700, fontSize: 13, color: restant < 0 ? '#DC2626' : '#15803D' }}>
+              {fmt(restant)} FCFA
+            </div>
+          </div>
         </div>
-        <div className="exec-bar mb-[12px]">
-          <div className="exec-bar-fill" style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${jaugeColor(Math.max(0, pct - 20))}, ${color})` }} />
-        </div>
-        <div className="flex items-center justify-center gap-[5px] text-[11px] font-semibold" style={{ color: expanded ? 'var(--color-gold)' : '#9CA3AF' }}>
-          <Building2 size={12} strokeWidth={2} />
-          {expanded ? 'Masquer les départements' : 'Voir les départements'}
-          <ChevronDown size={12} strokeWidth={2.5} style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }} />
+
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--af-mute)', marginBottom: 5 }}>
+            <span>Alloué aux départements</span>
+            <span style={{ fontWeight: 700, fontFamily: 'var(--af-mono)', color: pct > 75 ? '#DC2626' : pct > 50 ? 'var(--af-gold)' : '#15803D' }}>{Math.round(pct)}%</span>
+          </div>
+          <div className="af-bar" style={{ marginBottom: 12 }}>
+            <div className={`af-bar-fill${pct > 75 ? ' danger' : pct > 50 ? ' warn' : ''}`} style={{ width: `${pct}%` }} />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, fontSize: 11, fontWeight: 600, color: expanded ? 'var(--af-gold)' : 'var(--af-mute)' }}>
+            <Building2 size={12} strokeWidth={2} />
+            {expanded ? 'Masquer les allocations' : 'Voir les allocations'}
+            <ChevronDown size={12} strokeWidth={2.5} style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }} />
+          </div>
         </div>
       </div>
     </div>
   )
 }
 
-/* ─── Allocations inline (panneau expansible) ─────────────────────────────── */
+/* ─── Allocations inline ──────────────────────────────────────────────────── */
 function AllocationsInline({ budgetAnnuelId }) {
   const [allocs,  setAllocs]  = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    setLoading(true)
-    getAllocations(budgetAnnuelId)
-      .then(r => setAllocs(r.data.results ?? r.data))
-      .finally(() => setLoading(false))
+    let cancelled = false
+    const t = window.setTimeout(() => {
+      setLoading(true)
+      getAllocations(budgetAnnuelId)
+        .then(r => { if (!cancelled) setAllocs(r.data.results ?? r.data) })
+        .finally(() => { if (!cancelled) setLoading(false) })
+    }, 0)
+    return () => { cancelled = true; window.clearTimeout(t) }
   }, [budgetAnnuelId])
 
   return (
-    <div className="card mb-[16px]" style={{
-      border: '1.5px solid var(--color-gold)',
+    <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)]" style={{
+      marginBottom: 12,
+      border: '1.5px solid var(--af-gold)',
       borderTop: 'none',
-      borderTopLeftRadius: 0,
-      borderTopRightRadius: 0,
-      padding: 0,
-      overflow: 'hidden',
+      borderTopLeftRadius: 0, borderTopRightRadius: 0,
+      padding: 0, overflow: 'hidden',
     }}>
       {loading ? (
-        <div style={{ padding: '24px', textAlign: 'center' }}>
-          <div className="spinner mx-auto" style={{ width: 20, height: 20 }} />
+        <div style={{ padding: 24, textAlign: 'center' }}>
+          <div className="af-spinner" style={{ margin: '0 auto', width: 20, height: 20 }} />
         </div>
       ) : allocs.length === 0 ? (
-        <div style={{ padding: '20px 24px', textAlign: 'center', fontSize: 13, color: '#9CA3AF' }}>
-          <Building2 size={20} strokeWidth={1.5} style={{ margin: '0 auto 8px', display: 'block', color: '#D1D5DB' }} />
-          Aucune allocation pour cet exercice.
-          <br />
-          <span style={{ fontSize: 12 }}>Rendez-vous sur la page <strong>Départements</strong> pour allouer.</span>
+        <div style={{ padding: '20px 24px', textAlign: 'center', fontSize: 13, color: 'var(--af-mute)' }}>
+          <Building2 size={20} strokeWidth={1.5} style={{ margin: '0 auto 8px', display: 'block', color: 'var(--af-line)' }} />
+          Aucune allocation — allouez depuis la page <strong>Départements</strong>.
         </div>
       ) : (
-        <table className="data-table" style={{ width: '100%' }}>
+        <table className="af-table">
           <thead>
             <tr>
-              {['Département', 'Alloué', 'Consommé', 'Disponible', 'Taux'].map(h => (
-                <th key={h}>{h}</th>
-              ))}
+              {['Département', 'Alloué', 'Consommé', 'Disponible', 'Taux'].map(h => <th key={h}>{h}</th>)}
             </tr>
           </thead>
           <tbody>
             {allocs.map(a => {
-              const pct   = parseFloat(a.montant_alloue) > 0
+              const pct = parseFloat(a.montant_alloue) > 0
                 ? Math.min(100, (parseFloat(a.montant_consomme) / parseFloat(a.montant_alloue)) * 100)
                 : 0
-              const color = jaugeColor(pct)
               return (
                 <tr key={a.id}>
-                  <td className="font-semibold text-[13px]">{a.departement_nom}</td>
-                  <td className="font-mono font-semibold">{fmt(a.montant_alloue)} <span className="text-[10px] text-[#9CA3AF]">FCFA</span></td>
-                  <td className="font-mono text-[#6B7280]">{fmt(a.montant_consomme)} <span className="text-[10px] text-[#9CA3AF]">FCFA</span></td>
+                  <td style={{ fontWeight: 600 }}>{a.departement_nom}</td>
+                  <td className="num">{fmt(a.montant_alloue)} <span style={{ fontSize: 10, color: 'var(--af-mute)' }}>FCFA</span></td>
+                  <td className="num muted">{fmt(a.montant_consomme)} <span style={{ fontSize: 10, color: 'var(--af-mute)' }}>FCFA</span></td>
                   <td>
-                    <span className="font-mono font-bold" style={{ color: parseFloat(a.montant_disponible) < 0 ? 'var(--color-danger-600)' : 'var(--color-success-600)' }}>
-                      {fmt(a.montant_disponible)} <span className="text-[10px] font-normal text-[#9CA3AF]">FCFA</span>
+                    <span className="num" style={{ fontWeight: 700, color: parseFloat(a.montant_disponible) < 0 ? '#DC2626' : '#15803D' }}>
+                      {fmt(a.montant_disponible)} <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--af-mute)' }}>FCFA</span>
                     </span>
                   </td>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div className="exec-bar" style={{ width: 60 }}>
-                        <div className="exec-bar-fill" style={{ width: `${pct}%`, background: color }} />
+                      <div className="af-bar" style={{ width: 60 }}>
+                        <div className={`af-bar-fill${pct > 75 ? ' danger' : pct > 50 ? ' warn' : ''}`} style={{ width: `${pct}%` }} />
                       </div>
-                      <span className="text-[11px] font-bold font-mono" style={{ color }}>{Math.round(pct)}%</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, fontFamily: 'var(--af-mono)', color: pct > 75 ? '#DC2626' : pct > 50 ? 'var(--af-gold)' : '#15803D' }}>
+                        {Math.round(pct)}%
+                      </span>
                     </div>
                   </td>
                 </tr>
@@ -252,7 +247,7 @@ function BudgetAnnuelModal({ initial, onClose, onSaved }) {
   const [error,  setError]  = useState('')
 
   const periodeLabel = form.annee
-    ? (form.annee_fin && form.annee_fin !== form.annee ? `${form.annee}-${form.annee_fin}` : String(form.annee))
+    ? (form.annee_fin && form.annee_fin !== form.annee ? `${form.annee}–${form.annee_fin}` : String(form.annee))
     : ''
 
   const handle = async (e) => {
@@ -269,55 +264,53 @@ function BudgetAnnuelModal({ initial, onClose, onSaved }) {
 
   return (
     <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="modal-panel max-w-[460px]" onClick={e => e.stopPropagation()}>
+      <div className="modal-panel" style={{ maxWidth: 460 }} onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <h2 className="font-display font-bold text-[15px]">
+          <h2 style={{ fontWeight: 700, fontSize: 15 }}>
             {initial ? 'Modifier le budget annuel' : 'Voter le budget annuel'}
           </h2>
         </div>
         <form onSubmit={handle}>
           <div className="modal-body">
             {periodeLabel && (
-              <div className="mb-4 px-[14px] py-2 rounded-[9px] bg-[#FEF9EC] border border-[#F3D07A] text-[13px] font-bold text-[#78350F] font-mono tracking-[.5px]">
-                Exercice : {periodeLabel}
+              <div style={{ marginBottom: 16, padding: '8px 14px', borderRadius: 9, background: 'rgba(184,134,74,0.08)', border: '1px solid rgba(184,134,74,0.25)', fontSize: 13, fontWeight: 700, color: 'var(--af-gold)', fontFamily: 'var(--af-mono)', letterSpacing: '.5px' }}>
+                Exercice {periodeLabel}
               </div>
             )}
-            <div className="grid form-grid-2 gap-[14px] mb-[14px]" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
-              <div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+              <div className="mb-[18px]" style={{ marginBottom: 0 }}>
                 <label className="form-label">Année de début</label>
                 <input className="form-input" type="number" required min="2000" max="2099" value={form.annee}
                   onChange={e => setForm(f => ({ ...f, annee: e.target.value }))} placeholder="Ex : 2026" />
               </div>
-              <div>
-                <label className="form-label">
-                  Année de fin <span className="font-normal normal-case text-[#9CA3AF]">(optionnel)</span>
-                </label>
+              <div className="mb-[18px]" style={{ marginBottom: 0 }}>
+                <label className="form-label">Année de fin <span style={{ fontWeight: 400, color: 'var(--af-mute)', textTransform: 'none' }}>(optionnel)</span></label>
                 <input className="form-input" type="number" min={form.annee || 2000} max="2099" value={form.annee_fin}
                   onChange={e => setForm(f => ({ ...f, annee_fin: e.target.value }))}
                   placeholder={form.annee ? `Ex : ${parseInt(form.annee) + 1}` : '2027'} />
-                <p className="form-hint">Laisser vide si l'exercice tient sur 1 an</p>
               </div>
             </div>
-            <div className="mb-[14px]">
+            <div className="mb-[18px]">
               <label className="form-label">Budget global (FCFA)</label>
-              <input className="form-input font-mono" type="number" required min="0" step="0.01" value={form.montant_global}
+              <input className="form-input" style={{ fontFamily: 'var(--af-mono)' }} type="number" required min="0" step="0.01" value={form.montant_global}
                 onChange={e => setForm(f => ({ ...f, montant_global: e.target.value }))} />
             </div>
-            <div>
-              <label className="form-label">Description <span className="font-normal normal-case text-[#9CA3AF]">(optionnel)</span></label>
-              <textarea className="form-input h-auto px-[14px] py-[10px]" value={form.description} rows={2}
-                onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+            <div className="mb-[18px]" style={{ marginBottom: 0 }}>
+              <label className="form-label">Description <span style={{ fontWeight: 400, color: 'var(--af-mute)', textTransform: 'none' }}>(optionnel)</span></label>
+              <textarea className="form-input" value={form.description} rows={2}
+                onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                style={{ height: 'auto', padding: '10px 14px', resize: 'vertical' }} />
             </div>
             {error && (
-              <div className="flex items-start gap-[9px] px-[14px] py-[10px] rounded-[9px] bg-[#FEF2F2] border border-[#FECACA] mt-[14px]">
-                <AlertTriangle size={14} strokeWidth={2} className="text-[#EF4444] shrink-0 mt-[1px]" />
-                <p className="text-[12px] text-[#B91C1C] m-0">{error}</p>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '10px 14px', borderRadius: 9, background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.2)', marginTop: 14 }}>
+                <AlertTriangle size={14} strokeWidth={2} style={{ color: '#DC2626', flexShrink: 0, marginTop: 1 }} />
+                <p style={{ fontSize: 12, color: '#DC2626', margin: 0 }}>{error}</p>
               </div>
             )}
           </div>
           <div className="modal-footer">
-            <button type="button" onClick={onClose} className="btn btn-secondary btn-md">Annuler</button>
-            <button type="submit" disabled={saving} className="btn btn-primary btn-md">
+            <button type="button" onClick={onClose} className="btn btn-secondary btn-sm">Annuler</button>
+            <button type="submit" disabled={saving} className="btn btn-primary btn-sm">
               {saving ? <><span className="spinner-sm" /> Enregistrement…</> : 'Enregistrer'}
             </button>
           </div>

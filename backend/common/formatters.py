@@ -130,20 +130,20 @@ def formater_ecart(
         return {'montant': '—', 'pourcentage': '—', 'statut': 'inconnu', 'couleur': '#6B7280'}
 
     ecart = reel - prevu
-    taux  = (reel / prevu * 100) if prevu != 0 else Decimal('0')
+    taux_realisation = (reel / prevu * 100) if prevu != 0 else Decimal('0')
+    variance_pct     = ((reel - prevu) / prevu * 100) if prevu != 0 else Decimal('0')
 
-    # Formatage signé
+    # Formatage signé du montant
     signe = '+' if ecart >= 0 else ''
     montant_fmt = f"{signe}{formater_montant(ecart, avec_devise=True)}"
-    if ecart >= 0:
-        montant_fmt = montant_fmt  # déjà positif
 
-    taux_arrondi = float(taux.quantize(Decimal('0.1'), rounding=ROUND_HALF_UP))
-    signe_taux = '+' if taux_arrondi >= 0 else ''
-    pct_fmt = f"{signe_taux}{str(taux_arrondi).replace('.', ',')} %"
+    # Formatage signé de l'écart relatif (variance, pas taux de réalisation)
+    variance_arrondie = float(variance_pct.quantize(Decimal('0.1'), rounding=ROUND_HALF_UP))
+    signe_var = '+' if variance_arrondie > 0 else ''
+    pct_fmt = f"{signe_var}{str(variance_arrondie).replace('.', ',')} %"
 
-    # Statut
-    t = float(taux)
+    # Statut basé sur le taux de réalisation (reel/prevu × 100)
+    t = float(taux_realisation)
     if t < 50:
         statut, couleur = 'sous_consomme', '#3B82F6'
     elif t <= 80:
@@ -174,9 +174,11 @@ def formater_taux(
     >>> formater_taux(750000, 1000000)
     '75,0 %'
     """
+    if numerateur is None or numerateur == '' or denominateur is None or denominateur == '':
+        return vide
     try:
-        num = float(numerateur or 0)
-        den = float(denominateur or 0)
+        num = float(numerateur)
+        den = float(denominateur)
     except (ValueError, TypeError):
         return vide
     if den == 0:

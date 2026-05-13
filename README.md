@@ -77,7 +77,7 @@ Chaque action (création, modification, validation, rejet) est automatiquement *
 
 ### Sécurité & gestion des utilisateurs
 
-- Authentification **JWT** (access 15 min / refresh 7 jours) avec hachage **Argon2**
+- Authentification **JWT** (access 8 h / refresh 7 jours) avec hachage **Argon2**
 - Blocage automatique après 3 tentatives de connexion échouées
 - Réinitialisation de mot de passe par email avec token signé
 - Gestion des profils utilisateurs avec photo
@@ -419,8 +419,8 @@ Copiez `.env.example` en `.env` et adaptez les valeurs. **Ne commitez jamais `.e
 | `DB_PORT` | Port PostgreSQL | `5432` |
 | `ANTHROPIC_API_KEY` | Clé API Claude (Anthropic) | *optionnel* |
 | `SKIP_CLAUDE_API` | Désactiver les appels IA | `False` |
-| `JWT_ACCESS_TOKEN_LIFETIME_MINUTES` | Durée du token access | `15` |
-| `JWT_REFRESH_TOKEN_LIFETIME_DAYS` | Durée du token refresh | `7` |
+| `SIMPLE_JWT.ACCESS_TOKEN_LIFETIME` | Durée du token access | `8 heures` |
+| `SIMPLE_JWT.REFRESH_TOKEN_LIFETIME` | Durée du token refresh | `7 jours` |
 | `EMAIL_HOST` | Serveur SMTP | `smtp.gmail.com` |
 | `EMAIL_PORT` | Port SMTP | `587` |
 | `EMAIL_HOST_USER` | Email d'envoi | *configurable* |

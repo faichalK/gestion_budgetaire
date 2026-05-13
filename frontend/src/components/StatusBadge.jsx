@@ -1,68 +1,91 @@
-/**
- * StatusBadge — Badges statuts cohérents (WCAG 2.1 AA)
- * Utilise les configs centralisées dans utils/constants.js
- */
-import { getStatutConfig, ALERTE_CONFIG } from '../utils/constants'
+import { cn } from '../lib/cn'
 
-/* ── Statut budget ─────────────────────────────────────────────────────────── */
+const BASE = 'inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.10em] px-[9px] py-1 rounded-[4px] border whitespace-nowrap'
+
+const VARS = {
+  draft:   'text-[#4B5563] border-[rgba(107,114,128,0.35)] bg-[rgba(107,114,128,0.10)]',
+  submit:  'text-[#1D4ED8] border-[rgba(37,99,235,0.35)]   bg-[rgba(37,99,235,0.10)]',
+  approve: 'text-[#15803D] border-[rgba(21,128,61,0.35)]   bg-[rgba(21,128,61,0.10)]',
+  reject:  'text-[#B91C1C] border-[rgba(220,38,38,0.35)]   bg-[rgba(220,38,38,0.10)]',
+  close:   'text-[#6D28D9] border-[rgba(109,40,217,0.35)]  bg-[rgba(109,40,217,0.10)]',
+}
+
+const STATUT_MAP = {
+  BROUILLON: { cls: 'draft',   label: 'BROUILLON' },
+  SOUMIS:    { cls: 'submit',  label: 'SOUMIS'    },
+  APPROUVE:  { cls: 'approve', label: 'APPROUVÉ'  },
+  REJETE:    { cls: 'reject',  label: 'REJETÉ'    },
+  CLOTURE:   { cls: 'close',   label: 'CLÔTURÉ'   },
+  ARCHIVE:   { cls: 'close',   label: 'ARCHIVÉ'   },
+}
+
+const DEP_STATUT_MAP = {
+  SAISIE:  { cls: 'submit',  label: 'EN ATTENTE' },
+  VALIDEE: { cls: 'approve', label: 'VALIDÉE'    },
+  REJETEE: { cls: 'reject',  label: 'REJETÉE'    },
+}
+
+const ALERTE_MAP = {
+  CRITIQUE: { cls: 'reject',  label: 'CRITIQUE' },
+  ROUGE:    { cls: 'reject',  label: 'ALERTE'   },
+  ORANGE:   { cls: 'submit',  label: 'ATTENTION' },
+  NORMAL:   { cls: 'approve', label: 'NORMAL'   },
+  INFO:     { cls: 'draft',   label: 'INFO'     },
+}
+
+const ROLE_MAP = {
+  ADMINISTRATEUR: { cls: 'approve', label: 'Administrateur' },
+  GESTIONNAIRE:   { cls: 'draft',   label: 'Gestionnaire'   },
+  COMPTABLE:      { cls: 'submit',  label: 'Comptable'      },
+}
+
+function Dot() {
+  return <span className="block w-[5px] h-[5px] rounded-full bg-current shrink-0" aria-hidden="true" />
+}
+
+function Badge({ cls, label }) {
+  return (
+    <span className={cn(BASE, VARS[cls] ?? VARS.draft)}>
+      <Dot />{label}
+    </span>
+  )
+}
+
 export function StatutBadge({ statut }) {
-  const cfg = getStatutConfig(statut, 'budget')
-  return (
-    <span className={`badge badge-${statut}`} role="status">
-      <span className="badge-dot" style={{ background: cfg.couleur }} aria-hidden="true" />
-      {cfg.label}
-    </span>
-  )
+  const s = STATUT_MAP[statut] || { cls: 'draft', label: statut }
+  return <Badge cls={s.cls} label={s.label} />
 }
 
-/* ── Niveaux alerte ────────────────────────────────────────────────────────── */
 export function AlerteBadge({ niveau }) {
-  const cfg = ALERTE_CONFIG[niveau] || ALERTE_CONFIG.NORMAL
-  return (
-    <span className={`badge badge-${niveau}`}>
-      <span className="badge-dot" style={{ background: cfg.couleur }} aria-hidden="true" />
-      {cfg.label}
-    </span>
-  )
+  const s = ALERTE_MAP[niveau] || { cls: 'draft', label: niveau }
+  return <Badge cls={s.cls} label={s.label} />
 }
 
-/* ── Dépenses ──────────────────────────────────────────────────────────────── */
 export function DepenseBadge({ statut }) {
-  const cfg = getStatutConfig(statut, 'depense')
-  return (
-    <span className={`badge badge-${statut}`} role="status">
-      <span className="badge-dot" style={{ background: cfg.couleur }} aria-hidden="true" />
-      {cfg.label}
-    </span>
-  )
+  const s = DEP_STATUT_MAP[statut] || { cls: 'draft', label: statut }
+  return <Badge cls={s.cls} label={s.label} />
 }
 
-/* ── Rôles ─────────────────────────────────────────────────────────────────── */
 export function RoleBadge({ role }) {
-  const cfg = getStatutConfig(role, 'role')
-  return (
-    <span
-      className="inline-flex items-center px-[10px] py-[3px] rounded-full text-[11.5px] font-bold tracking-[.2px]"
-      style={{ background: cfg.bg, color: cfg.couleur }}
-    >
-      {cfg.label}
-    </span>
-  )
+  const s = ROLE_MAP[role] || { cls: 'draft', label: role }
+  return <Badge cls={s.cls} label={s.label} />
 }
 
-/* ── Badge générique (inline style) ───────────────────────────────────────── */
 export function InlineBadge({ statut, type = 'budget' }) {
-  const cfg = getStatutConfig(statut, type)
+  const map = type === 'depense' ? DEP_STATUT_MAP : STATUT_MAP
+  const s = map[statut] || { cls: 'draft', label: statut }
+  return <Badge cls={s.cls} label={s.label} />
+}
+
+export function MethodeBadge({ technique }) {
+  const labels = {
+    ANALOGIE:     'ANALOGIE',
+    TROIS_POINTS: '3 POINTS',
+    ASCENDANTE:   'ASCENDANTE',
+  }
   return (
-    <span
-      className="inline-block px-[10px] py-[3px] rounded-[20px] text-[11px] font-bold whitespace-nowrap"
-      style={{
-        background: cfg.bg,
-        color: cfg.couleur,
-        border: `1px solid ${cfg.border || cfg.bg}`,
-      }}
-    >
-      {cfg.label}
+    <span className="inline-flex items-center px-2 py-[3px] border border-[rgba(184,134,74,0.30)] rounded-[3px] font-mono text-[10px] text-[#B8864A] tracking-[0.05em]">
+      {labels[technique] || technique}
     </span>
   )
 }

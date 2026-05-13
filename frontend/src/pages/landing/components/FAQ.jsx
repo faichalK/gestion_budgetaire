@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown } from '../../../components/AtlasIcons'
 import { useScrollAnimation } from '../hooks/useScrollAnimation'
 
 const FAQ_ITEMS = [

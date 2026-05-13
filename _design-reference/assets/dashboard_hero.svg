@@ -1,0 +1,173 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" width="1200" height="760" role="img" aria-label="Dashboard placeholder">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fafbfc"></stop>
+      <stop offset="1" stop-color="#f1f3f7"></stop>
+    </linearGradient>
+    <linearGradient id="line" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#2563eb" stop-opacity="0.0"></stop>
+      <stop offset=".5" stop-color="#2563eb" stop-opacity=".9"></stop>
+      <stop offset="1" stop-color="#2563eb" stop-opacity="0"></stop>
+    </linearGradient>
+    <linearGradient id="area" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2563eb" stop-opacity=".25"></stop>
+      <stop offset="1" stop-color="#2563eb" stop-opacity="0"></stop>
+    </linearGradient>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0H0V32" fill="none" stroke="#e6eaf0" stroke-width=".5"></path>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="760" rx="14" fill="url(#bg)"></rect>
+  <rect width="1200" height="760" rx="14" fill="url(#grid)" opacity=".7"></rect>
+
+  
+  <rect x="0" y="0" width="1200" height="56" fill="#ffffff"></rect>
+  <line x1="0" y1="56" x2="1200" y2="56" stroke="#e6eaf0"></line>
+  <circle cx="24" cy="28" r="5" fill="#9aa3b1"></circle>
+  <circle cx="42" cy="28" r="5" fill="#9aa3b1"></circle>
+  <circle cx="60" cy="28" r="5" fill="#9aa3b1"></circle>
+  <text x="100" y="33" font-family="monospace" font-size="12" fill="#5b6573">atlas finance · pilotage exécutif · exercice 2026</text>
+  <rect x="980" y="16" width="120" height="24" rx="6" fill="#f6f8fb" stroke="#e6eaf0"></rect>
+  <text x="996" y="32" font-family="monospace" font-size="11" fill="#5b6573">⌘  rechercher</text>
+  <circle cx="1140" cy="28" r="10" fill="#eaf2fc"></circle>
+
+  
+  <rect x="0" y="56" width="200" height="704" fill="#ffffff"></rect>
+  <line x1="200" y1="56" x2="200" y2="760" stroke="#e6eaf0"></line>
+  <g font-family="Inter, sans-serif" font-size="12" fill="#5b6573">
+    <text x="22" y="100" font-size="10" letter-spacing="1.5">PILOTAGE</text>
+    <rect x="14" y="112" width="172" height="32" rx="6" fill="#fef9ec" stroke="#dde4ed"></rect>
+    <text x="28" y="132" fill="#0c1626">▦  Vue d&#39;ensemble</text>
+    <text x="28" y="170">◷  Budgets</text>
+    <text x="28" y="198">↻  Workflow</text>
+    <text x="28" y="226">◇  Dépenses</text>
+    <text x="22" y="276" font-size="10" letter-spacing="1.5">ANALYSE</text>
+    <text x="28" y="304">▤  Rapports</text>
+    <text x="28" y="332">✦  IA &amp; alertes</text>
+    <text x="28" y="360">▣  Audit</text>
+    <text x="22" y="410" font-size="10" letter-spacing="1.5">ORGANISATION</text>
+    <text x="28" y="438">⌂  Départements</text>
+    <text x="28" y="466">⎔  Utilisateurs</text>
+  </g>
+
+  
+  <text x="232" y="108" font-family="Inter, sans-serif" font-weight="700" font-size="22" fill="#0c1626">Vue d&#39;ensemble · Q2 2026</text>
+  <text x="232" y="132" font-family="Inter, sans-serif" font-size="12" fill="#5b6573">Mis à jour il y a 4 minutes · Tous départements</text>
+  <rect x="1020" y="92" width="156" height="36" rx="8" fill="#eaf2fc" stroke="#cfd9e6"></rect>
+  <text x="1036" y="115" font-family="Inter, sans-serif" font-size="12" fill="#0c4a6e">＋  Nouvel exercice</text>
+
+  
+  <g font-family="Inter, sans-serif">
+    <g>
+      <rect x="232" y="156" width="220" height="104" rx="10" fill="#ffffff" stroke="#e6eaf0"></rect>
+      <text x="248" y="180" font-size="10" letter-spacing="1.5" fill="#5b6573">BUDGET TOTAL</text>
+      <text x="248" y="218" font-weight="700" font-size="26" fill="#0c1626">€ 48 320 000</text>
+      <text x="248" y="240" font-size="11" fill="#2563eb">▲ 6.2% vs N-1</text>
+    </g>
+    <g>
+      <rect x="468" y="156" width="220" height="104" rx="10" fill="#ffffff" stroke="#e6eaf0"></rect>
+      <text x="484" y="180" font-size="10" letter-spacing="1.5" fill="#5b6573">CONSOMMÉ</text>
+      <text x="484" y="218" font-weight="700" font-size="26" fill="#0c1626">€ 21 974 188</text>
+      <text x="484" y="240" font-size="11" fill="#5b6573">45.4% engagé</text>
+    </g>
+    <g>
+      <rect x="704" y="156" width="220" height="104" rx="10" fill="#ffffff" stroke="#e6eaf0"></rect>
+      <text x="720" y="180" font-size="10" letter-spacing="1.5" fill="#5b6573">EN ATTENTE</text>
+      <text x="720" y="218" font-weight="700" font-size="26" fill="#0c1626">142 dossiers</text>
+      <text x="720" y="240" font-size="11" fill="#b45309">● 8 dépassent SLA</text>
+    </g>
+    <g>
+      <rect x="940" y="156" width="236" height="104" rx="10" fill="#ffffff" stroke="#e6eaf0"></rect>
+      <text x="956" y="180" font-size="10" letter-spacing="1.5" fill="#5b6573">SCORE CONFORMITÉ</text>
+      <text x="956" y="218" font-weight="700" font-size="26" fill="#0c1626">99.4 / 100</text>
+      <text x="956" y="240" font-size="11" fill="#15803d">▲ stable 12 mois</text>
+    </g>
+  </g>
+
+  
+  <rect x="232" y="284" width="692" height="280" rx="10" fill="#ffffff" stroke="#e6eaf0"></rect>
+  <text x="248" y="312" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="#0c1626">Évolution mensuelle des engagements</text>
+  <text x="248" y="332" font-family="Inter, sans-serif" font-size="10" letter-spacing="1.5" fill="#5b6573">JANV · FÉV · MARS · AVR · MAI · JUIN · JUIL · AOÛT · SEPT</text>
+  
+  <g stroke="#e6eaf0" stroke-dasharray="2 4">
+    <line x1="248" y1="380" x2="908" y2="380"></line>
+    <line x1="248" y1="430" x2="908" y2="430"></line>
+    <line x1="248" y1="480" x2="908" y2="480"></line>
+    <line x1="248" y1="530" x2="908" y2="530"></line>
+  </g>
+  
+  <path d="M248 510 L320 478 L392 488 L464 442 L536 458 L608 410 L680 396 L752 360 L824 372 L896 318 L908 318 L908 540 L248 540 Z" fill="url(#area)"></path>
+  <path d="M248 510 L320 478 L392 488 L464 442 L536 458 L608 410 L680 396 L752 360 L824 372 L896 318" fill="none" stroke="url(#line)" stroke-width="2"></path>
+  <g fill="#2563eb">
+    <circle cx="320" cy="478" r="3"></circle><circle cx="464" cy="442" r="3"></circle>
+    <circle cx="608" cy="410" r="3"></circle><circle cx="752" cy="360" r="3"></circle>
+    <circle cx="896" cy="318" r="3.5"></circle>
+  </g>
+  
+  <path d="M248 506 L320 492 L392 470 L464 466 L536 442 L608 432 L680 414 L752 402 L824 388 L896 370" fill="none" stroke="#9aa3b1" stroke-width="1.4" stroke-dasharray="3 4"></path>
+
+  
+  <rect x="940" y="284" width="236" height="280" rx="10" fill="#ffffff" stroke="#e6eaf0"></rect>
+  <text x="956" y="312" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="#0c1626">À valider</text>
+  <text x="1158" y="312" text-anchor="end" font-family="Inter, sans-serif" font-size="10" letter-spacing="1.5" fill="#5b6573">14</text>
+  <g font-family="Inter, sans-serif" font-size="11" fill="#0c4a6e">
+    <g transform="translate(0,0)">
+      <rect x="956" y="328" width="204" height="44" rx="8" fill="#f6f8fb" stroke="#dde4ed"></rect>
+      <circle cx="970" cy="350" r="4" fill="#b45309"></circle>
+      <text x="982" y="346">DAF · Mission Bamako</text>
+      <text x="982" y="362" font-size="10" fill="#5b6573">€ 84 200 · soumis 2j</text>
+    </g>
+    <g transform="translate(0,52)">
+      <rect x="956" y="328" width="204" height="44" rx="8" fill="#f6f8fb" stroke="#dde4ed"></rect>
+      <circle cx="970" cy="350" r="4" fill="#15803d"></circle>
+      <text x="982" y="346">DRH · Formation Q3</text>
+      <text x="982" y="362" font-size="10" fill="#5b6573">€ 12 600 · soumis 4h</text>
+    </g>
+    <g transform="translate(0,104)">
+      <rect x="956" y="328" width="204" height="44" rx="8" fill="#f6f8fb" stroke="#dde4ed"></rect>
+      <circle cx="970" cy="350" r="4" fill="#2563eb"></circle>
+      <text x="982" y="346">SI · Licences SaaS</text>
+      <text x="982" y="362" font-size="10" fill="#5b6573">€ 38 900 · soumis 1j</text>
+    </g>
+    <g transform="translate(0,156)">
+      <rect x="956" y="328" width="204" height="44" rx="8" fill="#f6f8fb" stroke="#dde4ed"></rect>
+      <circle cx="970" cy="350" r="4" fill="#b45309"></circle>
+      <text x="982" y="346">Comm. · Éditions 2026</text>
+      <text x="982" y="362" font-size="10" fill="#5b6573">€ 6 800 · soumis 6h</text>
+    </g>
+  </g>
+
+  
+  <rect x="232" y="588" width="944" height="148" rx="10" fill="#ffffff" stroke="#e6eaf0"></rect>
+  <text x="248" y="616" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="#0c1626">Enveloppes par département</text>
+  <g font-family="Inter, sans-serif" font-size="11" fill="#5b6573">
+    <text x="248" y="640" font-size="10" letter-spacing="1.5">DÉPARTEMENT</text>
+    <text x="540" y="640" font-size="10" letter-spacing="1.5">ALLOUÉ</text>
+    <text x="700" y="640" font-size="10" letter-spacing="1.5">CONSOMMÉ</text>
+    <text x="900" y="640" font-size="10" letter-spacing="1.5">PROGRESSION</text>
+  </g>
+  <g font-family="Inter, sans-serif" font-size="12" fill="#0c4a6e">
+    <g transform="translate(0,0)">
+      <text x="248" y="668">Direction générale</text>
+      <text x="540" y="668">€ 8 400 000</text>
+      <text x="700" y="668">€ 4 116 000</text>
+      <rect x="900" y="658" width="240" height="6" rx="3" fill="#eaf2fc"></rect>
+      <rect x="900" y="658" width="118" height="6" rx="3" fill="#2563eb"></rect>
+    </g>
+    <g transform="translate(0,28)">
+      <text x="248" y="668">Coopération internationale</text>
+      <text x="540" y="668">€ 14 200 000</text>
+      <text x="700" y="668">€ 7 526 000</text>
+      <rect x="900" y="658" width="240" height="6" rx="3" fill="#eaf2fc"></rect>
+      <rect x="900" y="658" width="127" height="6" rx="3" fill="#2563eb"></rect>
+    </g>
+    <g transform="translate(0,56)">
+      <text x="248" y="668">Systèmes d&#39;information</text>
+      <text x="540" y="668">€ 5 900 000</text>
+      <text x="700" y="668">€ 3 422 000</text>
+      <rect x="900" y="658" width="240" height="6" rx="3" fill="#eaf2fc"></rect>
+      <rect x="900" y="658" width="139" height="6" rx="3" fill="#2563eb"></rect>
+    </g>
+  </g>
+</svg>

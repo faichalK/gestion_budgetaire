@@ -1,17 +1,18 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { getBudgets, getBudget, getLignes, approuverBudget, rejeterBudget, cloturerBudget } from '../../api/budget'
 import { getDepenses } from '../../api/depenses'
-import { StatutBadge, DepenseBadge } from '../../components/StatusBadge'
-import { Search, ArrowLeft, ArrowRight, CheckCircle2, XCircle, TrendingUp, BarChart3, Download, Printer } from 'lucide-react'
-import { notifRefresh } from '../../utils/notifRefresh'
+import { cn } from '../../lib/cn'
+import { Icon, StatusBadge } from '../../components/AtlasIcons'
+import Card from '../../components/ui/Card'
 import { ConfirmModal } from '../../components/ui'
 import { exportCSV, exportCSVMulti, printPDF, printPDFMulti } from '../../utils/export'
 import { formaterNombre } from '../../utils/formatters'
 
-const fmt = (n) => formaterNombre(n, { maximumFractionDigits: 0 })
-const fmtK    = fmt
-const fmtDate = (iso) => iso ? new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
+const DELTA = { up: 'text-[#15803D]', down: 'text-[#B91C1C]', flat: 'text-[#5A6B7E]' }
+
+const fmt     = n => formaterNombre(n, { maximumFractionDigits: 0 })
+const fmtDate = iso => iso ? new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
 
 /* ══════════════════════════════════════════════════════════════════════════════
    Liste des budgets à valider
@@ -28,10 +29,11 @@ export function BudgetsAValiderList() {
 
   useEffect(() => {
     const s = searchParams.get('statut') || 'SOUMIS'
-    if (s !== filtre) { setFiltre(s); setLoading(true) }
-  }, [searchParams])
+    if (s === filtre) return
+    const t = window.setTimeout(() => { setFiltre(s); setLoading(true) }, 0)
+    return () => window.clearTimeout(t)
+  }, [searchParams, filtre])
 
-  // Charger tous les budgets une seule fois pour les comptages
   useEffect(() => {
     getBudgets().then(r => setAllBudgets(r.data.results ?? r.data)).catch(() => {})
   }, [])
@@ -44,17 +46,18 @@ export function BudgetsAValiderList() {
       .finally(() => setLoading(false))
   }, [filtre, deptId])
 
-  if (loading) return <div className="page-loader"><div className="spinner" /></div>
+  if (loading) return (
+    <div className="af-loader"><div className="af-spinner"/><span>Chargement…</span></div>
+  )
 
-  // R-COMPT-01 : le Comptable ne voit jamais BROUILLON (filtré côté API)
   const FILTRES = [
-    { key: 'SOUMIS',   label: 'En attente', countKey: 'SOUMIS'   },
-    { key: 'APPROUVE', label: 'Approuvés',  countKey: 'APPROUVE' },
-    { key: 'REJETE',   label: 'Rejetés',    countKey: 'REJETE'   },
-    { key: '',         label: 'Tous',       countKey: null        },
+    { key: 'SOUMIS',   label: 'En attente' },
+    { key: 'APPROUVE', label: 'Approuvés'  },
+    { key: 'REJETE',   label: 'Rejetés'    },
+    { key: '',         label: 'Tous'        },
   ]
 
-  const countFor = (key) => key
+  const countFor = key => key
     ? allBudgets.filter(b => b.statut === key).length
     : allBudgets.length
 
@@ -70,151 +73,100 @@ export function BudgetsAValiderList() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="mb-7 flex items-end gap-6">
         <div>
-          <h1 className="page-title">Budgets à valider</h1>
-          <p className="page-subtitle">{visible.length} budget{visible.length !== 1 ? 's' : ''}</p>
+          <div className="text-[10px] tracking-[0.20em] uppercase text-[#B8864A] mb-2 font-medium">
+            Comptabilité · File de validation
+          </div>
+          <h1 className="text-[32px] font-normal tracking-[-0.02em] leading-[1.1] text-[#0E2A47] mb-1">
+            Budgets à valider
+          </h1>
+          <div className="text-[13px] text-[#5A6B7E]">
+            {visible.length} budget{visible.length !== 1 ? 's' : ''} · {countFor('SOUMIS')} en attente
+          </div>
         </div>
-        <div />
       </div>
 
-      {/* KPI cards */}
-      <div className="kpi-grid">
+      <div className="grid grid-cols-4 gap-[14px] mb-6">
         {[
-          { label: 'EN ATTENTE',  val: countFor('SOUMIS'),   color: 'var(--color-warning-600)',  border: 'var(--color-warning-600)'  },
-          { label: 'APPROUVÉS',   val: countFor('APPROUVE'), color: 'var(--color-success-600)',  border: 'var(--color-success-600)'  },
-          { label: 'REJETÉS',     val: countFor('REJETE'),   color: 'var(--color-danger-600)',   border: 'var(--color-danger-600)'   },
-          { label: 'TOTAL',       val: countFor(null),       color: 'var(--color-gold)',  border: 'var(--color-gold)'  },
+          { label: 'En attente', value: countFor('SOUMIS'),   delta: 'flat', sub: 'budget(s)' },
+          { label: 'Approuvés',  value: countFor('APPROUVE'), delta: 'up',   sub: 'budget(s)' },
+          { label: 'Rejetés',    value: countFor('REJETE'),   delta: 'down', sub: 'budget(s)' },
+          { label: 'Total',      value: countFor(''),         delta: 'flat', sub: 'budgets'   },
         ].map(k => (
-          <div key={k.label} className="card" style={{ borderTop: `3px solid ${k.border}` }}>
-            <div style={{ fontSize: '10px', fontWeight: 700, color: k.color, textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 8 }}>{k.label}</div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: '22px', color: 'var(--color-gray-900)' }}>{k.val}</div>
-            <div style={{ fontSize: '11px', color: 'var(--color-gray-400)', marginTop: 2 }}>budget{k.val !== 1 ? 's' : ''}</div>
+          <div key={k.label} className="bg-white border border-[rgba(14,42,71,0.08)] rounded-[10px] py-[18px] px-5 shadow-[0_1px_0_rgba(14,42,71,0.02)]">
+            <div className="text-[10px] tracking-[0.20em] uppercase text-[rgba(90,107,126,0.7)] mb-3">{k.label}</div>
+            <div className="text-[28px] leading-none tracking-[-0.02em] text-[#0E2A47] mb-1.5 tabular-nums">{k.value}</div>
+            <div className={cn('text-[11px] inline-flex items-center gap-1', DELTA[k.delta])}>{k.sub}</div>
           </div>
         ))}
       </div>
 
-      {/* Barre recherche + filtres */}
-      <div className="filter-bar mb-5" style={{ flexWrap: 'nowrap' }}>
-        <div className="search-wrapper flex-1 min-w-[200px]">
-          <Search size={14} strokeWidth={2} className="search-icon" />
+      <div className="mb-3 flex items-center gap-2.5 flex-wrap">
+        <div className="relative flex-1 min-w-[200px]">
+          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[rgba(90,107,126,0.7)] flex">{Icon.search}</span>
           <input
-            className="search-input"
+            className="form-input pl-8 text-[13px]"
             type="text"
             placeholder="Rechercher par nom, code, gestionnaire…"
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
         </div>
-        <div className="flex gap-[6px]" style={{ flexShrink: 0 }}>
-          {FILTRES.map(f => {
-            const cnt = countFor(f.countKey)
-            return (
-              <button
-                key={f.key}
-                onClick={() => { setLoading(true); setFiltre(f.key) }}
-                className={`filter-pill${filtre === f.key ? ' active' : ''}`}
-              >
-                {f.label}
-                <span style={{
-                  marginLeft: 5,
-                  background: filtre === f.key ? 'rgba(255,255,255,.25)' : 'var(--color-gray-200)',
-                  color: filtre === f.key ? '#fff' : 'var(--color-gray-600)',
-                  fontSize: '10px', padding: '0px 5px', borderRadius: 8, fontWeight: 700,
-                }}>
-                  {cnt}
-                </span>
-              </button>
-            )
-          })}
+        <div className="flex gap-1.5 flex-wrap">
+          {FILTRES.map(f => (
+            <button
+              key={f.key}
+              onClick={() => { setLoading(true); setFiltre(f.key) }}
+              className={cn(
+                'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] border transition-all duration-150',
+                filtre === f.key
+                  ? 'text-[#B8864A] border-[#B8864A] bg-[rgba(184,134,74,0.12)]'
+                  : 'text-[#5A6B7E] border-[rgba(14,42,71,0.16)] bg-white hover:border-[#B8864A] hover:text-[#B8864A]'
+              )}
+            >
+              {f.label}
+              <span className={cn(
+                'text-[10px] font-bold px-1.5 rounded-full',
+                filtre === f.key ? 'bg-white/20 text-[#B8864A]' : 'bg-[rgba(14,42,71,0.06)] text-[rgba(90,107,126,0.7)]'
+              )}>
+                {countFor(f.key)}
+              </span>
+            </button>
+          ))}
         </div>
       </div>
 
-      <div className="card p-0 overflow-hidden">
+      <Card.Table>
         {visible.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-icon">
-              <CheckCircle2 size={28} strokeWidth={1.5} className="text-[var(--color-success-400)]" />
-            </div>
-            <p className="empty-title">Aucun budget</p>
-            <p className="empty-body">
-              {q ? `Aucun résultat pour « ${search} »` : 'Aucun budget pour ce filtre'}
-            </p>
+          <div className="py-10 px-5 text-center text-[13px] text-[rgba(90,107,126,0.7)]">
+            {q ? `Aucun résultat pour « ${search} »` : 'Aucun budget pour ce filtre'}
           </div>
         ) : (
-          <table className="data-table">
+          <table className="af-table">
             <thead>
               <tr>
-                {['Code', 'Nom', 'Département', 'Gestionnaire', 'Soumis le', 'Montant', 'Taux', 'Statut', 'Actions'].map(h => (
-                  <th key={h}>{h}</th>
-                ))}
+                <th>Code</th><th>Nom</th><th>Département</th><th>Gestionnaire</th>
+                <th>Soumis le</th><th>Montant</th><th>Statut</th><th></th>
               </tr>
             </thead>
             <tbody>
-              {visible.map(b => {
-                const taux = parseFloat(b.taux_consommation || 0)
-                return (
-                  <tr
-                    key={b.id}
-                    className="cursor-pointer"
-                    onClick={() => navigate(`/validation/${b.id}`)}
-                  >
-                    <td>
-                      <span className="code-tag">{b.code}</span>
-                    </td>
-                    <td className="font-medium max-w-[200px]">
-                      <div className="overflow-hidden text-ellipsis whitespace-nowrap">{b.nom}</div>
-                      {b.comptable_nom && (
-                        <div className="text-[11px] mt-[2px]" style={{ color: b.statut === 'APPROUVE' ? 'var(--color-success-600)' : 'var(--color-danger-600)' }}>
-                          {b.statut === 'APPROUVE' ? '✓' : '✕'} {b.comptable_nom}
-                        </div>
-                      )}
-                    </td>
-                    <td className="text-[#6B7280]">{b.departement_nom || '—'}</td>
-                    <td className="text-[#6B7280]">{b.gestionnaire_nom || '—'}</td>
-                    <td className="text-[#9CA3AF] text-[12px] whitespace-nowrap">
-                      {b.date_soumission
-                        ? new Date(b.date_soumission).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
-                        : '—'}
-                    </td>
-                    <td className="font-mono font-semibold whitespace-nowrap">
-                      {fmt(b.montant_global)} <span className="text-[10px] text-[#9CA3AF]">FCFA</span>
-                    </td>
-                    <td>
-                      <div className="flex items-center gap-2">
-                        <div className="exec-bar w-[60px]">
-                          <div
-                            className="exec-bar-fill"
-                            style={{
-                              width: `${Math.min(taux, 100)}%`,
-                              background: taux > 75 ? 'var(--color-danger-600)' : taux > 50 ? 'var(--color-warning-600)' : 'var(--color-success-600)',
-                            }}
-                          />
-                        </div>
-                        <span
-                          className="text-[11px] font-bold font-mono"
-                          style={{ color: taux > 75 ? 'var(--color-danger-600)' : taux > 50 ? 'var(--color-warning-600)' : '#374151' }}
-                        >
-                          {taux}%
-                        </span>
-                      </div>
-                    </td>
-                    <td><StatutBadge statut={b.statut} /></td>
-                    <td onClick={e => e.stopPropagation()}>
-                      <button
-                        onClick={() => navigate(`/validation/${b.id}`)}
-                        className="btn btn-primary btn-sm gap-[5px]"
-                      >
-                        Examiner <ArrowRight size={12} strokeWidth={2.5} />
-                      </button>
-                    </td>
-                  </tr>
-                )
-              })}
+              {visible.map(b => (
+                <tr key={b.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/validation/${b.id}`)}>
+                  <td className="ref">{b.code}</td>
+                  <td>{b.nom}</td>
+                  <td className="muted">{b.departement_nom || '—'}</td>
+                  <td className="muted">{b.gestionnaire_nom || '—'}</td>
+                  <td className="muted">{fmtDate(b.date_soumission)}</td>
+                  <td className="num">{fmt(b.montant_global)} FCFA</td>
+                  <td><StatusBadge status={b.statut}/></td>
+                  <td></td>
+                </tr>
+              ))}
             </tbody>
           </table>
         )}
-      </div>
+      </Card.Table>
     </div>
   )
 }
@@ -236,18 +188,45 @@ export function BudgetValidationDetail({ basePath = '/validation' }) {
   const [motifError,    setMotifError]    = useState('')
   const [confirmModal,  setConfirmModal]  = useState(null)
   const [openExport,    setOpenExport]    = useState(null)
+  const loadRef = useRef(() => {})
 
   const load = () => {
     Promise.all([getBudget(id), getLignes(id), getDepenses({ budget: id })])
       .then(([b, l, d]) => {
         setBudget(b.data)
         setLignes(l.data.results ?? l.data)
-        setDepensesItems(d.data?.data ?? d.data?.results ?? d.data ?? [])
+        // Flatten Depense.lignes into per-ligne records for the table
+        const rawDeps = d.data?.data ?? d.data?.results ?? d.data ?? []
+        setDepensesItems(rawDeps.flatMap(dep =>
+          (dep.lignes?.length ? dep.lignes : [{}]).map(cl => ({
+            id:                  dep.id,
+            ligne_id:            cl.ligne_id,
+            ligne_designation:   cl.ligne_libelle,
+            montant:             cl.montant || dep.montant_total,
+            montant_total:       dep.montant_total,
+            statut:              dep.statut,
+            date:                cl.date || dep.date,
+            date_depense:        cl.date || dep.date,
+            note:                cl.note || dep.note,
+            fournisseur:         dep.fournisseur,
+            reference:           dep.fournisseur || dep.note || String(dep.id).slice(0, 8).toUpperCase(),
+            piece_justificative_url: dep.pieces?.[0]?.url_download || null,
+            nombre_pieces:       dep.nombre_pieces,
+            motif_rejet:         dep.motif_rejet,
+            budget_id:           dep.budget_id,
+            budget_code:         dep.budget_code,
+            budget_nom:          dep.budget_nom,
+          }))
+        ))
       })
       .finally(() => setLoading(false))
   }
+  loadRef.current = load
 
-  useEffect(() => { load() }, [id])
+  useEffect(() => {
+    const t = window.setTimeout(() => loadRef.current(), 0)
+    return () => window.clearTimeout(t)
+  }, [id])
 
   const handleAction = async (type) => {
     if (type === 'rejeter') {
@@ -256,17 +235,16 @@ export function BudgetValidationDetail({ basePath = '/validation' }) {
     }
     setConfirmModal({
       title: 'Approuver le budget',
-      message: `Approuver le budget "${budget?.nom || ''}" ? Le gestionnaire sera notifié et pourra commencer à saisir des dépenses.`,
+      message: `Approuver le budget "${budget?.nom || ''}" ? Le gestionnaire sera notifié.`,
       confirmLabel: 'Approuver',
       variant: 'success',
       onConfirm: async () => {
         setSaving(true)
-        try { await approuverBudget(id); notifRefresh(); navigate(basePath) }
+        try { await approuverBudget(id); navigate(basePath) }
         catch (err) { alert(err.response?.data?.detail || 'Erreur') }
         finally { setSaving(false) }
       },
     })
-    return
   }
 
   const handleRejeterConfirm = async () => {
@@ -277,7 +255,6 @@ export function BudgetValidationDetail({ basePath = '/validation' }) {
     setSaving(true)
     try {
       await rejeterBudget(id, { motif: motifRejet })
-      notifRefresh()
       setShowRejet(false)
       navigate(basePath)
     } catch (err) { setMotifError(err.response?.data?.detail || 'Erreur') }
@@ -287,7 +264,7 @@ export function BudgetValidationDetail({ basePath = '/validation' }) {
   const handleCloturer = () => {
     setConfirmModal({
       title: 'Clôturer le budget',
-      message: `Clôturer définitivement le budget "${budget?.nom || ''}" ? Cette action est irréversible et mettra fin à toute saisie de dépenses.`,
+      message: `Clôturer définitivement le budget "${budget?.nom || ''}" ? Cette action est irréversible.`,
       confirmLabel: 'Clôturer',
       variant: 'warning',
       onConfirm: async () => {
@@ -299,813 +276,363 @@ export function BudgetValidationDetail({ basePath = '/validation' }) {
     })
   }
 
-  if (loading || !budget) return <div className="page-loader"><div className="spinner" /></div>
+  if (loading || !budget) return (
+    <div className="af-loader"><div className="af-spinner"/><span>Chargement…</span></div>
+  )
 
-  const depenses    = lignes.filter(l => l.section === 'DEPENSE')
-  const revenus     = lignes.filter(l => l.section === 'REVENU')
-  const totalBudget = lignes.reduce((s, l) => s + parseFloat(l.montant_alloue   || 0), 0)
-  const totalReel   = lignes.reduce((s, l) => s + parseFloat(l.montant_consomme || 0), 0)
-  const ecartGlobal = totalBudget - totalReel
-  const tauxGlobal  = totalBudget > 0 ? Math.round(totalReel / totalBudget * 100) : 0
-
-  const SECTION_LABEL = { DEPENSE: 'Dépenses', REVENU: 'Revenus' }
-
-  const buildRows = (useFmt) => {
-    const totalDep = depenses.reduce((s, l) => s + parseFloat(l.montant_alloue || 0), 0)
-    const totalRev = revenus.reduce((s,  l) => s + parseFloat(l.montant_alloue || 0), 0)
-    return lignes.map(l => {
-      const a          = parseFloat(l.montant_alloue   || 0)
-      const c          = parseFloat(l.montant_consomme || 0)
-      const e          = a - c
-      const sectionTot = l.section === 'DEPENSE' ? totalDep : totalRev
-      const pct        = sectionTot > 0 ? Math.round(a / sectionTot * 100) : 0
-      const section    = SECTION_LABEL[l.section] ?? l.section
-      return useFmt
-        ? [l.code || '—', l.libelle, section, fmt(a), fmt(c), (e >= 0 ? '+' : '') + fmt(e), pct + '%']
-        : [l.code || '',  l.libelle, section, a,       c,      e,                             pct + '%']
-    })
-  }
+  const depensesLignes = lignes.filter(l => l.section === 'DEPENSE')
+  const revenusLignes  = lignes.filter(l => l.section === 'REVENU')
+  const totalBudget    = lignes.reduce((s, l) => s + parseFloat(l.montant_alloue   || 0), 0)
+  const totalReel      = lignes.reduce((s, l) => s + parseFloat(l.montant_consomme || 0), 0)
+  const ecartGlobal    = totalBudget - totalReel
+  const tauxGlobal     = totalBudget > 0 ? Math.round(totalReel / totalBudget * 100) : 0
 
   const STATUT_DEP = { SAISIE: 'En attente', VALIDEE: 'Validée', REJETEE: 'Rejetée' }
   const DEP_HEADERS = ['Référence', 'Ligne budgétaire', 'Montant (FCFA)', 'Date', 'Statut']
 
-  const buildDepensesRows = (useFmt) =>
-    depensesItems.map(d => {
-      const ligne = lignes.find(l => String(l.id) === String(d.ligne ?? d.ligne_id))
-      const m     = parseFloat(d.montant || 0)
-      return useFmt
-        ? [d.reference || d.libelle || '—', ligne?.libelle || d.ligne_designation || '—', fmt(m), fmtDate(d.date_depense || d.date), STATUT_DEP[d.statut] ?? d.statut]
-        : [d.reference || d.libelle || '',  ligne?.libelle || d.ligne_designation || '',  m,       d.date_depense || d.date || '',    d.statut || '']
-    })
+  const buildRows = useFmt => lignes.map(l => {
+    const a = parseFloat(l.montant_alloue || 0)
+    const c = parseFloat(l.montant_consomme || 0)
+    const e = a - c
+    return useFmt
+      ? [l.code || '—', l.libelle, l.section, fmt(a), fmt(c), (e >= 0 ? '+' : '') + fmt(e)]
+      : [l.code || '',  l.libelle, l.section, a,       c,      e]
+  })
+
+  const buildDepensesRows = useFmt => depensesItems.map(d => {
+    const ligne = lignes.find(l => String(l.id) === String(d.ligne ?? d.ligne_id))
+    const m     = parseFloat(d.montant || 0)
+    return useFmt
+      ? [d.reference || d.libelle || '—', ligne?.libelle || d.ligne_designation || '—', fmt(m), fmtDate(d.date_depense || d.date), STATUT_DEP[d.statut] ?? d.statut]
+      : [d.reference || d.libelle || '',  ligne?.libelle || d.ligne_designation || '',  m,       d.date_depense || d.date || '',    d.statut || '']
+  })
 
   const metaBase = {
     subtitle: `${budget.code} · ${budget.departement_nom} · ${budget.gestionnaire_nom || '—'}`,
     filters:  `Statut : ${budget.statut}`,
   }
 
-  const handleExportCSV = (type) => {
+  const handleExportCSV = type => {
     setOpenExport(null)
     if (type === 'budget') {
-      exportCSV(`Budget_${budget.code}`,
-        ['Code', 'Libellé', 'Section', 'Budget alloué (FCFA)', 'Réel (FCFA)', 'Écart (FCFA)', '% Budget'],
-        buildRows(false),
-      )
+      exportCSV(`Budget_${budget.code}`, ['Code', 'Libellé', 'Section', 'Budget alloué', 'Réel', 'Écart'], buildRows(false))
     } else if (type === 'depenses') {
       exportCSV(`Depenses_${budget.code}`, DEP_HEADERS, buildDepensesRows(false))
     } else {
-      exportCSVMulti(`Rapport_Global_${budget.code}`, [
-        { title: 'Lignes budgétaires', headers: ['Code', 'Libellé', 'Section', 'Budget alloué (FCFA)', 'Réel (FCFA)', 'Écart (FCFA)', '% Budget'], rows: buildRows(false) },
-        { title: 'Dépenses',           headers: DEP_HEADERS, rows: buildDepensesRows(false) },
+      exportCSVMulti(`Rapport_${budget.code}`, [
+        { title: 'Lignes budgétaires', headers: ['Code', 'Libellé', 'Section', 'Budget alloué', 'Réel', 'Écart'], rows: buildRows(false) },
+        { title: 'Dépenses', headers: DEP_HEADERS, rows: buildDepensesRows(false) },
       ])
     }
   }
 
-  const handleExportPDF = (type) => {
+  const handleExportPDF = type => {
     setOpenExport(null)
+    const stats = [
+      { value: fmt(totalBudget) + ' FCFA', label: 'Budget global' },
+      { value: fmt(totalReel)   + ' FCFA', label: 'Montant réel'  },
+      { value: tauxGlobal + '%',            label: 'Taux'          },
+    ]
     if (type === 'budget') {
-      printPDF(budget.nom,
-        ['Code', 'Libellé', 'Section', 'Budget (FCFA)', 'Réel (FCFA)', 'Écart (FCFA)', '% Budget'],
-        buildRows(true),
-        { ...metaBase, stats: [
-          { value: fmt(totalBudget) + ' FCFA', label: 'Budget global'      },
-          { value: fmt(totalReel)   + ' FCFA', label: 'Montant réel'        },
-          { value: tauxGlobal + '%',            label: 'Taux consommation'  },
-        ]},
-      )
+      printPDF(budget.nom, ['Code', 'Libellé', 'Section', 'Budget', 'Réel', 'Écart'], buildRows(true), { ...metaBase, stats })
     } else if (type === 'depenses') {
-      const totalDep  = depensesItems.reduce((s, d) => s + parseFloat(d.montant || 0), 0)
-      const nbValides = depensesItems.filter(d => d.statut === 'VALIDEE').length
-      printPDF(`Dépenses — ${budget.nom}`,
-        DEP_HEADERS,
-        buildDepensesRows(true),
-        { ...metaBase, stats: [
-          { value: fmt(totalDep) + ' FCFA',       label: 'Total dépensé' },
-          { value: String(depensesItems.length),  label: 'Nb dépenses'  },
-          { value: String(nbValides),             label: 'Validées'     },
-        ]},
-      )
+      printPDF(`Dépenses — ${budget.nom}`, DEP_HEADERS, buildDepensesRows(true), { ...metaBase, stats })
     } else {
       printPDFMulti(`Rapport global — ${budget.nom}`, [
-        { title: 'Lignes budgétaires',  headers: ['Code', 'Libellé', 'Section', 'Budget (FCFA)', 'Réel (FCFA)', 'Écart (FCFA)', '% Budget'], rows: buildRows(true) },
-        { title: 'Dépenses enregistrées', headers: DEP_HEADERS, rows: buildDepensesRows(true) },
-      ], { ...metaBase, stats: [
-        { value: fmt(totalBudget) + ' FCFA', label: 'Budget global'     },
-        { value: fmt(totalReel)   + ' FCFA', label: 'Montant réel'       },
-        { value: tauxGlobal + '%',            label: 'Taux consommation' },
-      ]})
+        { title: 'Lignes budgétaires', headers: ['Code', 'Libellé', 'Section', 'Budget', 'Réel', 'Écart'], rows: buildRows(true) },
+        { title: 'Dépenses',          headers: DEP_HEADERS, rows: buildDepensesRows(true) },
+      ], { ...metaBase, stats })
     }
   }
 
-  const tauColor = (t) => t >= 95 ? 'var(--color-danger-600)' : t >= 80 ? 'var(--color-warning-600)' : t >= 50 ? 'var(--color-success-600)' : 'var(--color-gold)'
-
   return (
     <div>
-      {/* Hero header */}
-      <div
-        className="rounded-[var(--radius-lg)] px-[30px] py-[26px] mb-6 text-white relative overflow-hidden"
-        style={{ background: 'var(--af-ink)' }}
-      >
-        <div className="absolute rounded-full pointer-events-none" style={{ top: -50, right: -50, width: 200, height: 200, background: 'rgba(201,168,76,.06)' }} />
-        <div className="relative flex items-start gap-4">
-          <button
-            onClick={() => navigate(basePath)}
-            className="rounded-[9px] px-[10px] py-2 cursor-pointer text-white flex items-center shrink-0 mt-[2px]"
-            style={{ background: 'rgba(255,255,255,.12)', border: '1px solid rgba(255,255,255,.2)' }}
-          >
-            <ArrowLeft size={16} strokeWidth={2} />
-          </button>
-          <div className="flex-1">
-            <div className="flex items-center gap-[10px] mb-2 flex-wrap">
-              <code
-                className="rounded-[6px] px-[10px] py-[3px] text-[12px] font-bold font-mono"
-                style={{ background: 'rgba(255,255,255,.15)' }}
-              >
-                {budget.code}
-              </code>
-              <StatutBadge statut={budget.statut} />
-              <span className="text-[12px] opacity-70">{budget.date_debut} → {budget.date_fin}</span>
-            </div>
-            <h1 className="font-display font-extrabold text-[1.4rem] tracking-[-0.4px] mb-[8px]" style={{ color: '#F8FAFC' }}>
-              {budget.nom}
-            </h1>
-            <div className="flex flex-wrap gap-x-5 gap-y-1 text-[13px]" style={{ color: 'rgba(255,255,255,.85)' }}>
-              <span>
-                <span style={{ color: 'rgba(255,255,255,.5)' }}>Gestionnaire</span>{' '}
-                <strong className="text-white">{budget.gestionnaire_nom || '—'}</strong>
-              </span>
-              <span>
-                <span style={{ color: 'rgba(255,255,255,.5)' }}>Département</span>{' '}
-                <strong className="text-white">{budget.departement_nom || '—'}</strong>
-              </span>
-              {budget.comptable_nom && (
-                <span>
-                  <span style={{ color: 'rgba(255,255,255,.5)' }}>Comptable</span>{' '}
-                  <strong className="text-white">{budget.comptable_nom}</strong>
+      <Card className="p-0 overflow-hidden mb-[14px]">
+        <div className="px-6 py-5">
+          <div className="flex justify-between items-start gap-4 flex-wrap">
+            <div className="min-w-0">
+              <div className="flex gap-2 mb-2.5 flex-wrap items-center">
+                <span className="font-mono text-[11px] font-bold bg-[#EDE7DA] text-[#0E2A47] px-2.5 py-[3px] rounded-[6px]">
+                  {budget.code}
                 </span>
+                {budget.departement_nom && (
+                  <span className="af-dept-chip">
+                    <span className="d" style={{ background: '#C9A961' }}/>
+                    {budget.departement_nom.replace(/^Ministère (de |du |des |de l')?/i, '').trim().slice(0, 24)}
+                  </span>
+                )}
+                {budget.annee && (
+                  <span className="inline-flex px-2.5 py-1 rounded-full text-[12px] text-[#5A6B7E] border border-[rgba(14,42,71,0.16)] bg-white">
+                    Exercice {budget.annee}
+                  </span>
+                )}
+                <StatusBadge status={budget.statut}/>
+                {budget.methode_budgetisation && <span className="af-tag-method">{budget.methode_budgetisation}</span>}
+              </div>
+              <div className="text-[18px] font-extrabold text-[#0E2A47] leading-[1.25] mb-1.5">
+                {budget.nom}
+              </div>
+              <div className="text-[12px] text-[rgba(90,107,126,0.7)]">
+                Soumis par {budget.gestionnaire_nom || '—'} · {budget.departement_nom || '—'}
+                {budget.date_soumission ? ` · ${fmtDate(budget.date_soumission)}` : ''}
+              </div>
+            </div>
+
+            <div className="flex gap-2 shrink-0 flex-wrap">
+              <button className="btn btn-secondary btn-sm" onClick={() => navigate(basePath)}>
+                ← Retour
+              </button>
+
+              <div className="relative">
+                <button className="btn btn-secondary btn-sm" onClick={() => setOpenExport(openExport ? null : 'open')}>
+                  {Icon.download} Exporter ▾
+                </button>
+                {openExport && (
+                  <div className="absolute right-0 top-[calc(100%+4px)] bg-white border border-[rgba(14,42,71,0.08)] rounded-[8px] shadow-[0_4px_16px_rgba(0,0,0,0.12)] z-50 min-w-[160px]">
+                    {[
+                      { type: 'budget',   label: 'CSV — Lignes budget'  },
+                      { type: 'depenses', label: 'CSV — Dépenses'        },
+                      { type: 'global',   label: 'CSV — Rapport global'  },
+                      { type: 'pdf_b',    label: 'PDF — Lignes budget'   },
+                      { type: 'pdf_d',    label: 'PDF — Dépenses'        },
+                      { type: 'pdf_g',    label: 'PDF — Rapport global'  },
+                    ].map(opt => (
+                      <button
+                        key={opt.type}
+                        onClick={() => opt.type.startsWith('pdf') ? handleExportPDF(opt.type.replace('pdf_b','budget').replace('pdf_d','depenses').replace('pdf_g','global')) : handleExportCSV(opt.type)}
+                        className="block w-full text-left px-3.5 py-2.5 text-[12px] font-semibold text-[#5A6B7E] bg-transparent border-none border-b border-[rgba(14,42,71,0.06)] cursor-pointer hover:bg-[rgba(14,42,71,0.03)] last:border-b-0"
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {budget.statut === 'SOUMIS' && (
+                <>
+                  <button className="btn btn-danger btn-sm" onClick={() => handleAction('rejeter')} disabled={saving}>
+                    {Icon.reject} Rejeter
+                  </button>
+                  <button className="btn btn-gold btn-sm" onClick={() => handleAction('approuver')} disabled={saving}>
+                    {Icon.check} Approuver
+                  </button>
+                </>
+              )}
+              {budget.statut === 'APPROUVE' && (
+                <button className="btn btn-secondary btn-sm" onClick={handleCloturer} disabled={saving}>
+                  Clôturer
+                </button>
               )}
             </div>
           </div>
-          <div className="flex gap-[10px] shrink-0">
-            {budget.statut === 'SOUMIS' && (
-              <>
-                <button
-                  onClick={() => handleAction('rejeter')}
-                  disabled={saving}
-                  className="inline-flex items-center gap-[7px] px-[18px] py-[9px] rounded-[9px] font-bold text-[13px] cursor-pointer"
-                  style={{ border: '1.5px solid rgba(252,165,165,.5)', background: 'rgba(239,68,68,.15)', color: '#fca5a5' }}
-                >
-                  <XCircle size={15} strokeWidth={2} /> Rejeter
-                </button>
-                <button
-                  onClick={() => handleAction('approuver')}
-                  disabled={saving}
-                  className="inline-flex items-center gap-[7px] px-[18px] py-[9px] rounded-[9px] border-none text-white font-bold text-[13px] cursor-pointer"
-                  style={{ background: 'linear-gradient(135deg, #059669, #10b981)', boxShadow: '0 2px 10px rgba(5,150,105,.4)' }}
-                >
-                  <CheckCircle2 size={15} strokeWidth={2} /> Approuver
-                </button>
-              </>
-            )}
-            {budget.statut === 'APPROUVE' && (
-              <button
-                onClick={handleCloturer}
-                disabled={saving}
-                className="inline-flex items-center gap-[7px] px-[18px] py-[9px] rounded-[9px] border-none text-white font-bold text-[13px] cursor-pointer"
-                style={{ background: 'linear-gradient(135deg, #0E2A47, #163A5F)', boxShadow: '0 2px 10px rgba(14,42,71,.35)' }}
-              >
-                Clôturer
-              </button>
-            )}
-          </div>
         </div>
-      </div>
+      </Card>
 
-      {/* Export toolbar */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 16 }}>
+      <div className="grid grid-cols-4 gap-[14px] mb-6">
         {[
-          { key: 'csv', icon: <Download size={13} strokeWidth={2.2} />, label: 'CSV', bg: 'var(--color-gold-soft)', bgHover: 'rgba(184,134,74,0.22)', border: 'var(--color-gold-line)', color: 'var(--af-ink)', handler: handleExportCSV },
-          { key: 'pdf', icon: <Printer  size={13} strokeWidth={2.2} />, label: 'PDF', bg: 'var(--af-ink)', bgHover: '#163A5F', border: 'var(--af-ink)', color: '#fff',    handler: handleExportPDF },
-        ].map(btn => (
-          <div key={btn.key} style={{ position: 'relative' }}>
-            <button
-              onClick={() => setOpenExport(openExport === btn.key ? null : btn.key)}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-                padding: '7px 14px', borderRadius: 8, cursor: 'pointer',
-                background: btn.bg, border: `1px solid ${btn.border}`,
-                color: btn.color, fontSize: '12px', fontWeight: 600,
-              }}
-              onMouseEnter={e => e.currentTarget.style.background = btn.bgHover}
-              onMouseLeave={e => e.currentTarget.style.background = btn.bg}
-            >
-              {btn.icon} Exporter {btn.label} <span style={{ fontSize: 9, marginLeft: 2 }}>▾</span>
-            </button>
-            {openExport === btn.key && (
-              <div
-                style={{
-                  position: 'absolute', right: 0, top: 'calc(100% + 4px)',
-                  background: '#fff', border: '1px solid #E5E7EB', borderRadius: 8,
-                  boxShadow: '0 4px 16px rgba(0,0,0,.1)', zIndex: 50, minWidth: 170, overflow: 'hidden',
-                }}
-              >
-                {[
-                  { type: 'budget',   label: 'Lignes budget'   },
-                  { type: 'depenses', label: 'Dépenses'         },
-                  { type: 'global',   label: 'Rapport global'   },
-                ].map(opt => (
-                  <button
-                    key={opt.type}
-                    onClick={() => btn.handler(opt.type)}
-                    style={{
-                      display: 'block', width: '100%', textAlign: 'left',
-                      padding: '9px 14px', fontSize: '12px', fontWeight: 600,
-                      color: '#374151', background: 'transparent', border: 'none',
-                      cursor: 'pointer', borderBottom: '1px solid #F3F4F6',
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.background = '#F9FAFB'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            )}
+          { label: 'Budget global',      value: fmt(totalBudget), unit: ' FCFA', delta: 'flat', sub: `${lignes.length} lignes` },
+          { label: 'Montant réel',       value: fmt(totalReel),   unit: ' FCFA', delta: 'flat', sub: 'Dépenses enregistrées' },
+          { label: 'Écart',              value: (ecartGlobal >= 0 ? '+' : '') + fmt(ecartGlobal), unit: ' FCFA', delta: ecartGlobal >= 0 ? 'up' : 'down', sub: ecartGlobal >= 0 ? 'Sous le budget' : 'Dépassement', valueColor: ecartGlobal >= 0 ? '#15803D' : '#DC2626' },
+          { label: 'Taux consommation',  value: tauxGlobal,       unit: '%',     delta: tauxGlobal > 85 ? 'down' : tauxGlobal > 60 ? 'flat' : 'up', sub: tauxGlobal > 85 ? 'Critique' : tauxGlobal > 60 ? 'Modéré' : 'Normal' },
+        ].map(k => (
+          <div key={k.label} className="bg-white border border-[rgba(14,42,71,0.08)] rounded-[10px] py-[18px] px-5 shadow-[0_1px_0_rgba(14,42,71,0.02)]">
+            <div className="text-[10px] tracking-[0.20em] uppercase text-[rgba(90,107,126,0.7)] mb-3">{k.label}</div>
+            <div className="text-[18px] leading-none tracking-[-0.02em] mb-1.5 tabular-nums" style={{ color: k.valueColor || '#0E2A47' }}>
+              {k.value}<span className="text-[#B8864A] text-[14px] ml-0.5">{k.unit}</span>
+            </div>
+            <div className={cn('text-[11px] inline-flex items-center gap-1', DELTA[k.delta])}>{k.sub}</div>
           </div>
         ))}
       </div>
 
-      {/* 4 KPI cards */}
-      <div className="grid grid-cols-4 gap-[14px] mb-[22px]">
-        {[
-          {
-            label: 'BUDGET GLOBAL', value: fmt(totalBudget), unit: 'FCFA',
-            sub: 'Montant alloué total',
-            color: 'var(--color-gold)', bg: 'var(--color-gold-soft)',
-            icon: <BarChart3 size={18} strokeWidth={1.8} />,
-          },
-          {
-            label: 'MONTANT RÉEL', value: fmt(totalReel), unit: 'FCFA',
-            sub: 'Dépenses enregistrées',
-            color: 'var(--color-warning-600)', bg: 'var(--color-warning-50)',
-            icon: <TrendingUp size={18} strokeWidth={1.8} />,
-          },
-          {
-            label: 'ÉCART',
-            value: `${ecartGlobal >= 0 ? '+' : ''}${fmt(ecartGlobal)}`, unit: 'FCFA',
-            sub: ecartGlobal >= 0 ? 'Sous le budget' : 'Dépassement',
-            color: ecartGlobal >= 0 ? 'var(--color-success-600)' : 'var(--color-danger-600)',
-            bg:    ecartGlobal >= 0 ? 'var(--color-success-50)'  : 'var(--color-danger-50)',
-            icon: ecartGlobal >= 0
-              ? <CheckCircle2 size={18} strokeWidth={1.8} />
-              : <XCircle size={18} strokeWidth={1.8} />,
-          },
-          {
-            label: 'TAUX CONSOMMATION', value: `${tauxGlobal}%`, unit: '',
-            sub: `${lignes.length} ligne${lignes.length !== 1 ? 's' : ''}`,
-            color: tauColor(tauxGlobal),
-            bg: tauxGlobal >= 95 ? 'var(--color-danger-50)' : tauxGlobal >= 80 ? 'var(--color-warning-50)' : 'var(--color-gold-soft)',
-            icon: <BarChart3 size={18} strokeWidth={1.8} />,
-          },
-        ].map(({ label, value, unit, sub, color, bg, icon }) => (
-          <div key={label} className="card px-5 py-[18px] relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: color }} />
-            <div className="flex justify-between items-start mb-3">
-              <span className="text-[10px] font-bold text-[#6B7280] tracking-[.5px]">{label}</span>
-              <div className="w-8 h-8 rounded-[8px] flex items-center justify-center" style={{ background: bg, color }}>{icon}</div>
-            </div>
-            <div className="font-mono font-extrabold text-[1.2rem] tracking-[-0.3px] mb-1" style={{ color }}>
-              {value} {unit && <span className="text-[11px] font-medium opacity-70">{unit}</span>}
-            </div>
-            <div className="text-[11px] text-[#9CA3AF]">{sub}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Barre de progression globale */}
-      <div className="card mb-[22px]">
-        <div className="flex justify-between items-center mb-[10px]">
-          <span className="text-[13px] font-semibold text-[#374151]">Consommation globale</span>
-          <span className="text-[13px] font-bold font-mono" style={{ color: tauColor(tauxGlobal) }}>
-            {tauxGlobal}%
-          </span>
+      <Card className="mb-[14px]">
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-[13px] font-semibold text-[#0E2A47]">Consommation globale</span>
+          <span className="text-[13px] font-bold font-mono" style={{ color: tauxGlobal > 85 ? '#DC2626' : '#B8864A' }}>{tauxGlobal}%</span>
         </div>
-        <div className="h-[10px] bg-[#F3F4F6] rounded-full overflow-hidden">
-          <div
-            className="h-full rounded-full transition-[width_.4s]"
-            style={{
-              width: `${Math.min(tauxGlobal, 100)}%`,
-              background: `linear-gradient(90deg, ${tauColor(Math.max(0, tauxGlobal - 20))}, ${tauColor(tauxGlobal)})`,
-            }}
-          />
+        <div className="af-bar" style={{ height: 10 }}>
+          <div className={`af-bar-fill ${tauxGlobal > 85 ? 'danger' : tauxGlobal > 70 ? 'warn' : ''}`} style={{ width: `${Math.min(tauxGlobal, 100)}%` }}/>
         </div>
-        <div className="flex justify-between mt-[6px] text-[11px] text-[#9CA3AF] font-mono">
+        <div className="flex justify-between mt-1.5 text-[11px] text-[rgba(90,107,126,0.7)] font-mono">
           <span>0</span>
           <span>{fmt(totalReel)} / {fmt(totalBudget)} FCFA</span>
           <span>{fmt(totalBudget)} FCFA</span>
         </div>
+      </Card>
+
+      <div className="grid gap-[14px]" style={{ gridTemplateColumns: '1.5fr 1fr' }}>
+        <div className="flex flex-col gap-[14px]">
+          <Card.Table>
+            <div className="flex items-center px-5 py-4 border-b border-[rgba(14,42,71,0.08)]">
+              <h3 className="text-base font-semibold text-[#0E2A47] tracking-tight">Lignes budgétaires</h3>
+              <div className="ml-auto"><span className="af-tag-method">{budget.methode_budgetisation || 'ANALOGIE'}</span></div>
+            </div>
+            {lignes.length === 0 ? (
+              <div className="py-5 text-center text-[13px] text-[rgba(90,107,126,0.7)]">Aucune ligne budgétaire</div>
+            ) : (
+              <table className="af-table">
+                <thead>
+                  <tr><th>Type</th><th>Intitulé</th><th>Budget alloué</th><th>Réel</th><th>Écart</th></tr>
+                </thead>
+                <tbody>
+                  {lignes.map(l => {
+                    const a = parseFloat(l.montant_alloue || 0)
+                    const c = parseFloat(l.montant_consomme || 0)
+                    const e = a - c
+                    return (
+                      <tr key={l.id}>
+                        <td>
+                          <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.10em] px-[9px] py-1 rounded-[4px] border" style={{
+                            background: l.section === 'REVENU' ? 'rgba(45,106,79,0.18)' : 'rgba(192,72,72,0.15)',
+                            color: l.section === 'REVENU' ? '#7DCFA0' : '#F5A0A0',
+                            borderColor: l.section === 'REVENU' ? 'rgba(45,106,79,0.5)' : 'rgba(192,72,72,0.5)',
+                          }}>
+                            {l.section}
+                          </span>
+                        </td>
+                        <td>{l.libelle}</td>
+                        <td className="num">{fmt(a)} FCFA</td>
+                        <td className="num muted">{fmt(c)} FCFA</td>
+                        <td className="num" style={{ color: e >= 0 ? '#15803D' : '#DC2626' }}>
+                          {e >= 0 ? '+' : ''}{fmt(e)} FCFA
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            )}
+            <div className="grid grid-cols-3 gap-[14px] px-5 py-3.5 border-t border-[rgba(14,42,71,0.08)]">
+              {[
+                { label: 'Total recettes', value: fmt(revenusLignes.reduce((s, l) => s + parseFloat(l.montant_alloue || 0), 0)), color: '#7DCFA0' },
+                { label: 'Total dépenses', value: fmt(depensesLignes.reduce((s, l) => s + parseFloat(l.montant_alloue || 0), 0)), color: '#F5A0A0' },
+                { label: 'Solde prévisionnel', value: fmt(revenusLignes.reduce((s, l) => s + parseFloat(l.montant_alloue || 0), 0) - depensesLignes.reduce((s, l) => s + parseFloat(l.montant_alloue || 0), 0)), color: '#B8864A' },
+              ].map(s => (
+                <div key={s.label}>
+                  <div className="text-[10px] tracking-[0.18em] uppercase text-[rgba(90,107,126,0.7)] mb-1">{s.label}</div>
+                  <div className="tabular-nums font-mono text-[18px]" style={{ color: s.color }}>{s.value} FCFA</div>
+                </div>
+              ))}
+            </div>
+          </Card.Table>
+
+          {depensesItems.length > 0 && (
+            <Card.Table>
+              <div className="flex items-center px-5 py-4 border-b border-[rgba(14,42,71,0.08)]">
+                <h3 className="text-base font-semibold text-[#0E2A47] tracking-tight">Dépenses enregistrées</h3>
+                <span className="text-[11px] text-[rgba(90,107,126,0.7)] ml-2">{depensesItems.length} dépense{depensesItems.length !== 1 ? 's' : ''}</span>
+              </div>
+              <table className="af-table">
+                <thead>
+                  <tr><th>Réf.</th><th>Libellé</th><th>Ligne budgétaire</th><th>Montant</th><th>Statut</th></tr>
+                </thead>
+                <tbody>
+                  {depensesItems.map(d => {
+                    const ligne = lignes.find(l => String(l.id) === String(d.ligne ?? d.ligne_id))
+                    return (
+                      <tr key={d.id}>
+                        <td className="ref">{d.reference || d.code || `DP-${d.id}`}</td>
+                        <td>{d.libelle || d.description || '—'}</td>
+                        <td className="muted">{ligne?.libelle || d.ligne_designation || '—'}</td>
+                        <td className="num">{fmt(d.montant)} FCFA</td>
+                        <td><StatusBadge status={d.statut}/></td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </Card.Table>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-[14px]">
+          <Card>
+            <Card.Header title="Synthèse" />
+            <Card.Body padded>
+              <div className="flex justify-between mb-3.5">
+                <span className="text-[#5A6B7E]">Total demandé</span>
+                <span className="tabular-nums font-mono text-[20px] text-[#B8864A]">{fmt(totalBudget)} FCFA</span>
+              </div>
+              <div className="flex justify-between mb-3.5">
+                <span className="text-[#5A6B7E]">Consommé</span>
+                <span className="tabular-nums">{fmt(totalReel)} FCFA</span>
+              </div>
+              <div className="flex justify-between mb-1.5">
+                <span className="text-[11px] text-[rgba(90,107,126,0.7)]">Taux de consommation</span>
+                <span className="tabular-nums" style={{ color: tauxGlobal > 85 ? '#DC2626' : '#15803D' }}>{tauxGlobal}%</span>
+              </div>
+              <div className="af-bar"><div className={`af-bar-fill ${tauxGlobal > 85 ? 'danger' : tauxGlobal > 70 ? 'warn' : 'ok'}`} style={{ width: `${Math.min(tauxGlobal, 100)}%` }}/></div>
+            </Card.Body>
+          </Card>
+
+          {budget.description && (
+            <Card>
+              <Card.Header title="Justification" />
+              <Card.Body padded>
+                <p className="text-[13px] text-[#5A6B7E] leading-[1.7]">{budget.description}</p>
+              </Card.Body>
+            </Card>
+          )}
+
+          <Card>
+            <Card.Header title="Informations" />
+            <Card.Body padded>
+              <div className="flex flex-col gap-2.5 text-[12px]">
+                {[
+                  { label: 'Code',         val: budget.code },
+                  { label: 'Gestionnaire', val: budget.gestionnaire_nom || '—' },
+                  { label: 'Département',  val: budget.departement_nom  || '—' },
+                  { label: 'Méthode',      val: budget.methode_budgetisation || '—' },
+                  { label: 'Créé le',      val: fmtDate(budget.date_creation) },
+                  { label: 'Soumis le',    val: fmtDate(budget.date_soumission) },
+                  budget.comptable_nom ? { label: 'Comptable', val: budget.comptable_nom } : null,
+                ].filter(Boolean).map(row => (
+                  <div key={row.label} className="flex justify-between">
+                    <span className="text-[rgba(90,107,126,0.7)]">{row.label}</span>
+                    <span className="text-[#0E2A47] font-semibold">{row.val}</span>
+                  </div>
+                ))}
+              </div>
+            </Card.Body>
+          </Card>
+        </div>
       </div>
 
-      {/* ── Section Dépenses ── */}
-      <SectionDepenses
-        depenses={depensesItems}
-        lignes={lignes}
-      />
-      <div className="h-5" />
-
-      {/* ── Section Budget ── */}
-      <SectionBudget
-        titre="Budget — Dépenses"
-        lignes={depenses}
-        couleur="#D97706"
-        couleurBg="var(--color-warning-50)"
-        couleurBorder="var(--color-warning-200)"
-      />
-      {revenus.length > 0 && <><div className="h-4" /><SectionBudget titre="Budget — Revenus" lignes={revenus} couleur="#0D9488" couleurBg="#f0fdfa" couleurBorder="#99f6e4" /></>}
-
-
-      {/* Zone de décision */}
-      {(budget.statut === 'SOUMIS' || budget.statut === 'APPROUVE') && (
-        <div
-          className="mt-6 rounded-[var(--radius-lg)] px-7 py-[22px] flex justify-between items-center flex-wrap gap-4"
-          style={{ background: 'var(--af-ink)' }}
-        >
-          <div>
-            <div className="font-display font-bold text-white mb-1 text-[15px]">
-              {budget.statut === 'APPROUVE' ? 'Clôture budgétaire' : 'Décision de validation'}
-            </div>
-            <div className="text-[13px] text-white/65">
-              {budget.statut === 'APPROUVE'
-                ? 'Clôturez le budget pour figer la consommation finale'
-                : 'Analysez les lignes ci-dessus avant de valider ou rejeter ce budget'
-              }
-            </div>
-          </div>
-          <div className="flex gap-3">
-            {budget.statut === 'SOUMIS' && (
-              <>
-                <button
-                  onClick={() => handleAction('rejeter')}
-                  disabled={saving}
-                  className="inline-flex items-center gap-[7px] px-[22px] py-[10px] rounded-[9px] font-bold text-[14px] cursor-pointer"
-                  style={{ border: '1.5px solid rgba(252,165,165,.5)', background: 'rgba(239,68,68,.15)', color: '#fca5a5' }}
-                >
-                  <XCircle size={15} strokeWidth={2} /> Rejeter le budget
-                </button>
-                <button
-                  onClick={() => handleAction('approuver')}
-                  disabled={saving}
-                  className="inline-flex items-center gap-[7px] px-[22px] py-[10px] rounded-[9px] border-none text-white font-bold text-[14px] cursor-pointer"
-                  style={{ background: 'linear-gradient(135deg, #059669, #10b981)', boxShadow: '0 2px 14px rgba(5,150,105,.4)' }}
-                >
-                  <CheckCircle2 size={15} strokeWidth={2} /> Approuver le budget
-                </button>
-              </>
-            )}
-            {budget.statut === 'APPROUVE' && (
-              <button
-                onClick={handleCloturer}
-                disabled={saving}
-                className="inline-flex items-center gap-[7px] px-[22px] py-[10px] rounded-[9px] border-none text-white font-bold text-[14px] cursor-pointer"
-                style={{ background: 'linear-gradient(135deg, #0E2A47, #163A5F)', boxShadow: '0 2px 14px rgba(14,42,71,.35)' }}
-              >
-                Clôturer le budget
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Modal de rejet avec motif */}
       {showRejet && (
         <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setShowRejet(false) }}>
           <div className="modal-panel" style={{ maxWidth: 480 }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2 style={{ fontSize: '15px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <XCircle size={16} style={{ color: 'var(--color-danger-600)' }} />
-                Rejeter le budget
+              <h2 className="flex items-center gap-2 text-[15px] font-bold">
+                {Icon.reject} Rejeter le budget
               </h2>
             </div>
-            <div className="modal-body" style={{ padding: '20px' }}>
-              <p style={{ fontSize: '13px', color: 'var(--color-gray-600)', marginBottom: 16 }}>
+            <div className="modal-body">
+              <p className="text-[13px] text-[#5A6B7E] mb-4">
                 Indiquez un motif de rejet détaillé (minimum 10 caractères). Il sera transmis au gestionnaire.
               </p>
-              <label className="form-label">Motif de rejet <span style={{ color: 'var(--color-danger-600)' }}>*</span></label>
+              <label className="form-label">Motif de rejet <span className="text-[#DC2626]">*</span></label>
               <textarea
                 className="form-input"
                 rows={4}
                 value={motifRejet}
                 onChange={e => { setMotifRejet(e.target.value); setMotifError('') }}
-                placeholder="Ex : Les montants des lignes B.1 et B.2 semblent surestimés par rapport à l'exercice précédent…"
-                style={{ resize: 'vertical', fontFamily: 'inherit' }}
+                placeholder="Ex : Les montants des lignes B.1 et B.2 semblent surestimés…"
+                style={{ resize: 'vertical', height: 'auto', paddingTop: 10, paddingBottom: 10 }}
               />
-              {motifError && (
-                <p style={{ fontSize: '12px', color: 'var(--color-danger-600)', marginTop: 6 }}>{motifError}</p>
-              )}
-              <div style={{ fontSize: '11px', color: 'var(--color-gray-400)', marginTop: 4 }}>
-                {motifRejet.length} / 500 caractères
-              </div>
+              {motifError && <p className="text-[12px] text-[#DC2626] mt-1.5">{motifError}</p>}
+              <div className="text-[11px] text-[rgba(90,107,126,0.7)] mt-1">{motifRejet.length} / 500 caractères</div>
             </div>
             <div className="modal-footer">
               <button onClick={() => setShowRejet(false)} className="btn btn-secondary btn-md">Annuler</button>
-              <button
-                onClick={handleRejeterConfirm}
-                disabled={saving}
-                className="btn btn-danger btn-md"
-                style={{ gap: 6 }}
-              >
-                <XCircle size={14} /> Confirmer le rejet
+              <button onClick={handleRejeterConfirm} disabled={saving} className="btn btn-danger btn-md">
+                {Icon.reject} Confirmer le rejet
               </button>
             </div>
           </div>
         </div>
       )}
       {confirmModal && <ConfirmModal {...confirmModal} onClose={() => setConfirmModal(null)} />}
-    </div>
-  )
-}
-
-
-/* ══════════════════════════════════════════════════════════════════════════════
-   Section Dépenses — ConsommationLigne groupées par ligne budgétaire
-══════════════════════════════════════════════════════════════════════════════ */
-function SectionDepenses({ depenses, lignes }) {
-  const couleur       = 'var(--af-ink)'
-  const couleurBg     = 'var(--color-gold-soft)'
-  const couleurBorder = 'var(--color-gold-line)'
-
-  const totalDepense = depenses.reduce((s, d) => s + parseFloat(d.montant || 0), 0)
-  const nbDepenses   = depenses.length
-  const nbValides    = depenses.filter(d => d.statut === 'VALIDEE').length
-  const tauxValide   = nbDepenses > 0 ? Math.round(nbValides / nbDepenses * 100) : 0
-
-  // Grouper par ligne_id et croiser avec les lignes budgétaires
-  const groupsMap = {}
-  depenses.forEach(d => {
-    const key = d.ligne ?? d.ligne_id
-    if (!groupsMap[key]) groupsMap[key] = []
-    groupsMap[key].push(d)
-  })
-  const lignesDepense = lignes.filter(l => l.section === 'DEPENSE')
-  const groups = Object.entries(groupsMap).map(([ligneId, items]) => {
-    const ligne      = lignesDepense.find(l => String(l.id) === String(ligneId))
-    const totalGrp   = items.reduce((s, d) => s + parseFloat(d.montant || 0), 0)
-    return {
-      ligneId,
-      libelle: ligne?.libelle ?? items[0]?.ligne_designation ?? `Ligne ${ligneId}`,
-      alloue:  parseFloat(ligne?.montant_alloue || 0),
-      depense: totalGrp,
-      items,
-    }
-  })
-  const maxVal = Math.max(...groups.map(g => Math.max(g.alloue, g.depense)), 1)
-
-  return (
-    <div className="card p-0 overflow-hidden">
-      {/* En-tête */}
-      <div
-        className="px-5 py-3 flex justify-between items-center"
-        style={{ borderBottom: `1px solid ${couleurBorder}`, background: couleurBg }}
-      >
-        <h3 className="font-display font-extrabold text-[15px]" style={{ color: couleur }}>
-          Dépenses
-        </h3>
-        <div className="flex gap-[18px] text-[12px]">
-          <span className="text-[#6B7280]">
-            Total : <strong style={{ color: couleur }}>{fmt(totalDepense)} FCFA</strong>
-          </span>
-          <span className="text-[#6B7280]">{nbDepenses} dépense{nbDepenses !== 1 ? 's' : ''}</span>
-          <span className="font-bold" style={{ color: nbValides > 0 ? 'var(--color-success-600)' : 'var(--color-gray-600)' }}>
-            {nbValides} validée{nbValides !== 1 ? 's' : ''}
-          </span>
-        </div>
-      </div>
-
-      {depenses.length === 0 ? (
-        <div className="text-center py-8 text-[#9CA3AF] text-[13px]">
-          Aucune dépense enregistrée pour ce budget
-        </div>
-      ) : (
-        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px,100%), 1fr))', gap: 0 }}>
-
-          {/* Panneau gauche : KPI */}
-          <div className="p-5 border-r border-[#F3F4F6]">
-            <div className="mb-[14px]">
-              <span className="font-mono font-extrabold text-[1.4rem]" style={{ color: couleur }}>
-                {fmt(totalDepense)} FCFA
-              </span>
-            </div>
-            <div className="flex justify-between text-[12px] mb-1">
-              <span className="text-[#6B7280]">Nb dépenses</span>
-              <span className="font-bold font-mono">{nbDepenses}</span>
-            </div>
-            <div className="flex justify-between text-[12px] mb-[18px]">
-              <span className="text-[#6B7280]">Validées</span>
-              <span className="font-bold font-mono">{nbValides}</span>
-            </div>
-            <div className="text-[10px] font-bold text-[#9CA3AF] mb-[6px] tracking-[.3px]">TAUX DE VALIDATION</div>
-            <div
-              className="h-6 rounded-[6px] overflow-hidden relative mb-1"
-              style={{ background: couleurBg, border: `1px solid ${couleurBorder}` }}
-            >
-              <div
-                className="h-full rounded-[6px] transition-[width_.4s]"
-                style={{ width: `${Math.min(tauxValide, 100)}%`, background: couleur }}
-              />
-              <span
-                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[11px] font-bold"
-                style={{ color: tauxValide > 40 ? '#fff' : couleur }}
-              >
-                {tauxValide}%
-              </span>
-            </div>
-          </div>
-
-          {/* Centre : barres horizontales par ligne budgétaire */}
-          <div className="p-4 border-r border-[#F3F4F6] overflow-y-auto max-h-[300px]">
-            <div className="flex gap-4 text-[10px] font-bold text-[#9CA3AF] mb-3">
-              <span className="flex items-center gap-[5px]">
-                <span className="w-[10px] h-[10px] rounded-[2px] inline-block" style={{ background: couleur }} />
-                Alloué
-              </span>
-              <span className="flex items-center gap-[5px]">
-                <span
-                  className="w-[10px] h-[10px] rounded-[2px] inline-block"
-                  style={{ background: `${couleur}55`, border: `1.5px dashed ${couleur}` }}
-                />
-                Dépensé
-              </span>
-            </div>
-            {groups.map(g => {
-              const nVal = g.items.filter(d => d.statut === 'VALIDEE').length
-              const nAtt = g.items.filter(d => d.statut === 'SAISIE').length
-              const nRej = g.items.filter(d => d.statut === 'REJETEE').length
-              return (
-                <div key={g.ligneId} className="mb-[16px]">
-                  <div className="text-[12px] font-medium text-[#374151] mb-1 whitespace-nowrap overflow-hidden text-ellipsis">
-                    {g.libelle}
-                  </div>
-                  <div className="h-[9px] bg-[#F3F4F6] rounded-full overflow-hidden mb-[3px]">
-                    <div className="h-full rounded-full" style={{ width: `${(g.alloue / maxVal) * 100}%`, background: couleur }} />
-                  </div>
-                  <div className="h-[9px] bg-[#F3F4F6] rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full"
-                      style={{ width: `${(g.depense / maxVal) * 100}%`, background: `${couleur}88`, border: `1px dashed ${couleur}` }}
-                    />
-                  </div>
-                  <div className="flex justify-between text-[10px] text-[#9CA3AF] mt-[2px] font-mono mb-[5px]">
-                    <span>{fmt(g.alloue)} FCFA</span>
-                    <span>{fmt(g.depense)} FCFA</span>
-                  </div>
-                  <div className="flex gap-[6px] flex-wrap">
-                    {nVal > 0 && (
-                      <span className="inline-flex items-center gap-[3px] text-[10px] font-bold px-[6px] py-[2px] rounded-full" style={{ background: '#D1FAE5', color: '#065F46' }}>
-                        <span className="w-[5px] h-[5px] rounded-full inline-block" style={{ background: '#059669' }} />
-                        {nVal} validée{nVal > 1 ? 's' : ''}
-                      </span>
-                    )}
-                    {nAtt > 0 && (
-                      <span className="inline-flex items-center gap-[3px] text-[10px] font-bold px-[6px] py-[2px] rounded-full" style={{ background: '#FFFBEB', color: '#92400E' }}>
-                        <span className="w-[5px] h-[5px] rounded-full inline-block" style={{ background: '#D97706' }} />
-                        {nAtt} en attente
-                      </span>
-                    )}
-                    {nRej > 0 && (
-                      <span className="inline-flex items-center gap-[3px] text-[10px] font-bold px-[6px] py-[2px] rounded-full" style={{ background: '#FEE2E2', color: '#991B1B' }}>
-                        <span className="w-[5px] h-[5px] rounded-full inline-block" style={{ background: '#DC2626' }} />
-                        {nRej} rejetée{nRej > 1 ? 's' : ''}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-
-          {/* Droite : tableau par ligne budgétaire avec statuts */}
-          <div className="overflow-y-auto max-h-[300px]">
-            <table className="data-table rounded-none">
-              <thead className="sticky top-0 z-[1]">
-                <tr style={{ background: couleur }}>
-                  {['Ligne budgétaire', 'Nb', 'Montant'].map(h => (
-                    <th
-                      key={h}
-                      className="text-[10px] font-bold text-white tracking-[.3px] whitespace-nowrap px-[10px] py-2"
-                      style={{ textAlign: h === 'Montant' || h === 'Nb' ? 'right' : 'left', background: couleur }}
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {groups.map((g, i) => {
-                  return (
-                    <tr key={g.ligneId} style={{ background: i % 2 === 0 ? '#fff' : couleurBg }}>
-                      <td className="px-[10px] py-2 text-[12px] font-medium max-w-[130px] overflow-hidden text-ellipsis whitespace-nowrap">
-                        {g.libelle}
-                      </td>
-                      <td className="px-[10px] py-2 text-[12px] text-right font-mono text-[#6B7280]">
-                        {g.items.length}
-                      </td>
-                      <td className="px-[10px] py-2 text-[12px] text-right font-semibold font-mono">
-                        {fmt(g.depense)}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-
-/* ══════════════════════════════════════════════════════════════════════════════
-   Composant section (Revenus ou Dépenses)
-══════════════════════════════════════════════════════════════════════════════ */
-function SectionBudget({ titre, lignes, couleur, couleurBg, couleurBorder }) {
-  const totalAlloue   = lignes.reduce((s, l) => s + parseFloat(l.montant_alloue   || 0), 0)
-  const totalConsomme = lignes.reduce((s, l) => s + parseFloat(l.montant_consomme || 0), 0)
-  const difference    = totalAlloue - totalConsomme
-  const tauxGlobal    = totalAlloue > 0 ? Math.round(totalConsomme / totalAlloue * 100) : 0
-  const maxVal        = Math.max(...lignes.map(l => parseFloat(l.montant_alloue || 0)), 1)
-
-  const pctBadge = (pct) => {
-    if (pct >= 90) return { bg: 'var(--color-danger-50)',   color: 'var(--color-danger-700)'  }
-    if (pct >= 75) return { bg: 'var(--color-warning-50)',  color: 'var(--color-warning-700)' }
-    return              { bg: 'var(--color-success-50)',  color: 'var(--color-success-700)' }
-  }
-
-  return (
-    <div className="card p-0 overflow-hidden">
-      {/* En-tête section */}
-      <div
-        className="px-5 py-3 flex justify-between items-center"
-        style={{ borderBottom: `1px solid ${couleurBorder}`, background: couleurBg }}
-      >
-        <h3 className="font-display font-extrabold text-[15px]" style={{ color: couleur }}>
-          {titre}
-        </h3>
-        <div className="flex gap-[18px] text-[12px]">
-          <span className="text-[#6B7280]">
-            Budget : <strong style={{ color: couleur }}>{fmtK(totalAlloue)} FCFA</strong>
-          </span>
-          <span className="text-[#6B7280]">
-            Réel : <strong className="text-[#374151]">{fmtK(totalConsomme)} FCFA</strong>
-          </span>
-          <span className="font-bold" style={{ color: difference >= 0 ? 'var(--color-success-600)' : 'var(--color-danger-600)' }}>
-            {difference >= 0 ? '▲ +' : '▼ '}{fmtK(difference)} FCFA
-          </span>
-        </div>
-      </div>
-
-      {lignes.length === 0 ? (
-        <div className="text-center py-8 text-[#9CA3AF] text-[13px]">
-          Aucune ligne de type « {titre.toLowerCase()} »
-        </div>
-      ) : (
-        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px,100%), 1fr))', gap: 0 }}>
-
-          {/* Panneau gauche : KPI */}
-          <div className="p-5 border-r border-[#F3F4F6]">
-            <div className="mb-[14px]">
-              <span
-                className="font-mono font-extrabold text-[1.4rem]"
-                style={{ color: difference >= 0 ? 'var(--color-success-700)' : 'var(--color-danger-600)' }}
-              >
-                {difference >= 0 ? '+' : ''}{fmtK(difference)} FCFA
-              </span>
-            </div>
-            <div className="flex justify-between text-[12px] mb-1">
-              <span className="text-[#6B7280]">Budget alloué</span>
-              <span className="font-bold font-mono">{fmtK(totalAlloue)}</span>
-            </div>
-            <div className="flex justify-between text-[12px] mb-[18px]">
-              <span className="text-[#6B7280]">Consommé</span>
-              <span className="font-bold font-mono">{fmtK(totalConsomme)}</span>
-            </div>
-
-            <div className="text-[10px] font-bold text-[#9CA3AF] mb-[6px] tracking-[.3px]">
-              {titre.toUpperCase()} % DU BUDGET
-            </div>
-            <div
-              className="h-6 rounded-[6px] overflow-hidden relative mb-1"
-              style={{ background: couleurBg, border: `1px solid ${couleurBorder}` }}
-            >
-              <div
-                className="h-full rounded-[6px] transition-[width_.4s]"
-                style={{ width: `${Math.min(tauxGlobal, 100)}%`, background: couleur }}
-              />
-              <span
-                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[11px] font-bold"
-                style={{ color: tauxGlobal > 40 ? '#fff' : couleur }}
-              >
-                {tauxGlobal}%
-              </span>
-            </div>
-          </div>
-
-          {/* Centre : graphe barres horizontales */}
-          <div className="p-4 border-r border-[#F3F4F6] overflow-y-auto max-h-[300px]">
-            <div className="flex gap-4 text-[10px] font-bold text-[#9CA3AF] mb-3">
-              <span className="flex items-center gap-[5px]">
-                <span className="w-[10px] h-[10px] rounded-[2px] inline-block" style={{ background: couleur }} />
-                Alloué
-              </span>
-              <span className="flex items-center gap-[5px]">
-                <span
-                  className="w-[10px] h-[10px] rounded-[2px] inline-block"
-                  style={{ background: `${couleur}55`, border: `1.5px dashed ${couleur}` }}
-                />
-                Consommé
-              </span>
-            </div>
-            {lignes.map(l => {
-              const pctAlloue   = (parseFloat(l.montant_alloue   || 0) / maxVal) * 100
-              const pctConsomme = (parseFloat(l.montant_consomme || 0) / maxVal) * 100
-              return (
-                <div key={l.id} className="mb-[14px]">
-                  <div className="text-[12px] font-medium text-[#374151] mb-1 whitespace-nowrap overflow-hidden text-ellipsis">
-                    {l.libelle}
-                  </div>
-                  <div className="h-[9px] bg-[#F3F4F6] rounded-full overflow-hidden mb-[3px]">
-                    <div className="h-full rounded-full" style={{ width: `${pctAlloue}%`, background: couleur }} />
-                  </div>
-                  <div className="h-[9px] bg-[#F3F4F6] rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full"
-                      style={{ width: `${pctConsomme}%`, background: `${couleur}88`, border: `1px dashed ${couleur}` }}
-                    />
-                  </div>
-                  <div className="flex justify-between text-[10px] text-[#9CA3AF] mt-[2px] font-mono">
-                    <span>{fmtK(l.montant_alloue)} FCFA</span>
-                    <span>{fmtK(l.montant_consomme)} FCFA</span>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-
-          {/* Droite : tableau des lignes */}
-          <div className="overflow-y-auto max-h-[300px]">
-            <table className="data-table rounded-none">
-              <thead className="sticky top-0 z-[1]">
-                <tr style={{ background: couleur }}>
-                  {['Libellé', 'Budget', 'Réel', 'Écart', '% Budget'].map(h => (
-                    <th
-                      key={h}
-                      className="text-[10px] font-bold text-white tracking-[.3px] whitespace-nowrap px-[10px] py-2"
-                      style={{ textAlign: h === 'Libellé' ? 'left' : 'right', background: couleur }}
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {lignes.map((l, i) => {
-                  const alloue   = parseFloat(l.montant_alloue   || 0)
-                  const consomme = parseFloat(l.montant_consomme || 0)
-                  const ecart    = alloue - consomme
-                  const pct      = totalAlloue > 0 ? Math.round(alloue / totalAlloue * 100) : 0
-                  const { bg, color } = pctBadge(pct)
-                  return (
-                    <tr key={l.id} style={{ background: i % 2 === 0 ? '#fff' : couleurBg }}>
-                      <td className="px-[10px] py-2 text-[12px] font-medium max-w-[120px] overflow-hidden text-ellipsis whitespace-nowrap">
-                        {l.libelle}
-                      </td>
-                      <td className="px-[10px] py-2 text-[12px] text-right font-semibold font-mono">
-                        {fmtK(alloue)}
-                      </td>
-                      <td className="px-[10px] py-2 text-[12px] text-right text-[#6B7280] font-mono">
-                        {fmtK(consomme)}
-                      </td>
-                      <td
-                        className="px-[10px] py-2 text-[12px] text-right font-semibold font-mono"
-                        style={{ color: ecart >= 0 ? 'var(--color-success-700)' : 'var(--color-danger-600)' }}
-                      >
-                        {fmtK(ecart)}
-                      </td>
-                      <td className="px-[10px] py-2 text-right">
-                        <span
-                          className="rounded-full px-2 py-[2px] text-[10px] font-bold"
-                          style={{ background: bg, color }}
-                        >
-                          {pct}%
-                        </span>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

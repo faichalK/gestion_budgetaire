@@ -34,7 +34,7 @@ const FEATURES = [
     accent: 'var(--af-ink)',
     extra: (
       <div style={{ marginTop:16, padding:'8px 12px', borderRadius:8, background:'#F1F5F9', border:'1px solid rgba(15,23,42,0.08)', fontFamily:'monospace', fontSize:11, color:'#64748B', display:'flex', justifyContent:'space-between' }}>
-        <span>PRJ-AFR-04</span><span style={{ color:'var(--af-ink)', fontWeight:600 }}>− 4 200 €</span>
+        <span>PRJ-AFR-04</span><span style={{ color:'var(--af-ink)', fontWeight:600 }}>− 4,2 M FCFA</span>
       </div>
     ),
   },

@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500" role="img">
+  <defs>
+    <linearGradient id="bgi" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fafbfc"></stop><stop offset="1" stop-color="#f1f3f7"></stop></linearGradient>
+    <pattern id="gi" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M24 0H0V24" fill="none" stroke="#e6eaf0" stroke-width=".5"></path></pattern>
+    <radialGradient id="halo" cx=".5" cy=".5" r=".7"><stop offset="0" stop-color="#2563eb" stop-opacity=".25"></stop><stop offset="1" stop-color="#2563eb" stop-opacity="0"></stop></radialGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#bgi)"></rect>
+  <rect width="800" height="500" fill="url(#gi)" opacity=".6"></rect>
+  <ellipse cx="600" cy="120" rx="280" ry="180" fill="url(#halo)"></ellipse>
+
+  <text x="32" y="48" font-family="Inter, sans-serif" font-size="11" letter-spacing="1.6" fill="#5b6573">ATLAS · ASSISTANT IA</text>
+  <text x="32" y="80" font-family="Inter, sans-serif" font-weight="700" font-size="24" fill="#0c1626">Détection d&#39;anomalies</text>
+
+  
+  <rect x="32" y="104" width="460" height="180" rx="10" fill="#ffffff" stroke="#e6eaf0"></rect>
+  <circle cx="56" cy="128" r="8" fill="#fef6e3" stroke="#b45309"></circle>
+  <text x="52" y="132" font-family="Inter, sans-serif" font-size="11" fill="#b45309">!</text>
+  <text x="76" y="124" font-family="Inter, sans-serif" font-size="11" letter-spacing="1.5" fill="#b45309">ANOMALIE DÉTECTÉE · CONFIANCE 94%</text>
+  <text x="76" y="148" font-family="Inter, sans-serif" font-size="14" font-weight="600" fill="#0c1626">Pic inhabituel · Communication +147% (avr.)</text>
+  <text x="48" y="186" font-family="Inter, sans-serif" font-size="12" fill="#0c4a6e">Cause probable détectée : trois engagements consécutifs</text>
+  <text x="48" y="204" font-family="Inter, sans-serif" font-size="12" fill="#0c4a6e">au même fournisseur en moins de 8 jours.</text>
+  <text x="48" y="240" font-family="Inter, sans-serif" font-size="11" letter-spacing="1.4" fill="#5b6573">RECOMMANDATION</text>
+  <text x="48" y="262" font-family="Inter, sans-serif" font-size="12" fill="#2563eb">→ Demander un devis groupé · économie estimée €4 200</text>
+
+  
+  <rect x="508" y="104" width="260" height="180" rx="10" fill="#ffffff" stroke="#e6eaf0"></rect>
+  <text x="524" y="128" font-family="Inter, sans-serif" font-size="10" letter-spacing="1.5" fill="#5b6573">SCORE IA · DOSSIER</text>
+  <text x="524" y="180" font-family="Inter, sans-serif" font-weight="700" font-size="56" fill="#0c1626">87<tspan font-size="22" fill="#5b6573">/100</tspan></text>
+  <rect x="524" y="200" width="220" height="6" rx="3" fill="#eaf2fc"></rect>
+  <rect x="524" y="200" width="191" height="6" rx="3" fill="#2563eb"></rect>
+  <text x="524" y="232" font-family="Inter, sans-serif" font-size="11" fill="#15803d">▲ Justificatifs complets</text>
+  <text x="524" y="252" font-family="Inter, sans-serif" font-size="11" fill="#15803d">▲ Cohérence historique</text>
+  <text x="524" y="272" font-family="Inter, sans-serif" font-size="11" fill="#b45309">● Vérifier le bénéficiaire</text>
+
+  
+  <rect x="32" y="304" width="736" height="172" rx="10" fill="#ffffff" stroke="#e6eaf0"></rect>
+  <text x="48" y="328" font-family="Inter, sans-serif" font-size="11" letter-spacing="1.5" fill="#5b6573">CHATBOT FINANCIER</text>
+  
+  <rect x="48" y="340" width="320" height="32" rx="8" fill="#f6f8fb" stroke="#dde4ed"></rect>
+  <text x="60" y="360" font-family="Inter, sans-serif" font-size="12" fill="#0c4a6e">Combien reste-t-il sur l&#39;enveloppe DRH ?</text>
+  
+  <rect x="48" y="384" width="540" height="56" rx="8" fill="#fef9ec" stroke="#cfd9e6"></rect>
+  <text x="60" y="404" font-family="Inter, sans-serif" font-size="12" fill="#2563eb">Atlas · IA</text>
+  <text x="60" y="424" font-family="Inter, sans-serif" font-size="12" fill="#0c1626">Il reste € 1 806 000 · 38.4% de l&#39;enveloppe annuelle 2026.</text>
+  
+  <rect x="48" y="448" width="704" height="20" rx="6" fill="#ffffff" stroke="#e6eaf0"></rect>
+  <text x="60" y="463" font-family="Inter, sans-serif" font-size="11" fill="#9aa3b1">Posez une question financière…</text>
+</svg>

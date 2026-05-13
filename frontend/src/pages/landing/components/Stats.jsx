@@ -65,7 +65,7 @@ const METRICS = [
 function MetricItem({ value, suffix, label, sub, accent }) {
   const [count, activate] = useCountUp(value, 1800)
   const [ref, visible] = useScrollAnimation(0.1)
-  useEffect(() => { if (visible) activate() }, [visible])
+  useEffect(() => { if (visible) activate() }, [visible, activate])
 
   return (
     <div ref={ref} style={{ textAlign:'center', padding:'32px 24px', opacity:visible?1:0, transform:visible?'translateY(0)':'translateY(20px)', transition:'all .7s cubic-bezier(.16,1,.3,1)' }}>
@@ -79,7 +79,7 @@ function MetricItem({ value, suffix, label, sub, accent }) {
 }
 
 export default function Stats() {
-  const [ref, visible] = useScrollAnimation(0.1)
+  const [ref] = useScrollAnimation(0.1)
 
   return (
     <>

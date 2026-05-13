@@ -34,6 +34,9 @@ urlpatterns = [
     # Dépenses (consommations avec workflow validation)
     path("api/v1/depenses/", include("budget.urls_depenses")),
 
+    # Pièces justificatives — téléchargement sécurisé
+    path("api/v1/pieces/", include("budget.urls_pieces")),
+
     # Intelligence Artificielle
     path("api/v1/ia/", include("budget.urls_ia")),
 

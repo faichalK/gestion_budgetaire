@@ -2,43 +2,57 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getDepartements, createDepartement, updateDepartement, deleteDepartement } from '../../api/accounts'
 import { getBudgetAnnuels, createAllocation, updateAllocation } from '../../api/budget'
-import { Plus, Building2, Pencil, Trash2, UserCheck, UserX, FileText, Coins, AlertTriangle } from 'lucide-react'
+import { Plus, Building2, Pencil, Trash2, UserCheck, UserX, Coins, AlertTriangle, Eye } from '../../components/AtlasIcons'
 import { ConfirmModal } from '../../components/ui'
 import { formaterNombre } from '../../utils/formatters'
 
-const fmt = (n) => formaterNombre(n ?? 0)
+const fmt = (n) => formaterNombre(n ?? 0, { maximumFractionDigits: 0 })
 
 const jaugeColor = (taux) => {
-  if (taux > 75) return 'var(--color-danger-600)'
-  if (taux > 50) return 'var(--color-warning-600)'
-  return 'var(--color-success-600)'
+  if (taux > 75) return '#DC2626'
+  if (taux > 50) return '#D97706'
+  return '#059669'
+}
+
+function btnStyle(color) {
+  return {
+    background: 'none',
+    border: `1px solid ${color}30`,
+    borderRadius: 7,
+    padding: '5px 7px',
+    cursor: 'pointer',
+    color,
+    display: 'flex',
+    alignItems: 'center',
+    transition: 'background .12s',
+  }
 }
 
 export default function DepartementsPage() {
   const navigate = useNavigate()
-  const [depts,          setDepts]          = useState([])
-  const [enveloppes,     setEnveloppes]     = useState([])
-  const [budgetActuelId, setBudgetActuelId] = useState(null)
-  const [loading,        setLoading]        = useState(true)
-  const [showModal,      setShowModal]      = useState(false)
-  const [editTarget,     setEditTarget]     = useState(null)
-  const [saving,         setSaving]         = useState(false)
-  const [error,          setError]          = useState('')
-  const [form,           setForm]           = useState({ nom: '', description: '' })
-  const [confirmModal,   setConfirmModal]   = useState(null)
-  const [allouerTarget,  setAllouerTarget]  = useState(null) // { dept, existingAlloc }
+  const [depts,         setDepts]         = useState([])
+  const [enveloppes,    setEnveloppes]    = useState([])
+  const [budgetActuelId,setBudgetActuelId]= useState(null)
+  const [loading,       setLoading]       = useState(true)
+  const [showModal,     setShowModal]     = useState(false)
+  const [editTarget,    setEditTarget]    = useState(null)
+  const [saving,        setSaving]        = useState(false)
+  const [error,         setError]         = useState('')
+  const [form,          setForm]          = useState({ nom: '', description: '' })
+  const [confirmModal,  setConfirmModal]  = useState(null)
+  const [allouerTarget, setAllouerTarget] = useState(null)
 
   const load = () => {
     setLoading(true)
     Promise.all([getDepartements(), getBudgetAnnuels()])
       .then(([d, a]) => {
         setDepts(d.data.results ?? d.data)
-        const annuels      = a.data.results ?? a.data
-        const currentYear  = new Date().getFullYear()
+        const annuels     = a.data.results ?? a.data
+        const yr          = new Date().getFullYear()
         const budgetActuel = annuels.find(ba => {
           const start = Number(ba.annee)
           const end   = ba.annee_fin ? Number(ba.annee_fin) : start
-          return currentYear >= start && currentYear <= end
+          return yr >= start && yr <= end
         }) ?? annuels[0] ?? null
         setEnveloppes(budgetActuel?.allocations ?? [])
         setBudgetActuelId(budgetActuel?.id ?? null)
@@ -69,7 +83,7 @@ export default function DepartementsPage() {
   const handleDelete = (id, nom) => {
     setConfirmModal({
       title: 'Supprimer le département',
-      message: `Supprimer définitivement le département "${nom}" ? Cette action est irréversible.`,
+      message: `Supprimer définitivement "${nom}" ? Cette action est irréversible.`,
       confirmLabel: 'Supprimer',
       onConfirm: async () => {
         try { await deleteDepartement(id); load() }
@@ -78,151 +92,232 @@ export default function DepartementsPage() {
     })
   }
 
-  const anneeActuelle    = new Date().getFullYear()
-  const enveloppeParDept = (deptId) => enveloppes.find(e => String(e.departement) === String(deptId))
+  const [search, setSearch] = useState('')
 
-  if (loading) return <div className="page-loader"><div className="spinner" /></div>
+  const annee            = new Date().getFullYear()
+  const enveloppeParDept = (id) => enveloppes.find(e => String(e.departement) === String(id))
+  const actifsCount      = depts.filter(d => d.actif).length
+  const q                = search.toLowerCase().trim()
+  const deptsFiltres     = q ? depts.filter(d =>
+    d.nom?.toLowerCase().includes(q) || d.code?.toLowerCase().includes(q) || d.description?.toLowerCase().includes(q)
+  ) : depts
+
+  if (loading) return <div className="af-loader"><div className="af-spinner" /></div>
 
   return (
     <div>
-      <div className="page-header">
+      {/* En-tête */}
+      <div className="mb-7 flex items-end gap-6">
         <div>
-          <h1 className="page-title">Départements</h1>
-          <p className="page-subtitle">
-            {depts.length} département{depts.length !== 1 ? 's' : ''} enregistré{depts.length !== 1 ? 's' : ''}
-          </p>
+          <div className="text-[10px] tracking-[0.20em] uppercase text-[#B8864A] mb-2 font-medium">Administration · exercice {annee}</div>
+          <h1 className="text-[32px] font-normal tracking-[-0.02em] leading-[1.1] text-[#0E2A47] mb-1">Départements</h1>
+          <div className="text-[13px] text-[#5A6B7E]">
+            {depts.length} département{depts.length !== 1 ? 's' : ''} · {actifsCount} actif{actifsCount !== 1 ? 's' : ''}
+          </div>
         </div>
-        <button onClick={openCreate} className="btn btn-primary btn-md gap-[7px]">
-          <Plus size={16} strokeWidth={2.5} /> Nouveau département
-        </button>
+        <div className="ml-auto flex gap-2.5">
+          <button onClick={openCreate} className="btn btn-primary btn-sm" style={{ gap: 7 }}>
+            <Plus size={15} strokeWidth={2.5} />
+            Nouveau département
+          </button>
+          <button onClick={() => navigate('/budgets')} className="btn btn-secondary btn-sm">
+            Voir les budgets
+          </button>
+        </div>
       </div>
 
       {depts.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon">
-            <Building2 size={28} strokeWidth={1.5} className="text-gray-400" />
+            <Building2 size={28} strokeWidth={1.5} style={{ color: 'var(--af-mute)' }} />
           </div>
           <p className="empty-title">Aucun département</p>
           <p className="empty-body">Créez votre premier département pour commencer.</p>
-          <button onClick={openCreate} className="btn btn-primary btn-md mt-4 gap-[7px]">
-            <Plus size={16} strokeWidth={2.5} /> Nouveau département
+          <button onClick={openCreate} className="btn btn-primary btn-sm" style={{ marginTop: 16, gap: 7 }}>
+            <Plus size={15} strokeWidth={2.5} /> Nouveau département
           </button>
         </div>
       ) : (
-        <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
-          {depts.map(dept => {
+        <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)]" style={{ overflowX: 'auto' }}>
+          {/* Barre de recherche */}
+          <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--af-line)', display: 'flex', gap: 8, alignItems: 'center' }}>
+            <div style={{ position: 'relative', flex: '1 1 200px', maxWidth: 300 }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+                style={{ width: 13, height: 13, position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--af-mute)', pointerEvents: 'none' }}>
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+              </svg>
+              <input
+                type="text"
+                placeholder="Rechercher un département…"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="form-input"
+                style={{ paddingLeft: 32, fontSize: 12, height: 34 }}
+              />
+            </div>
+            {search && (
+              <button onClick={() => setSearch('')} className="btn btn-ghost btn-sm" style={{ fontSize: 12, height: 34 }}>
+                ✕ Effacer
+              </button>
+            )}
+            <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--af-mute)' }}>
+              {deptsFiltres.length} / {depts.length} département{depts.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+
+          {/* En-tête tableau */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'minmax(200px,1.4fr) minmax(130px,.6fr) minmax(130px,.6fr) minmax(200px,1fr) 175px',
+            padding: '10px 20px',
+            background: 'var(--af-steel)',
+            borderBottom: '1px solid var(--af-line)',
+            fontSize: 10, fontWeight: 700,
+            letterSpacing: '.16em', textTransform: 'uppercase',
+            color: 'var(--af-mute)',
+            minWidth: 895,
+          }}>
+            <span>Département</span>
+            <span style={{ textAlign: 'right' }}>Alloué</span>
+            <span style={{ textAlign: 'right' }}>Disponible</span>
+            <span style={{ paddingLeft: 8 }}>Progression</span>
+            <span style={{ textAlign: 'right' }}>Actions</span>
+          </div>
+
+          {deptsFiltres.length === 0 && (
+            <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--af-mute)', fontSize: 13 }}>
+              Aucun département ne correspond à « {search} ».
+            </div>
+          )}
+          {deptsFiltres.map((dept, i) => {
             const env  = enveloppeParDept(dept.id)
             const taux = env && parseFloat(env.montant_alloue) > 0
               ? Math.round(parseFloat(env.montant_consomme) / parseFloat(env.montant_alloue) * 100)
               : null
-            const color = taux != null ? jaugeColor(taux) : 'var(--color-gray-400)'
+            const color = taux != null ? jaugeColor(taux) : 'var(--af-mute)'
 
             return (
               <div
                 key={dept.id}
-                className="card"
                 style={{
-                  borderTop: `3px solid ${dept.actif ? 'var(--color-gold)' : 'var(--color-gray-300)'}`,
-                  opacity: dept.actif ? 1 : 0.65,
+                  display: 'grid',
+                  gridTemplateColumns: 'minmax(200px,1.4fr) minmax(130px,.6fr) minmax(130px,.6fr) minmax(200px,1fr) 175px',
+                  alignItems: 'center',
+                  padding: '14px 20px',
+                  minWidth: 895,
+                  borderBottom: i < deptsFiltres.length - 1 ? '1px solid var(--af-line)' : 'none',
+                  background: dept.actif ? 'transparent' : 'rgba(237,231,218,0.3)',
+                  gap: 12,
                 }}
               >
-                {/* En-tête */}
-                <div className="flex items-start gap-3 mb-4">
-                  <div
-                    className="w-11 h-11 rounded-[11px] shrink-0 flex items-center justify-center"
-                    style={{
-                      background: dept.actif ? 'var(--color-gold-soft)' : 'var(--color-gray-100)',
-                      color: dept.actif ? 'var(--color-gold)' : 'var(--color-gray-400)',
-                    }}
-                  >
-                    <Building2 size={20} strokeWidth={1.8} />
+                {/* Nom */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0 }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+                    background: dept.actif ? 'var(--color-gold-soft)' : 'var(--af-line)',
+                    color: dept.actif ? 'var(--color-gold-dark)' : 'var(--af-mute)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Building2 size={16} strokeWidth={1.8} />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-[7px] flex-wrap mb-[2px]">
-                      <span className="font-display font-bold text-[15px] text-gray-900">
-                        {dept.nom}
-                      </span>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                      <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--af-ink)' }}>{dept.nom}</span>
                       {!dept.actif && (
-                        <span className="text-[9px] font-bold tracking-[.3px] px-[7px] py-[1px] rounded-[20px] bg-[#E5E7EB] text-[#6B7280]">
-                          INACTIF
-                        </span>
+                        <span style={{
+                          fontSize: 9, fontWeight: 700, letterSpacing: '.3px',
+                          padding: '1px 6px', borderRadius: 20,
+                          background: 'var(--af-line)', color: 'var(--af-mute)',
+                        }}>INACTIF</span>
                       )}
                     </div>
-                    <div className="text-[11px] text-[#9CA3AF] font-mono">
-                      {dept.code}
+                    <div style={{ fontSize: 11, color: 'var(--af-cream)', fontFamily: 'var(--af-mono)' }}>
+                      {dept.code}{dept.description ? ` · ${dept.description}` : ''}
                     </div>
-                    {dept.description && (
-                      <div className="text-[12px] text-[#6B7280] mt-[3px] overflow-hidden text-ellipsis whitespace-nowrap">
-                        {dept.description}
-                      </div>
-                    )}
                   </div>
                 </div>
 
-                {/* Enveloppe */}
-                {env ? (
-                  <div className="bg-[#F9FAFB] rounded-[9px] px-[14px] py-3 mb-[14px] border border-[#F3F4F6]">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-[10px] font-bold text-[#6B7280] tracking-[.4px]">
-                        ENVELOPPE {anneeActuelle}
-                      </span>
-                      <span className="text-[11px] font-bold font-mono" style={{ color }}>
-                        {taux}%
-                      </span>
-                    </div>
-                    <div className="font-mono font-bold text-[15px] text-gray-900 mb-2">
-                      {fmt(env.montant_disponible)} <span className="text-[10px] font-medium text-[#9CA3AF]">FCFA disponibles</span>
-                    </div>
-                    <div className="exec-bar mb-[6px]">
-                      <div
-                        className="exec-bar-fill"
-                        style={{
-                          width: `${Math.min(taux ?? 0, 100)}%`,
-                          background: `linear-gradient(90deg, ${jaugeColor(Math.max(0, (taux ?? 0) - 20))}, ${color})`,
-                        }}
-                      />
-                    </div>
-                    <div className="flex justify-between text-[10px] text-[#9CA3AF] font-mono">
-                      <span>Alloué : {fmt(env.montant_alloue)}</span>
-                      <span>Consommé : {fmt(env.montant_consomme)}</span>
-                    </div>
+                {/* Alloué */}
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontFamily: 'var(--af-mono)', fontWeight: 700, fontSize: 13, color: 'var(--af-ink)' }}>
+                    {env ? fmt(env.montant_alloue) : '—'}
                   </div>
-                ) : (
-                  <div className="bg-[#F9FAFB] rounded-[9px] px-[14px] py-[10px] text-center text-[#9CA3AF] text-[12px] mb-[14px] border border-dashed border-[#E5E7EB]">
-                    Aucune enveloppe pour {anneeActuelle}
+                  {env && <div style={{ fontSize: 10, color: 'var(--af-mute)', marginTop: 1 }}>FCFA</div>}
+                </div>
+
+                {/* Disponible */}
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontFamily: 'var(--af-mono)', fontWeight: 700, fontSize: 13, color }}>
+                    {env ? fmt(env.montant_disponible) : '—'}
                   </div>
-                )}
+                  {env && <div style={{ fontSize: 10, color: 'var(--af-mute)', marginTop: 1 }}>FCFA</div>}
+                </div>
+
+                {/* Progression */}
+                <div style={{ paddingLeft: 8 }}>
+                  {env && taux != null ? (
+                    <>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5, fontSize: 11 }}>
+                        <span style={{ color: 'var(--af-cream)' }}>{fmt(env.montant_consomme)} consommés</span>
+                        <span style={{ fontFamily: 'var(--af-mono)', fontWeight: 700, color }}>{taux}%</span>
+                      </div>
+                      <div className="af-bar">
+                        <div
+                          className={`af-bar-fill ${taux > 75 ? 'danger' : taux > 50 ? 'warn' : 'ok'}`}
+                          style={{ width: `${Math.min(taux, 100)}%` }}
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <span style={{ fontSize: 12, color: 'var(--af-cream)', fontStyle: 'italic' }}>
+                      Aucune enveloppe
+                    </span>
+                  )}
+                </div>
 
                 {/* Actions */}
-                <div className="card-footer">
+                <div
+                  style={{ display: 'flex', gap: 5, justifyContent: 'flex-end', alignItems: 'center' }}
+                  onClick={e => e.stopPropagation()}
+                >
                   <button
+                    title="Voir les budgets"
                     onClick={() => navigate(`/budgets?departement=${dept.id}&nom=${encodeURIComponent(dept.nom)}`)}
-                    className="btn btn-primary btn-sm flex-1 gap-[5px]"
+                    style={btnStyle('#C9910A')}
                   >
-                    <FileText size={12} strokeWidth={2} /> Voir les budgets
+                    <Eye size={13} strokeWidth={2} />
                   </button>
+
                   {budgetActuelId && (
                     <button
-                      onClick={() => setAllouerTarget({ dept, existingAlloc: env ?? null })}
-                      className="btn btn-secondary btn-sm gap-[5px]"
                       title={env ? "Modifier l'enveloppe" : 'Allouer un montant'}
+                      onClick={() => setAllouerTarget({ dept, existingAlloc: env ?? null })}
+                      style={btnStyle('#C9910A')}
                     >
-                      <Coins size={12} strokeWidth={2} />
-                      {env ? 'Enveloppe' : 'Allouer'}
+                      <Coins size={13} strokeWidth={2} />
                     </button>
                   )}
-                  <button onClick={() => openEdit(dept)} className="btn btn-secondary btn-sm" title="Modifier">
-                    <Pencil size={12} strokeWidth={2} />
+
+                  <button title="Modifier" onClick={() => openEdit(dept)} style={btnStyle('#D97706')}>
+                    <Pencil size={13} strokeWidth={2} />
                   </button>
+
                   <button
-                    onClick={() => handleToggle(dept)}
-                    className={`btn btn-sm ${dept.actif ? 'btn-warning' : 'btn-success'}`}
                     title={dept.actif ? 'Désactiver' : 'Activer'}
+                    onClick={() => handleToggle(dept)}
+                    style={btnStyle(dept.actif ? '#D97706' : '#059669')}
                   >
-                    {dept.actif ? <UserX size={12} strokeWidth={2} /> : <UserCheck size={12} strokeWidth={2} />}
+                    {dept.actif
+                      ? <UserX size={13} strokeWidth={2} />
+                      : <UserCheck size={13} strokeWidth={2} />}
                   </button>
-                  <button onClick={() => handleDelete(dept.id, dept.nom)} className="btn btn-danger btn-sm" title="Supprimer">
-                    <Trash2 size={12} strokeWidth={2} />
+
+                  <button
+                    title="Supprimer"
+                    onClick={() => handleDelete(dept.id, dept.nom)}
+                    style={btnStyle('#DC2626')}
+                  >
+                    <Trash2 size={13} strokeWidth={2} />
                   </button>
                 </div>
               </div>
@@ -231,48 +326,71 @@ export default function DepartementsPage() {
         </div>
       )}
 
-      {/* Modal */}
+      {/* Modal créer / modifier */}
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal-panel max-w-[440px]" onClick={e => e.stopPropagation()}>
+          <div className="modal-panel" style={{ maxWidth: 440 }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2 className="font-display font-bold text-[15px]">
-                {editTarget ? 'Modifier le département' : 'Créer un département'}
+              <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, margin: 0 }}>
+                {editTarget ? 'Modifier le département' : 'Nouveau département'}
               </h2>
             </div>
             <form onSubmit={handleSave}>
               <div className="modal-body">
-                <div className="mb-4">
+                <div style={{ marginBottom: 16 }}>
                   <label className="form-label">Nom du département</label>
-                  <input className="form-input" required value={form.nom}
+                  <input
+                    className="form-input"
+                    required
+                    value={form.nom}
                     onChange={e => setForm(f => ({ ...f, nom: e.target.value }))}
-                    placeholder="Ex : Direction Financière" />
+                    placeholder="Ex : Direction Financière"
+                  />
                 </div>
                 <div>
                   <label className="form-label">
-                    Description <span className="font-normal normal-case text-[#9CA3AF]">(optionnel)</span>
+                    Description{' '}
+                    <span style={{ fontWeight: 400, color: 'var(--af-mute)', textTransform: 'none', letterSpacing: 0 }}>
+                      (optionnel)
+                    </span>
                   </label>
                   <textarea
-                    className="form-input h-auto px-[14px] py-[10px] resize-y"
+                    className="form-input"
+                    style={{ height: 'auto', padding: '10px 14px', resize: 'vertical' }}
                     value={form.description}
                     onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                     placeholder="Description du département…"
                     rows={3}
                   />
                 </div>
-                {error && <p className="text-[#DC2626] text-[12px] mt-[10px]">{error}</p>}
+                {error && (
+                  <div style={{
+                    display: 'flex', alignItems: 'flex-start', gap: 9,
+                    padding: '10px 14px', borderRadius: 9, marginTop: 14,
+                    background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.2)',
+                  }}>
+                    <AlertTriangle size={14} strokeWidth={2} style={{ color: '#EF4444', flexShrink: 0, marginTop: 1 }} />
+                    <p style={{ fontSize: 12, color: '#B91C1C', margin: 0 }}>{error}</p>
+                  </div>
+                )}
               </div>
               <div className="modal-footer">
-                <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary btn-md">Annuler</button>
-                <button type="submit" disabled={saving} className="btn btn-primary btn-md">
-                  {saving ? <><span className="spinner-sm" /> Enregistrement…</> : (editTarget ? 'Modifier' : 'Créer')}
+                <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary btn-sm">
+                  Annuler
+                </button>
+                <button type="submit" disabled={saving} className="btn btn-primary btn-sm">
+                  {saving
+                    ? <><span className="spinner-sm" style={{ marginRight: 6 }} /> Enregistrement…</>
+                    : editTarget ? 'Modifier' : 'Créer'}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
+
       {confirmModal && <ConfirmModal {...confirmModal} onClose={() => setConfirmModal(null)} />}
+
       {allouerTarget && (
         <AllouerModal
           dept={allouerTarget.dept}
@@ -286,7 +404,7 @@ export default function DepartementsPage() {
   )
 }
 
-/* ─── Modal allocation enveloppe ───────────────────────────────────────────── */
+/* ─── Modal allocation ──────────────────────────────────────────────────────── */
 function AllouerModal({ dept, existingAlloc, budgetActuelId, onClose, onSaved }) {
   const [montant, setMontant] = useState(existingAlloc?.montant_alloue ?? '')
   const [saving,  setSaving]  = useState(false)
@@ -309,22 +427,26 @@ function AllouerModal({ dept, existingAlloc, budgetActuelId, onClose, onSaved })
 
   return (
     <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="modal-panel max-w-[420px]" onClick={e => e.stopPropagation()}>
+      <div className="modal-panel" style={{ maxWidth: 420 }} onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <h2 className="font-display font-bold text-[15px]">
+          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, margin: 0 }}>
             {existingAlloc ? "Modifier l'enveloppe" : 'Allouer un montant'}
           </h2>
         </div>
         <form onSubmit={handle}>
           <div className="modal-body">
-            <div className="mb-[14px] px-[14px] py-[10px] rounded-[9px] bg-[#F9FAFB] border border-[#E5E7EB] text-[13px]">
-              <span className="text-[#4B5563]">Département : </span>
-              <span className="font-bold text-[#111827]">{dept.nom}</span>
+            <div style={{
+              marginBottom: 14, padding: '10px 14px', borderRadius: 9,
+              background: 'var(--af-steel)', border: '1px solid var(--af-line)', fontSize: 13,
+            }}>
+              <span style={{ color: 'var(--af-cream)' }}>Département : </span>
+              <span style={{ fontWeight: 700, color: 'var(--af-ink)' }}>{dept.nom}</span>
             </div>
             <div>
               <label className="form-label">Montant alloué (FCFA)</label>
               <input
-                className="form-input font-mono"
+                className="form-input"
+                style={{ fontFamily: 'var(--af-mono)' }}
                 type="number" required min="0" step="0.01" autoFocus
                 value={montant}
                 onChange={e => setMontant(e.target.value)}
@@ -332,16 +454,22 @@ function AllouerModal({ dept, existingAlloc, budgetActuelId, onClose, onSaved })
               />
             </div>
             {error && (
-              <div className="flex items-start gap-[9px] px-[14px] py-[10px] rounded-[9px] bg-[#FEF2F2] border border-[#FECACA] mt-[14px]">
-                <AlertTriangle size={14} strokeWidth={2} className="text-[#EF4444] shrink-0 mt-[1px]" />
-                <p className="text-[12px] text-[#B91C1C] m-0">{error}</p>
+              <div style={{
+                display: 'flex', alignItems: 'flex-start', gap: 9,
+                padding: '10px 14px', borderRadius: 9, marginTop: 14,
+                background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.2)',
+              }}>
+                <AlertTriangle size={14} strokeWidth={2} style={{ color: '#EF4444', flexShrink: 0, marginTop: 1 }} />
+                <p style={{ fontSize: 12, color: '#B91C1C', margin: 0 }}>{error}</p>
               </div>
             )}
           </div>
           <div className="modal-footer">
-            <button type="button" onClick={onClose} className="btn btn-secondary btn-md">Annuler</button>
-            <button type="submit" disabled={saving} className="btn btn-primary btn-md">
-              {saving ? <><span className="spinner-sm" /> Enregistrement…</> : 'Enregistrer'}
+            <button type="button" onClick={onClose} className="btn btn-secondary btn-sm">Annuler</button>
+            <button type="submit" disabled={saving} className="btn btn-primary btn-sm">
+              {saving
+                ? <><span className="spinner-sm" style={{ marginRight: 6 }} /> Enregistrement…</>
+                : 'Enregistrer'}
             </button>
           </div>
         </form>

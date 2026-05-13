@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { getBudgets, getRapportCloture } from '../../api/budget'
 import { StatutBadge, AlerteBadge } from '../../components/StatusBadge'
-import { Search, FileText, TrendingUp, Building2, X } from 'lucide-react'
+import { Search, FileText, TrendingUp, Building2, X, RotateCcw } from '../../components/AtlasIcons'
 import { printPDF } from '../../utils/export'
 import { formaterNombre } from '../../utils/formatters'
+import { cn } from '../../lib/cn'
 
 const fmt = (n) => formaterNombre(n, { maximumFractionDigits: 0 })
 
@@ -59,21 +60,32 @@ export default function BudgetsPage() {
           { value: rpt.nb_depenses, label: 'Dépenses' },
         ],
       })
-    } catch (err) { alert('Impossible de générer le rapport.') }
+    } catch { alert('Impossible de générer le rapport.') }
     finally { setActionBusy(null) }
   }
 
-  const load = (statut = filtre) => {
-    setLoading(true)
-    const params = {}
-    if (statut)  params.statut      = statut
-    if (deptId)  params.departement = deptId
-    getBudgets(params)
-      .then(r => { setBudgets(r.data.results ?? r.data); setVisibleCount(10) })
-      .finally(() => setLoading(false))
-  }
-
-  useEffect(() => { load() }, [filtre, deptId])
+  useEffect(() => {
+    let cancelled = false
+    const timeoutId = window.setTimeout(() => {
+      setLoading(true)
+      const params = {}
+      if (filtre) params.statut = filtre
+      if (deptId) params.departement = deptId
+      getBudgets(params)
+        .then(r => {
+          if (cancelled) return
+          setBudgets(r.data.results ?? r.data)
+          setVisibleCount(10)
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false)
+        })
+    }, 0)
+    return () => {
+      cancelled = true
+      window.clearTimeout(timeoutId)
+    }
+  }, [filtre, deptId])
 
   const filtered = budgets.filter(b =>
     !search ||
@@ -86,42 +98,42 @@ export default function BudgetsPage() {
 
   return (
     <div>
-      {/* Page header */}
-      <div className="page-header">
+      {/* ── En-tête ── */}
+      <div className="mb-7 flex items-end gap-6">
         <div>
-          <h1 className="page-title">
+          <div className="text-[10px] tracking-[0.20em] uppercase text-[#B8864A] mb-2 font-medium">Administration · Budgets</div>
+          <h1 className="text-[32px] font-normal tracking-[-0.02em] leading-[1.1] text-[#0E2A47] mb-1">
             {deptNom ? `Budgets — ${deptNom}` : 'Tous les budgets'}
           </h1>
-          <p className="page-subtitle">Supervision et gestion complète des budgets</p>
+          <div className="text-[13px] text-[#5A6B7E]">Supervision et gestion complète des budgets</div>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-[6px] px-[14px] py-[6px] rounded-[20px] bg-[#FEF9EC] text-[#78350F] text-[13px] font-semibold">
-            <TrendingUp size={14} strokeWidth={2} />
+        <div className="ml-auto flex gap-2.5 items-center">
+          <span className="af-tag-method" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <TrendingUp size={13} strokeWidth={2} />
             {hasMore ? `${visibleCount} / ${filtered.length}` : filtered.length} budget{filtered.length !== 1 ? 's' : ''}
-          </div>
+          </span>
         </div>
       </div>
 
-      {/* Bandeau département actif */}
+      {/* ── Bandeau département actif ── */}
       {deptId && (
-        <div className="flex items-center gap-[10px] px-4 py-[10px] rounded-[10px] mb-[14px]" style={{ background: '#FEF9EC', border: '1px solid #F3D07A' }}>
-          <Building2 size={14} strokeWidth={2} className="shrink-0" style={{ color: '#C9910A' }} />
-          <span className="text-[13px] flex-1" style={{ color: '#78350F' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', borderRadius: 10, marginBottom: 14, background: 'var(--af-gold-soft)', border: '1px solid var(--af-gold-line)' }}>
+          <Building2 size={14} strokeWidth={2} style={{ color: 'var(--af-gold)', flexShrink: 0 }} />
+          <span style={{ fontSize: 13, flex: 1, color: 'var(--af-ink)' }}>
             Filtre actif : <strong>{deptNom}</strong>
           </span>
           <button
             onClick={() => setSearchParams({})}
-            className="flex items-center gap-1 text-[12px] font-semibold cursor-pointer"
-            style={{ color: '#C9910A' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, color: 'var(--af-gold)', background: 'none', border: 'none', cursor: 'pointer' }}
           >
             <X size={13} strokeWidth={2.5} /> Effacer le filtre
           </button>
         </div>
       )}
 
-      {/* Filtres */}
-      <div className="filter-bar mb-[20px]" style={{ flexWrap: 'nowrap' }}>
-        <div className="search-wrapper flex-1 min-w-[200px]">
+      {/* ── Filtres ── */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="search-wrapper" style={{ flex: '1 1 200px', minWidth: 200 }}>
           <Search size={15} strokeWidth={2} className="search-icon" />
           <input
             className="search-input"
@@ -130,38 +142,50 @@ export default function BudgetsPage() {
             placeholder="Rechercher par code, nom, département…"
           />
         </div>
-        <div className="flex gap-[6px]" style={{ flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap' }}>
           {STATUTS.map(s => (
             <button
               key={s.value}
               onClick={() => { setFiltre(s.value); setVisibleCount(10) }}
-              className={`filter-pill${filtre === s.value ? ' active' : ''}`}
+              className={cn(
+                'inline-flex px-2.5 py-1 rounded-full text-[12px] border transition-all duration-150',
+                filtre === s.value
+                  ? 'text-[#B8864A] border-[#B8864A] bg-[rgba(184,134,74,0.12)]'
+                  : 'text-[#5A6B7E] border-[rgba(14,42,71,0.16)] bg-white hover:border-[#B8864A] hover:text-[#B8864A]'
+              )}
             >
               {s.label}
             </button>
           ))}
         </div>
+        {(search || filtre) && (
+          <button
+            onClick={() => { setSearch(''); setFiltre(''); setVisibleCount(10) }}
+            className="btn btn-ghost btn-sm"
+            style={{ gap: 6 }}
+          >
+            <RotateCcw size={13} strokeWidth={2} /> Réinitialiser
+          </button>
+        )}
       </div>
 
-      {/* Table */}
-      <div className="card p-0 overflow-hidden" style={{ marginBottom: hasMore ? 0 : undefined }}>
+      {/* ── Table ── */}
+      <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)]" style={{ overflow: 'hidden', padding: 0, marginBottom: hasMore ? 0 : undefined }}>
         {loading ? (
-          <div className="p-[60px] text-center">
-            <div className="spinner mx-auto mb-3" />
-            <p className="text-[13px] text-[#9CA3AF]">Chargement des budgets…</p>
+          <div className="af-loader">
+            <div className="af-spinner" />
+            <span>Chargement des budgets…</span>
           </div>
         ) : visible.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-icon">
-              <FileText size={28} strokeWidth={1.5} className="text-gray-400" />
-            </div>
-            <p className="empty-title">Aucun budget trouvé</p>
-            <p className="empty-body">
-              {search || filtre ? 'Essayez d\'ajuster vos filtres de recherche.' : 'Aucun budget n\'a encore été créé.'}
-            </p>
+          <div className="af-loader">
+            <FileText size={28} strokeWidth={1.5} style={{ color: 'var(--af-mute)' }} />
+            <span>Aucun budget trouvé</span>
+            <span style={{ fontSize: 12 }}>
+              {search || filtre ? 'Essayez d\'ajuster vos filtres.' : 'Aucun budget n\'a encore été créé.'}
+            </span>
           </div>
         ) : (
-          <table className="data-table">
+          <table className="af-table">
             <thead>
               <tr>
                 {['Code', 'Nom', 'Département', 'Gestionnaire', 'Global', 'Consommé', 'Taux', 'Statut', 'Alerte', 'Actions'].map(h => (
@@ -176,39 +200,38 @@ export default function BudgetsPage() {
                 return (
                   <tr
                     key={b.id}
-                    className="cursor-pointer"
+                    className="clickable"
                     onClick={() => navigate(`/budgets/${b.id}`)}
                   >
                     <td>
-                      <span className="code-tag">{b.code}</span>
+                      <span className="ref">{b.code}</span>
                     </td>
-                    <td className="font-medium max-w-[180px]">
-                      <div className="overflow-hidden text-ellipsis whitespace-nowrap">
+                    <td style={{ fontWeight: 500, maxWidth: 180 }}>
+                      <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {b.nom}
                       </div>
                     </td>
-                    <td className="text-[#6B7280]">{b.departement_nom || '—'}</td>
-                    <td className="text-[#6B7280]">{b.gestionnaire_nom || '—'}</td>
-                    <td className="font-mono font-semibold whitespace-nowrap">
-                      {fmt(b.montant_global)} <span className="text-[10px] text-[#9CA3AF]">FCFA</span>
+                    <td className="muted">{b.departement_nom || '—'}</td>
+                    <td className="muted">{b.gestionnaire_nom || '—'}</td>
+                    <td className="num">
+                      {fmt(b.montant_global)} <span style={{ fontSize: 10, color: 'var(--af-mute)' }}>FCFA</span>
                     </td>
-                    <td className="font-mono text-[#4B5563] whitespace-nowrap">
-                      {fmt(b.montant_consomme)} <span className="text-[10px] text-[#9CA3AF]">FCFA</span>
+                    <td className="num" style={{ color: 'var(--af-cream)' }}>
+                      {fmt(b.montant_consomme)} <span style={{ fontSize: 10, color: 'var(--af-mute)' }}>FCFA</span>
                     </td>
                     <td>
-                      <div className="flex items-center gap-2">
-                        <div className="exec-bar w-[60px]">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div className="af-bar" style={{ width: 60 }}>
                           <div
-                            className="exec-bar-fill"
-                            style={{
-                              width: `${Math.min(taux, 100)}%`,
-                              background: `linear-gradient(90deg, ${jaugeColor(Math.max(0, taux - 20))}, ${color})`,
-                            }}
+                            className={`af-bar-fill${taux > 75 ? ' danger' : taux > 50 ? ' warn' : ' ok'}`}
+                            style={{ width: `${Math.min(taux, 100)}%` }}
                           />
                         </div>
                         <span
-                          className="text-[11px] font-bold font-mono"
-                          style={{ color: taux > 75 ? 'var(--color-danger-600)' : taux > 50 ? 'var(--color-warning-600)' : '#374151' }}
+                          style={{
+                            fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)',
+                            color: taux > 75 ? 'var(--color-danger-600)' : taux > 50 ? 'var(--color-warning-600)' : 'var(--af-ink)',
+                          }}
                         >
                           {taux}%
                         </span>
@@ -217,24 +240,16 @@ export default function BudgetsPage() {
                     <td><StatutBadge statut={b.statut} /></td>
                     <td><AlerteBadge niveau={b.niveau_alerte} /></td>
                     <td onClick={e => e.stopPropagation()}>
-                      <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                      {b.statut === 'CLOTURE' && (
                         <button
-                          onClick={() => navigate(`/budgets/${b.id}`)}
+                          onClick={(e) => handleRapport(b, e)}
+                          disabled={actionBusy === b.id}
                           className="btn btn-secondary btn-sm"
+                          style={{ gap: 4 }}
                         >
-                          Voir
+                          Rapport
                         </button>
-                        {b.statut === 'CLOTURE' && (
-                          <button
-                            onClick={(e) => handleRapport(b, e)}
-                            disabled={actionBusy === b.id}
-                            className="btn btn-sm"
-                            style={{ background: 'var(--af-ink)', color: '#fff', border: 'none', gap: 4 }}
-                          >
-                            Rapport
-                          </button>
-                        )}
-                      </div>
+                      )}
                     </td>
                   </tr>
                 )
@@ -245,18 +260,18 @@ export default function BudgetsPage() {
       </div>
 
       {!loading && hasMore && (
-        <div className="flex flex-col items-center gap-[6px] mt-[20px]">
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, marginTop: 20 }}>
           <button
             onClick={() => setVisibleCount(c => c + 10)}
-            className="btn btn-secondary btn-md gap-[7px]"
+            className="btn btn-secondary btn-sm"
             style={{ minWidth: 180 }}
           >
             Charger plus
-            <span style={{ background: 'var(--color-gray-200)', color: 'var(--color-gray-600)', fontSize: '11px', padding: '1px 7px', borderRadius: 8, fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
+            <span className="af-tag-method" style={{ marginLeft: 4 }}>
               +{Math.min(10, filtered.length - visibleCount)}
             </span>
           </button>
-          <p style={{ fontSize: '11px', color: 'var(--color-gray-400)' }}>
+          <p style={{ fontSize: 11, color: 'var(--af-mute)' }}>
             {visibleCount} sur {filtered.length} budgets affichés
           </p>
         </div>

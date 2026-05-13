@@ -33,31 +33,21 @@ export const getLignes        = (bId)        => api.get(`/budget/${bId}/lignes/`
 export const createLigne      = (bId, data)  => api.post(`/budget/${bId}/lignes/`, data)
 export const updateLigne      = (bId, id, d) => api.patch(`/budget/${bId}/lignes/${id}/`, d)
 export const deleteLigne      = (bId, id)    => api.delete(`/budget/${bId}/lignes/${id}/`)
-export const consommerLigne = (bId, id, montant, pieceJustificative, note = '', pieces = []) => {
+export const consommerLigne = (bId, id, montant, files = [], note = '') => {
   const form = new FormData()
   form.append('montant', montant)
-  if (pieceJustificative) form.append('piece_justificative', pieceJustificative)
   if (note) form.append('note', note)
-  // Pièces multiples
-  if (pieces && pieces.length > 0) {
-    for (const f of pieces) {
-      form.append('pieces', f)
-    }
-  }
+  for (const f of files) form.append('pieces', f)
   return api.post(`/budget/${bId}/lignes/${id}/consommer/`, form, {
     headers: { 'Content-Type': 'multipart/form-data' },
   })
 }
 
-export const depenseMultiLigne = (bId, lignes, note = '', pieceJustificative = null, pieces = []) => {
+export const depenseMultiLigne = (bId, lignes, note = '', files = []) => {
   const form = new FormData()
-  // lignes = [{ligne_id, montant}, ...] envoyées comme JSON string
   form.append('lignes_json', JSON.stringify(lignes))
   if (note) form.append('note', note)
-  if (pieceJustificative) form.append('piece_justificative', pieceJustificative)
-  if (pieces && pieces.length > 0) {
-    for (const f of pieces) form.append('pieces', f)
-  }
+  for (const f of files) form.append('pieces', f)
   return api.post(`/budget/${bId}/depense-multi/`, form, {
     headers: { 'Content-Type': 'multipart/form-data' },
   })

@@ -1,7 +1,7 @@
 """
 Tests unitaires — common/formatters.py
 """
-import pytest
+import unittest
 from datetime import date, datetime
 from decimal import Decimal
 
@@ -33,7 +33,7 @@ _NNBS = '\u202f'  # narrow no-break space
 # 1. formater_montant
 # ═══════════════════════════════════════════════════════════════════════════════
 
-class TestFormaterMontant:
+class TestFormaterMontant(unittest.TestCase):
     def test_entier_simple(self):
         assert formater_montant(1000) == f"1{_NNBS}000 FCFA"
 
@@ -71,7 +71,7 @@ class TestFormaterMontant:
 # 2. formater_montant_compact
 # ═══════════════════════════════════════════════════════════════════════════════
 
-class TestFormaterMontantCompact:
+class TestFormaterMontantCompact(unittest.TestCase):
     def test_milliers(self):
         assert formater_montant_compact(750_000) == '750K FCFA'
 
@@ -101,31 +101,44 @@ class TestFormaterMontantCompact:
 # 3. formater_ecart
 # ═══════════════════════════════════════════════════════════════════════════════
 
-class TestFormaterEcart:
+class TestFormaterEcart(unittest.TestCase):
     def test_normal(self):
         result = formater_ecart(700_000, 1_000_000)
         assert result['statut'] == 'normal'
         assert result['couleur'] == '#22C55E'
-        assert '%' in result['pourcentage']
+        # Écart relatif : (700k-1M)/1M×100 = -30 %
+        assert result['pourcentage'] == '-30,0 %'
 
     def test_sous_consomme(self):
         result = formater_ecart(200_000, 1_000_000)
         assert result['statut'] == 'sous_consomme'
         assert result['couleur'] == '#3B82F6'
+        # Écart relatif : -80 %
+        assert result['pourcentage'] == '-80,0 %'
 
     def test_sur_consomme(self):
         result = formater_ecart(850_000, 1_000_000)
         assert result['statut'] == 'sur_consomme'
         assert result['couleur'] == '#F59E0B'
+        # Écart relatif : -15 %
+        assert result['pourcentage'] == '-15,0 %'
 
     def test_depasse(self):
         result = formater_ecart(1_000_000, 1_000_000)
         assert result['statut'] == 'depasse'
         assert result['couleur'] == '#EF4444'
+        # Écart relatif : 0 % (exactement au budget)
+        assert result['pourcentage'] == '0,0 %'
+
+    def test_depassement_reel(self):
+        result = formater_ecart(1_200_000, 1_000_000)
+        # Écart relatif : +20 %
+        assert result['pourcentage'] == '+20,0 %'
+        assert result['statut'] == 'depasse'
 
     def test_denominateur_zero(self):
         result = formater_ecart(500, 0)
-        # Taux = 0 → sous_consomme
+        # Variance = 0 (division impossible) → sous_consomme
         assert result['statut'] == 'sous_consomme'
 
     def test_none(self):
@@ -137,7 +150,7 @@ class TestFormaterEcart:
 # 4. formater_taux
 # ═══════════════════════════════════════════════════════════════════════════════
 
-class TestFormaterTaux:
+class TestFormaterTaux(unittest.TestCase):
     def test_basique(self):
         assert formater_taux(75, 100) == '75,0 %'
 
@@ -156,7 +169,7 @@ class TestFormaterTaux:
 # 5. get_couleur_execution
 # ═══════════════════════════════════════════════════════════════════════════════
 
-class TestGetCouleurExecution:
+class TestGetCouleurExecution(unittest.TestCase):
     def test_bleu(self):
         assert get_couleur_execution(30) == '#3B82F6'
 
@@ -186,7 +199,7 @@ class TestGetCouleurExecution:
 # 6. formater_date
 # ═══════════════════════════════════════════════════════════════════════════════
 
-class TestFormaterDate:
+class TestFormaterDate(unittest.TestCase):
     def test_simple(self):
         assert formater_date(date(2025, 3, 15)) == '15/03/2025'
 
@@ -224,7 +237,7 @@ class TestFormaterDate:
 # 7. formater_date_relative
 # ═══════════════════════════════════════════════════════════════════════════════
 
-class TestFormaterDateRelative:
+class TestFormaterDateRelative(unittest.TestCase):
     def test_instant(self):
         maintenant = datetime(2025, 3, 15, 10, 0, 0)
         result = formater_date_relative(
@@ -282,7 +295,7 @@ class TestFormaterDateRelative:
 # 8. formater_duree
 # ═══════════════════════════════════════════════════════════════════════════════
 
-class TestFormaterDuree:
+class TestFormaterDuree(unittest.TestCase):
     def test_zero(self):
         assert formater_duree(0) == '0 jour'
 
@@ -308,7 +321,7 @@ class TestFormaterDuree:
 # 9. formater_periode
 # ═══════════════════════════════════════════════════════════════════════════════
 
-class TestFormaterPeriode:
+class TestFormaterPeriode(unittest.TestCase):
     def test_basique(self):
         result = formater_periode(date(2025, 1, 1), date(2025, 12, 31))
         assert 'janvier 2025' in result
@@ -323,7 +336,7 @@ class TestFormaterPeriode:
 # 10. calculer_delai_traitement
 # ═══════════════════════════════════════════════════════════════════════════════
 
-class TestCalculerDelaiTraitement:
+class TestCalculerDelaiTraitement(unittest.TestCase):
     def test_avec_fin(self):
         result = calculer_delai_traitement('2025-01-01', '2025-01-31')
         assert result['jours'] == 30
@@ -343,7 +356,7 @@ class TestCalculerDelaiTraitement:
 # 11. get_statut_config
 # ═══════════════════════════════════════════════════════════════════════════════
 
-class TestGetStatutConfig:
+class TestGetStatutConfig(unittest.TestCase):
     def test_budget_approuve(self):
         cfg = get_statut_config('APPROUVE', 'budget')
         assert cfg['label'] == 'Approuvé'
@@ -375,7 +388,7 @@ class TestGetStatutConfig:
 # 12. Références
 # ═══════════════════════════════════════════════════════════════════════════════
 
-class TestReferences:
+class TestReferences(unittest.TestCase):
     def test_generer_reference_budget(self):
         ref = generer_reference_budget(2025, 'COMPTA', 42)
         assert ref == 'BUD-2025-COMPTA-00042'
@@ -409,7 +422,7 @@ class TestReferences:
 # 13. formater_pourcentage
 # ═══════════════════════════════════════════════════════════════════════════════
 
-class TestFormaterPourcentage:
+class TestFormaterPourcentage(unittest.TestCase):
     def test_basique(self):
         result = formater_pourcentage(75.5)
         assert '75,5' in result and '%' in result
@@ -426,7 +439,7 @@ class TestFormaterPourcentage:
 # 14. calculer_taux_execution
 # ═══════════════════════════════════════════════════════════════════════════════
 
-class TestCalculerTauxExecution:
+class TestCalculerTauxExecution(unittest.TestCase):
     def test_basique(self):
         assert calculer_taux_execution(750_000, 1_000_000) == 75.0
 

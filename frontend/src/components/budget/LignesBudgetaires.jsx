@@ -6,7 +6,7 @@
  * readOnly=true masque tous les boutons d'édition.
  */
 import { useState, useEffect, useRef } from 'react'
-import { ChevronRight, ChevronDown, Plus, Trash2, Check, X } from 'lucide-react'
+import { ChevronRight, ChevronDown, Plus, Trash2, Check, X } from '../AtlasIcons'
 import { ConfirmModal } from '../ui'
 import {
   getBudgetArbre,
@@ -37,6 +37,7 @@ export default function LignesBudgetaires({ budgetId, readOnly = false, onTotalC
   const newCatRef = useRef(null)
   const subRef    = useRef(null)
   const ligneRef  = useRef(null)
+  const chargerRef = useRef(() => {})
 
   /* ── Chargement ─────────────────────────────────────────────────────────── */
   const charger = async () => {
@@ -51,15 +52,21 @@ export default function LignesBudgetaires({ budgetId, readOnly = false, onTotalC
       setLoading(false)
     }
   }
+  useEffect(() => {
+    chargerRef.current = charger
+  })
 
-  useEffect(() => { charger() }, [budgetId])
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => chargerRef.current?.(), 0)
+    return () => window.clearTimeout(timeoutId)
+  }, [budgetId])
 
   useEffect(() => { if (showNewCat)    setTimeout(() => newCatRef.current?.focus(), 50) }, [showNewCat])
   useEffect(() => { if (showSubForm)   setTimeout(() => subRef.current?.focus(), 50)    }, [showSubForm])
   useEffect(() => { if (showLigneForm) setTimeout(() => ligneRef.current?.focus(), 50)  }, [showLigneForm])
 
   const totalGeneral = categories.reduce((s, c) => s + (c.total || 0), 0)
-  useEffect(() => { onTotalChange?.(totalGeneral) }, [totalGeneral])
+  useEffect(() => { onTotalChange?.(totalGeneral) }, [onTotalChange, totalGeneral])
 
   /* ── Toggle catégorie ───────────────────────────────────────────────────── */
   const toggleCat = (id) =>
@@ -190,7 +197,7 @@ export default function LignesBudgetaires({ budgetId, readOnly = false, onTotalC
             {/* ── Catégorie ── */}
             <div
               className="flex items-center gap-[8px] px-[14px] py-[8px] bg-gray-50 cursor-pointer"
-              style={{ borderBottom: '0.5px solid var(--color-gray-100)' }}
+              style={{ borderBottom: '0.5px solid var(--af-line)' }}
             >
               <span onClick={() => toggleCat(cat.id)} className="flex items-center gap-[6px] flex-1 min-w-0">
                 {openCats.has(cat.id)
@@ -226,7 +233,7 @@ export default function LignesBudgetaires({ budgetId, readOnly = false, onTotalC
             {!readOnly && showSubForm === cat.id && (
               <div
                 className="flex gap-[6px] px-[14px] pl-[34px] py-[7px] bg-[#fafafa]"
-                style={{ borderBottom: '0.5px solid var(--color-gray-100)' }}
+                style={{ borderBottom: '0.5px solid var(--af-line)' }}
               >
                 <input
                   ref={subRef}
@@ -255,7 +262,7 @@ export default function LignesBudgetaires({ budgetId, readOnly = false, onTotalC
                 {/* Ligne sous-catégorie */}
                 <div
                   className="flex items-center gap-[8px] px-[14px] pl-[30px] py-[6px] bg-white"
-                  style={{ borderBottom: '0.5px solid var(--color-gray-100)' }}
+                  style={{ borderBottom: '0.5px solid var(--af-line)' }}
                 >
                   <span className="flex-1 text-[12px] font-semibold text-gray-600">
                     {sc.code}&ensp;{sc.libelle}
@@ -287,7 +294,7 @@ export default function LignesBudgetaires({ budgetId, readOnly = false, onTotalC
                     className="px-[14px] pl-[50px] py-[3px] text-[10px] font-semibold uppercase tracking-[.4px] text-gray-400 grid gap-[8px]"
                     style={{
                       gridTemplateColumns: readOnly ? '1fr 130px 55px 75px' : '1fr 130px 55px 75px 28px',
-                      borderBottom: '0.5px solid var(--color-gray-100)',
+                      borderBottom: '0.5px solid var(--af-line)',
                       background: '#FAFAFA',
                     }}
                   >
@@ -304,7 +311,7 @@ export default function LignesBudgetaires({ budgetId, readOnly = false, onTotalC
                     className="px-[14px] pl-[50px] py-[5px] text-[12px] grid items-center gap-[8px]"
                     style={{
                       gridTemplateColumns: readOnly ? '1fr 130px 55px 75px' : '1fr 130px 55px 75px 28px',
-                      borderBottom: '0.5px solid var(--color-gray-50)',
+                      borderBottom: '0.5px solid var(--af-steel)',
                     }}
                   >
                     <span className="text-gray-700 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap" title={ligne.libelle}>
@@ -336,7 +343,7 @@ export default function LignesBudgetaires({ budgetId, readOnly = false, onTotalC
                     className="px-[14px] pl-[50px] py-[6px] grid items-center gap-[5px] bg-primary-50"
                     style={{
                       gridTemplateColumns: '1fr 110px 50px 70px auto',
-                      borderBottom: '0.5px solid var(--color-gray-100)',
+                      borderBottom: '0.5px solid var(--af-line)',
                     }}
                   >
                     <input
@@ -398,7 +405,7 @@ export default function LignesBudgetaires({ budgetId, readOnly = false, onTotalC
         {!readOnly && showNewCat && (
           <div
             className="flex gap-[6px] px-[14px] py-[8px] bg-primary-50"
-            style={{ borderTop: '0.5px solid var(--color-gray-100)' }}
+            style={{ borderTop: '0.5px solid var(--af-line)' }}
           >
             <input
               ref={newCatRef}
@@ -421,7 +428,7 @@ export default function LignesBudgetaires({ budgetId, readOnly = false, onTotalC
       {/* ── Total général ── */}
       <div
         className="flex justify-between items-center px-[16px] py-[10px] bg-gray-50"
-        style={{ borderTop: '0.5px solid var(--color-gray-200)' }}
+        style={{ borderTop: '0.5px solid var(--af-line)' }}
       >
         <span className="text-[11px] font-bold text-gray-500 uppercase tracking-[.5px]">
           Total général

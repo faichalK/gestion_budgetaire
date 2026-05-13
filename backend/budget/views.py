@@ -1,5 +1,6 @@
 import logging
 from rest_framework import generics, permissions, status
+from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.core.exceptions import ValidationError
@@ -8,7 +9,7 @@ from django.conf import settings
 
 logger = logging.getLogger('budget')
 
-APP_NAME = 'Gestion budgétaire'
+APP_NAME = 'Atlas Finance'
 
 
 def _envoyer_email(destinataire, sujet, corps):
@@ -26,13 +27,16 @@ def _envoyer_email(destinataire, sujet, corps):
         )
     except Exception as exc:
         logger.warning("Email non envoyé à %s : %s", destinataire.email, exc)
+
 from .models import (
     BudgetAnnuel, AllocationDepartementale,
     Budget, LigneBudgetaire, ConsommationLigne,
+    Depense, StatutDepense,
     StatutBudget, NiveauAlerte,
     CategoriePrincipale, SousCategorie,
     Notification, creer_notification,
     PieceJustificative,
+    PIECE_FORMATS_AUTORISES, PIECE_TAILLE_MAX, PIECE_TAILLE_TOTALE_MAX,
 )
 from .serializers import (
     BudgetAnnuelSerializer,
@@ -53,6 +57,43 @@ from audit.models import LogAudit, ActionAudit
 
 
 # ── Budget annuel ─────────────────────────────────────────────────────────────
+
+def _budget_queryset(with_lignes=False):
+    queryset = Budget.objects.select_related(
+        'departement', 'gestionnaire', 'comptable', 'allocation__budget_annuel'
+    )
+    if with_lignes:
+        queryset = queryset.prefetch_related('lignes')
+    return queryset
+
+
+def _accessible_budgets(user, with_lignes=False):
+    queryset = _budget_queryset(with_lignes=with_lignes)
+    if getattr(user, 'is_gestionnaire', False):
+        return queryset.filter(gestionnaire=user)
+    if getattr(user, 'is_comptable', False) and not getattr(user, 'is_administrateur', False):
+        return queryset.exclude(statut=StatutBudget.BROUILLON)
+    return queryset
+
+
+def _get_budget_or_404(user, pk, with_lignes=False):
+    try:
+        return _accessible_budgets(user, with_lignes=with_lignes).get(pk=pk)
+    except Budget.DoesNotExist as exc:
+        raise NotFound('Budget introuvable.') from exc
+
+
+def _assert_budget_access(user, budget):
+    if getattr(user, 'is_gestionnaire', False) and budget.gestionnaire_id != user.id:
+        raise NotFound('Budget introuvable.')
+    if getattr(user, 'is_comptable', False) and not getattr(user, 'is_administrateur', False):
+        if budget.statut == StatutBudget.BROUILLON:
+            raise NotFound('Budget introuvable.')
+
+
+def _budget_is_mutable(budget):
+    return budget.statut in (StatutBudget.BROUILLON, StatutBudget.REJETE)
+
 
 class BudgetAnnuelListCreateView(generics.ListCreateAPIView):
     serializer_class = BudgetAnnuelSerializer
@@ -217,18 +258,11 @@ class BudgetListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         user   = self.request.user
-        qs     = Budget.objects.select_related('departement', 'gestionnaire', 'comptable', 'allocation__budget_annuel').all()
+        qs     = _accessible_budgets(user)
         statut = self.request.query_params.get('statut')
         dept   = self.request.query_params.get('departement')
         if statut: qs = qs.filter(statut=statut)
         if dept:   qs = qs.filter(departement=dept)
-        if user.is_gestionnaire:
-            # Le Gestionnaire ne voit que ses propres budgets
-            qs = qs.filter(gestionnaire=user)
-        elif user.is_comptable:
-            # Le Comptable voit tout sauf les brouillons
-            qs = qs.exclude(statut=StatutBudget.BROUILLON)
-        # L'Admin voit tout
         return qs
 
     def perform_create(self, serializer):
@@ -268,9 +302,7 @@ class BudgetDetailView(generics.RetrieveUpdateDestroyAPIView):
         return BudgetDetailSerializer
 
     def get_queryset(self):
-        return Budget.objects.select_related(
-            'departement', 'gestionnaire', 'comptable', 'allocation__budget_annuel'
-        ).prefetch_related('lignes').all()
+        return _accessible_budgets(self.request.user, with_lignes=True)
 
     def update(self, request, *args, **kwargs):
         budget = self.get_object()
@@ -314,10 +346,7 @@ class ApprouverBudgetView(APIView):
     permission_classes = [IsComptable]
 
     def post(self, request, pk):
-        try:
-            budget = Budget.objects.get(pk=pk)
-        except Budget.DoesNotExist:
-            return Response({'detail': 'Budget introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+        budget = _get_budget_or_404(request.user, pk)
         try:
             budget.approuver_budget(request.user)
         except ValidationError as e:
@@ -358,10 +387,7 @@ class RejeterBudgetView(APIView):
     permission_classes = [IsComptable]
 
     def post(self, request, pk):
-        try:
-            budget = Budget.objects.get(pk=pk)
-        except Budget.DoesNotExist:
-            return Response({'detail': 'Budget introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+        budget = _get_budget_or_404(request.user, pk)
         motif = request.data.get('motif', '')
         if len(motif.strip()) < 10:
             return Response({'detail': 'Motif de rejet trop court (minimum 10 caractères).'}, status=status.HTTP_400_BAD_REQUEST)
@@ -406,10 +432,7 @@ class CloturerBudgetView(APIView):
     permission_classes = [IsComptable]
 
     def post(self, request, pk):
-        try:
-            budget = Budget.objects.get(pk=pk)
-        except Budget.DoesNotExist:
-            return Response({'detail': 'Budget introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+        budget = _get_budget_or_404(request.user, pk)
         try:
             budget.cloturer_budget()
         except ValidationError as e:
@@ -428,10 +451,7 @@ class ArchiverBudgetView(APIView):
     permission_classes = [IsAdministrateur]
 
     def post(self, request, pk):
-        try:
-            budget = Budget.objects.get(pk=pk)
-        except Budget.DoesNotExist:
-            return Response({'detail': 'Budget introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+        budget = _get_budget_or_404(request.user, pk)
         try:
             budget.archiver_budget()
         except ValidationError as e:
@@ -449,12 +469,7 @@ class SoumettreView(APIView):
     permission_classes = [IsGestionnaire]
 
     def post(self, request, pk):
-        try:
-            budget = Budget.objects.get(pk=pk)
-        except Budget.DoesNotExist:
-            return Response({'detail': 'Budget introuvable.'}, status=status.HTTP_404_NOT_FOUND)
-        if budget.gestionnaire != request.user and not request.user.is_administrateur:
-            return Response({'detail': 'Vous ne pouvez soumettre que vos propres budgets.'}, status=status.HTTP_403_FORBIDDEN)
+        budget = _get_budget_or_404(request.user, pk)
         try:
             budget.soumettre_budget()
         except ValidationError as e:
@@ -505,15 +520,18 @@ class LigneBudgetaireListCreateView(generics.ListCreateAPIView):
         return LigneBudgetaireSerializer
 
     def get_queryset(self):
-        return LigneBudgetaire.objects.filter(budget_id=self.kwargs['budget_pk'])
+        return LigneBudgetaire.objects.filter(
+            budget__in=_accessible_budgets(self.request.user),
+            budget_id=self.kwargs['budget_pk'],
+        )
 
     def perform_create(self, serializer):
         try:
-            budget = Budget.objects.get(pk=self.kwargs['budget_pk'])
+            budget = _get_budget_or_404(self.request.user, self.kwargs['budget_pk'])
         except Budget.DoesNotExist:
             from rest_framework.exceptions import NotFound
             raise NotFound('Budget introuvable.')
-        if budget.statut not in (StatutBudget.BROUILLON, StatutBudget.REJETE):
+        if not _budget_is_mutable(budget):
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied('Les lignes ne peuvent être modifiées que sur un budget en brouillon ou rejeté.')
         from django.core.exceptions import ValidationError as DjangoValidationError
@@ -542,11 +560,18 @@ class LigneBudgetaireDetailView(generics.RetrieveUpdateDestroyAPIView):
         return LigneBudgetaireSerializer
 
     def get_queryset(self):
-        return LigneBudgetaire.objects.filter(budget_id=self.kwargs['budget_pk'])
+        return LigneBudgetaire.objects.filter(
+            budget__in=_accessible_budgets(self.request.user),
+            budget_id=self.kwargs['budget_pk'],
+        )
 
     def perform_update(self, serializer):
         from django.core.exceptions import ValidationError as DjangoValidationError
         from rest_framework.exceptions import ValidationError as DRFValidationError
+        if not _budget_is_mutable(serializer.instance.budget):
+            raise DRFValidationError(
+                {'detail': 'Les lignes ne peuvent etre modifiees que sur un budget en brouillon ou rejete.'}
+            )
         try:
             instance = serializer.save()
         except DjangoValidationError as e:
@@ -559,6 +584,11 @@ class LigneBudgetaireDetailView(generics.RetrieveUpdateDestroyAPIView):
         )
 
     def perform_destroy(self, instance):
+        from rest_framework.exceptions import ValidationError as DRFValidationError
+        if not _budget_is_mutable(instance.budget):
+            raise DRFValidationError(
+                {'detail': 'Les lignes ne peuvent etre modifiees que sur un budget en brouillon ou rejete.'}
+            )
         LogAudit.enregistrer(
             utilisateur=self.request.user, table='ligne_budgetaire',
             enregistrement_id=str(instance.id), action=ActionAudit.DELETE,
@@ -573,7 +603,11 @@ class EnregistrerConsommationView(APIView):
 
     def post(self, request, budget_pk, pk):
         try:
-            ligne = LigneBudgetaire.objects.select_related('budget__allocation').get(pk=pk, budget_id=budget_pk)
+            ligne = LigneBudgetaire.objects.select_related('budget__allocation').get(
+                pk=pk,
+                budget_id=budget_pk,
+                budget__gestionnaire=request.user,
+            )
         except LigneBudgetaire.DoesNotExist:
             return Response({'detail': 'Ligne introuvable.'}, status=status.HTTP_404_NOT_FOUND)
         if ligne.budget.statut != StatutBudget.APPROUVE:
@@ -644,10 +678,7 @@ class BudgetArbreView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, pk):
-        try:
-            budget = Budget.objects.get(pk=pk)
-        except Budget.DoesNotExist:
-            return Response({'detail': 'Budget introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+        budget = _get_budget_or_404(request.user, pk)
         cats = CategoriePrincipale.objects.filter(budget=budget).prefetch_related(
             'sous_categories__lignes'
         ).order_by('ordre', 'code')
@@ -659,11 +690,8 @@ class BudgetCategorieCreateView(APIView):
     permission_classes = [IsGestionnaire]
 
     def post(self, request, pk):
-        try:
-            budget = Budget.objects.get(pk=pk)
-        except Budget.DoesNotExist:
-            return Response({'detail': 'Budget introuvable.'}, status=status.HTTP_404_NOT_FOUND)
-        if budget.statut not in (StatutBudget.BROUILLON, StatutBudget.REJETE):
+        budget = _get_budget_or_404(request.user, pk)
+        if not _budget_is_mutable(budget):
             return Response({'detail': 'Modification impossible sur ce statut.'}, status=status.HTTP_400_BAD_REQUEST)
         libelle = request.data.get('libelle', '').strip()
         if not libelle:
@@ -687,7 +715,8 @@ class CategorieDetailView(APIView):
             cat = CategoriePrincipale.objects.select_related('budget').get(pk=pk)
         except CategoriePrincipale.DoesNotExist:
             return Response({'detail': 'Categorie introuvable.'}, status=status.HTTP_404_NOT_FOUND)
-        if cat.budget.statut not in (StatutBudget.BROUILLON, StatutBudget.REJETE):
+        _assert_budget_access(request.user, cat.budget)
+        if not _budget_is_mutable(cat.budget):
             return Response({'detail': 'Modification impossible sur ce statut.'}, status=status.HTTP_400_BAD_REQUEST)
         budget = cat.budget
         cat.delete()
@@ -704,7 +733,8 @@ class SousCategorieCreateView(APIView):
             cat = CategoriePrincipale.objects.select_related('budget').get(pk=pk)
         except CategoriePrincipale.DoesNotExist:
             return Response({'detail': 'Categorie introuvable.'}, status=status.HTTP_404_NOT_FOUND)
-        if cat.budget.statut not in (StatutBudget.BROUILLON, StatutBudget.REJETE):
+        _assert_budget_access(request.user, cat.budget)
+        if not _budget_is_mutable(cat.budget):
             return Response({'detail': 'Modification impossible sur ce statut.'}, status=status.HTTP_400_BAD_REQUEST)
         libelle = request.data.get('libelle', '').strip()
         if not libelle:
@@ -723,7 +753,8 @@ class SousCategorieDetailView(APIView):
             sc = SousCategorie.objects.select_related('categorie__budget').get(pk=pk)
         except SousCategorie.DoesNotExist:
             return Response({'detail': 'Sous-categorie introuvable.'}, status=status.HTTP_404_NOT_FOUND)
-        if sc.categorie.budget.statut not in (StatutBudget.BROUILLON, StatutBudget.REJETE):
+        _assert_budget_access(request.user, sc.categorie.budget)
+        if not _budget_is_mutable(sc.categorie.budget):
             return Response({'detail': 'Modification impossible sur ce statut.'}, status=status.HTTP_400_BAD_REQUEST)
         budget = sc.categorie.budget
         sc.delete()
@@ -741,7 +772,8 @@ class LigneParSousCategorieView(APIView):
         except SousCategorie.DoesNotExist:
             return Response({'detail': 'Sous-categorie introuvable.'}, status=status.HTTP_404_NOT_FOUND)
         budget = sc.categorie.budget
-        if budget.statut not in (StatutBudget.BROUILLON, StatutBudget.REJETE):
+        _assert_budget_access(request.user, budget)
+        if not _budget_is_mutable(budget):
             return Response({'detail': 'Modification impossible sur ce statut.'}, status=status.HTTP_400_BAD_REQUEST)
         libelle = request.data.get('libelle', '').strip()
         if not libelle:
@@ -785,17 +817,24 @@ class LigneHierarchieDetailView(generics.RetrieveUpdateDestroyAPIView):
         return [permissions.IsAuthenticated()]
 
     def get_queryset(self):
-        return LigneBudgetaire.objects.select_related('sous_categorie__categorie__budget').all()
+        return LigneBudgetaire.objects.select_related('sous_categorie__categorie__budget').filter(
+            budget__in=_accessible_budgets(self.request.user)
+        )
 
     def perform_update(self, serializer):
         from django.core.exceptions import ValidationError as _DjVE
         from rest_framework.exceptions import ValidationError as _DRFVE
+        if not _budget_is_mutable(serializer.instance.budget):
+            raise _DRFVE({'detail': 'Modification impossible sur ce statut.'})
         try:
             serializer.save()
         except _DjVE as e:
             raise _DRFVE({'detail': e.messages[0] if e.messages else str(e)})
 
     def perform_destroy(self, instance):
+        from rest_framework.exceptions import ValidationError as _DRFVE
+        if not _budget_is_mutable(instance.budget):
+            raise _DRFVE({'detail': 'Modification impossible sur ce statut.'})
         LogAudit.enregistrer(
             utilisateur=self.request.user, table='ligne_budgetaire',
             enregistrement_id=str(instance.id), action=ActionAudit.DELETE,
@@ -810,10 +849,7 @@ class LignesSelecteurView(APIView):
     permission_classes = [IsGestionnaire]
 
     def get(self, request, pk):
-        try:
-            budget = Budget.objects.get(pk=pk)
-        except Budget.DoesNotExist:
-            return Response({'detail': 'Budget introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+        budget = _get_budget_or_404(request.user, pk)
         lignes = LigneBudgetaire.objects.filter(
             budget=budget, sous_categorie__isnull=False
         ).select_related('sous_categorie__categorie').order_by(
@@ -845,10 +881,7 @@ class RapportClotureView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, pk):
-        try:
-            budget = Budget.objects.prefetch_related('lignes').get(pk=pk)
-        except Budget.DoesNotExist:
-            return Response({'detail': 'Budget introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+        budget = _get_budget_or_404(request.user, pk, with_lignes=True)
 
         taux = budget.calculer_taux_consommation()
         lignes_racines = budget.lignes.filter(parent__isnull=True)
@@ -888,10 +921,7 @@ class VirementCreditsView(APIView):
     permission_classes = [IsGestionnaire]
 
     def post(self, request, pk):
-        try:
-            budget = Budget.objects.get(pk=pk)
-        except Budget.DoesNotExist:
-            return Response({'detail': 'Budget introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+        budget = _get_budget_or_404(request.user, pk)
 
         ligne_source_id = request.data.get('ligne_source')
         ligne_dest_id   = request.data.get('ligne_destination')
@@ -987,12 +1017,16 @@ class MarquerToutesLuesView(APIView):
 # ── Enregistrement de consommation avec pièces multiples ────────────────────
 
 class EnregistrerConsommationMultiView(APIView):
-    """POST /budget/<uuid:budget_pk>/lignes/<uuid:pk>/consommer/ — support multi-fichiers"""
+    """POST /budget/<uuid:budget_pk>/lignes/<uuid:pk>/consommer/ — dépense sur une seule ligne"""
     permission_classes = [IsGestionnaire]
 
     def post(self, request, budget_pk, pk):
         try:
-            ligne = LigneBudgetaire.objects.select_related('budget__allocation').get(pk=pk, budget_id=budget_pk)
+            ligne = LigneBudgetaire.objects.select_related('budget__allocation').get(
+                pk=pk,
+                budget_id=budget_pk,
+                budget__gestionnaire=request.user,
+            )
         except LigneBudgetaire.DoesNotExist:
             return Response({'detail': 'Ligne introuvable.'}, status=status.HTTP_404_NOT_FOUND)
         if ligne.budget.statut != StatutBudget.APPROUVE:
@@ -1010,45 +1044,68 @@ class EnregistrerConsommationMultiView(APIView):
         except (ValueError, TypeError):
             return Response({'detail': 'Montant invalide.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Compatibilité ancienne pièce unique + nouvelles pièces multiples
-        piece_principale = request.FILES.get('piece_justificative')
-        pieces_multiples = request.FILES.getlist('pieces')
-        note = request.data.get('note', '')
+        fichiers = request.FILES.getlist('pieces') or (
+            [request.FILES['piece_justificative']] if 'piece_justificative' in request.FILES else []
+        )
+        if not fichiers:
+            return Response(
+                {'detail': 'Une pièce justificative est obligatoire.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        try:
-            ligne.enregistrer_consommation(
-                montant,
-                piece_justificative=piece_principale,
+        note       = request.data.get('note', '')
+        fournisseur = request.data.get('fournisseur', '')
+
+        from decimal import Decimal as _D
+        with __import__('django').db.transaction.atomic():
+            # Créer la Depense parente
+            depense_obj = Depense.objects.create(
+                budget=ligne.budget,
+                statut=StatutDepense.SAISIE,
+                fournisseur=fournisseur,
                 note=note,
                 enregistre_par=request.user,
+                montant_total=_D(str(montant)),
             )
-        except ValidationError as e:
-            msg = e.message if hasattr(e, 'message') else (e.messages[0] if e.messages else str(e))
-            return Response({'detail': msg}, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                ligne.enregistrer_consommation(
+                    montant, note=note, fournisseur=fournisseur,
+                    enregistre_par=request.user, depense_parent=depense_obj,
+                )
+            except ValidationError as e:
+                msg = e.message if hasattr(e, 'message') else (e.messages[0] if e.messages else str(e))
+                return Response({'detail': msg}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Récupérer la consommation créée et ajouter les pièces supplémentaires
-        if pieces_multiples:
-            last_depense = ligne.consommations.order_by('-date').first()
-            if last_depense:
-                for f in pieces_multiples:
-                    PieceJustificative.objects.create(
-                        depense=last_depense,
-                        fichier=f,
-                        nom=f.name,
-                    )
+            # Attacher les pièces à la Depense
+            from .views_pieces import _valider_fichier, _md5, FORMATS_EXTENSIONS
+            import os
+            for f in fichiers:
+                try:
+                    type_mime = _valider_fichier(f)
+                except Exception:
+                    type_mime = f.content_type or 'application/octet-stream'
+                md5 = _md5(f)
+                PieceJustificative.objects.create(
+                    depense=depense_obj,
+                    fichier=f,
+                    nom_original=f.name[:255],
+                    taille=f.size,
+                    type_mime=type_mime,
+                    md5_hash=md5,
+                    uploaded_by=request.user,
+                )
 
-        montant_avant = float(ligne.montant_consomme) - montant
         LogAudit.enregistrer(
-            utilisateur=request.user, table='ligne_budgetaire',
-            enregistrement_id=str(ligne.id), action=ActionAudit.UPDATE,
-            valeur_avant=f"consommé: {montant_avant:,.0f} FCFA",
-            valeur_apres=f"consommé: {float(ligne.montant_consomme):,.0f} FCFA (+{montant:,.0f} FCFA)",
+            utilisateur=request.user, table='depense',
+            enregistrement_id=str(depense_obj.id), action=ActionAudit.CREATE,
+            valeur_apres=f"Dépense {depense_obj.id} — {montant:,.0f} FCFA",
             user_agent=request.META.get('HTTP_USER_AGENT', ''),
         )
         ligne.refresh_from_db()
         ligne.budget.refresh_from_db()
         from .serializers import LigneBudgetaireSerializer as _LBS
         return Response({
+            'depense_id':    str(depense_obj.id),
             'ligne':         _LBS(ligne).data,
             'budget_statut': ligne.budget.statut,
             'niveau_alerte': ligne.budget.niveau_alerte,
@@ -1072,8 +1129,9 @@ class EnregistrerDepenseMultiLigneView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Support JSON body ou FormData (lignes envoyées en JSON string dans le champ 'lignes_json')
         import json as _json
+        from decimal import Decimal as _D
+
         lignes_raw = request.data.get('lignes') or request.data.get('lignes_json')
         if isinstance(lignes_raw, str):
             try:
@@ -1087,87 +1145,134 @@ class EnregistrerDepenseMultiLigneView(APIView):
         if not lignes_data:
             return Response({'detail': 'Fournissez une liste "lignes" avec au moins une entrée.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        note              = request.data.get('note', '')
-        piece_principale  = request.FILES.get('piece_justificative')
-        pieces_multiples  = request.FILES.getlist('pieces')
-        resultats         = []
-        erreurs           = []
+        fichiers = request.FILES.getlist('pieces') or (
+            [request.FILES['piece_justificative']] if 'piece_justificative' in request.FILES else []
+        )
+        if not fichiers:
+            return Response(
+                {'detail': 'Une pièce justificative est obligatoire.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
+        note        = request.data.get('note', '')
+        fournisseur = request.data.get('fournisseur', '')
+
+        # Valider les lignes d'abord
+        items_valides = []
+        erreurs_validation = []
         for item in lignes_data:
             ligne_id = item.get('ligne_id')
             montant  = item.get('montant')
             if not ligne_id or montant is None:
-                erreurs.append(f"Entrée invalide : {item}")
+                erreurs_validation.append(f"Entrée invalide : {item}")
                 continue
             try:
-                montant = float(montant)
-                if montant <= 0:
+                montant_f = float(montant)
+                if montant_f <= 0:
                     raise ValueError()
             except (ValueError, TypeError):
-                erreurs.append(f"Montant invalide pour la ligne {ligne_id}")
+                erreurs_validation.append(f"Montant invalide pour la ligne {ligne_id}")
                 continue
-
             try:
                 ligne = LigneBudgetaire.objects.select_related('budget').get(pk=ligne_id, budget=budget)
             except LigneBudgetaire.DoesNotExist:
-                erreurs.append(f"Ligne {ligne_id} introuvable dans ce budget.")
+                erreurs_validation.append(f"Ligne {ligne_id} introuvable dans ce budget.")
                 continue
+            items_valides.append((ligne, montant_f, item.get('note', note)))
 
-            try:
-                ligne.enregistrer_consommation(
-                    montant,
-                    piece_justificative=piece_principale if not resultats else None,
-                    note=note,
-                    enregistre_par=request.user,
-                )
-            except ValidationError as e:
-                msg = e.message if hasattr(e, 'message') else (e.messages[0] if e.messages else str(e))
-                erreurs.append(f"{ligne.libelle} : {msg}")
-                continue
-
-            # Pièces supplémentaires sur la première ligne seulement
-            if not resultats and pieces_multiples:
-                last_depense = ligne.consommations.order_by('-date').first()
-                if last_depense:
-                    for f in pieces_multiples:
-                        PieceJustificative.objects.create(depense=last_depense, fichier=f, nom=f.name)
-
-            montant_avant = float(ligne.montant_consomme) - montant
-            LogAudit.enregistrer(
-                utilisateur=request.user, table='ligne_budgetaire',
-                enregistrement_id=str(ligne.id), action=ActionAudit.UPDATE,
-                valeur_avant=f"consommé: {montant_avant:,.0f} FCFA",
-                valeur_apres=f"consommé: {float(ligne.montant_consomme):,.0f} FCFA (+{montant:,.0f} FCFA)",
-                user_agent=request.META.get('HTTP_USER_AGENT', ''),
+        if not items_valides:
+            return Response(
+                {'detail': 'Aucune ligne valide.', 'erreurs': erreurs_validation},
+                status=status.HTTP_400_BAD_REQUEST,
             )
-            ligne.refresh_from_db()
-            resultats.append({'ligne_id': str(ligne.id), 'libelle': ligne.libelle, 'montant': montant})
 
-        if erreurs and not resultats:
-            return Response({'detail': 'Aucune dépense enregistrée.', 'erreurs': erreurs}, status=status.HTTP_400_BAD_REQUEST)
+        montant_total = sum(m for _, m, _ in items_valides)
+
+        from .views_pieces import _valider_fichier, _md5
+        import django.db.transaction as _tx
+
+        resultats = []
+        erreurs   = list(erreurs_validation)
+
+        with _tx.atomic():
+            # Créer UNE Depense parente pour toutes les lignes
+            depense_obj = Depense.objects.create(
+                budget=budget,
+                statut=StatutDepense.SAISIE,
+                fournisseur=fournisseur,
+                note=note,
+                enregistre_par=request.user,
+                montant_total=_D(str(montant_total)),
+            )
+
+            for ligne, montant_f, note_ligne in items_valides:
+                try:
+                    ligne.enregistrer_consommation(
+                        montant_f,
+                        note=note_ligne,
+                        fournisseur=fournisseur,
+                        enregistre_par=request.user,
+                        depense_parent=depense_obj,
+                    )
+                except ValidationError as e:
+                    msg = e.message if hasattr(e, 'message') else (e.messages[0] if e.messages else str(e))
+                    erreurs.append(f"{ligne.libelle} : {msg}")
+                    continue
+
+                LogAudit.enregistrer(
+                    utilisateur=request.user, table='ligne_budgetaire',
+                    enregistrement_id=str(ligne.id), action=ActionAudit.UPDATE,
+                    valeur_avant='—',
+                    valeur_apres=f"+{montant_f:,.0f} FCFA consommé",
+                    user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                )
+                ligne.refresh_from_db()
+                resultats.append({
+                    'ligne_id': str(ligne.id),
+                    'libelle':  ligne.libelle,
+                    'montant':  montant_f,
+                })
+
+            if not resultats:
+                raise ValidationError("Aucune dépense enregistrée.")  # rollback
+
+            # Attacher les pièces à la Depense
+            for f in fichiers:
+                try:
+                    type_mime = _valider_fichier(f)
+                except Exception:
+                    type_mime = f.content_type or 'application/octet-stream'
+                md5 = _md5(f)
+                PieceJustificative.objects.create(
+                    depense=depense_obj,
+                    fichier=f,
+                    nom_original=f.name[:255],
+                    taille=f.size,
+                    type_mime=type_mime,
+                    md5_hash=md5,
+                    uploaded_by=request.user,
+                )
 
         budget.refresh_from_db()
 
-        # Notifier tous les comptables qu'une dépense a été enregistrée
-        if resultats:
-            from accounts.models import Utilisateur
-            total_depense = sum(r['montant'] for r in resultats)
-            nb_lignes = len(resultats)
-            gest = request.user
-            comptables = Utilisateur.objects.filter(role='COMPTABLE', actif=True)
-            for comptable in comptables:
-                creer_notification(
-                    destinataire=comptable,
-                    type_notif='DEPENSE_SAISIE',
-                    message=(
-                        f"{gest.prenom} {gest.nom} a enregistré une dépense "
-                        f"de {total_depense:,.0f} FCFA sur {nb_lignes} ligne(s) "
-                        f"du budget {budget.code} – {budget.nom}."
-                    ),
-                    lien=f"/depenses",
-                )
+        # Notifier les comptables
+        from accounts.models import Utilisateur
+        gest = request.user
+        comptables = Utilisateur.objects.filter(role='COMPTABLE', actif=True)
+        for comptable in comptables:
+            creer_notification(
+                destinataire=comptable,
+                type_notif='DEPENSE_SAISIE',
+                message=(
+                    f"{gest.prenom} {gest.nom} a enregistré une dépense "
+                    f"de {montant_total:,.0f} FCFA sur {len(resultats)} ligne(s) "
+                    f"du budget {budget.code} – {budget.nom}."
+                ),
+                lien='/depenses',
+            )
 
         return Response({
+            'depense_id':      str(depense_obj.id),
             'enregistrements': resultats,
             'erreurs':         erreurs,
             'budget_statut':   budget.statut,

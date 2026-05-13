@@ -23,12 +23,16 @@ export function getLangueFormatage(langue) {
   try {
     const saved = localStorage.getItem('pref_lang')
     if (saved) return normaliserLangue(saved)
-  } catch {}
+  } catch {
+    // Ignore storage access errors and fallback to DOM/default language.
+  }
 
   try {
     const htmlLang = document?.documentElement?.getAttribute('lang')
     if (htmlLang) return normaliserLangue(htmlLang)
-  } catch {}
+  } catch {
+    // Ignore DOM access errors and fallback to the default language.
+  }
 
   return DEFAULT_LANG
 }

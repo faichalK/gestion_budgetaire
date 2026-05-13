@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Atlas Finance — Design Canvas</title>
+
+  <!-- Fonts -->
+  <!-- Arial is a system font, no need to import -->
+
+  <!-- Design system CSS -->
+  <link rel="stylesheet" href="app.css" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body, #root { width: 100%; height: 100%; overflow: hidden; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- React + ReactDOM (development build for Babel JSX) -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <!-- Babel standalone for JSX transform -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Design canvas framework -->
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <!-- Shared primitives (Icon, DEPTS, Sidebar, Topbar, Badge, DeptChip, LineChart, BarChart) -->
+  <script type="text/babel" src="screens/shared.jsx"></script>
+  <!-- Screen groups -->
+  <script type="text/babel" src="screens/dashboards.jsx"></script>
+  <script type="text/babel" src="screens/workflow.jsx"></script>
+  <script type="text/babel" src="screens/intelligence.jsx"></script>
+
+  <!-- App entry -->
+  <script type="text/babel">
+    const W = 1280;
+    const H = 800;
+
+    function App() {
+      return (
+        <DesignCanvas>
+
+          <DCSection id="auth" title="Authentification" subtitle="Écran de connexion · 3 rôles">
+            <DCArtboard id="login" label="Connexion" width={W} height={H}>
+              <LoginScreen />
+            </DCArtboard>
+          </DCSection>
+
+          <DCSection id="dashboards" title="Tableaux de bord" subtitle="Vue par rôle · Admin / Gestionnaire / Comptable">
+            <DCArtboard id="dash-admin" label="Admin — Vue exécutive" width={W} height={H}>
+              <DashboardAdmin />
+            </DCArtboard>
+            <DCArtboard id="dash-gestionnaire" label="Gestionnaire — Mes budgets" width={W} height={H}>
+              <DashboardGestionnaire />
+            </DCArtboard>
+            <DCArtboard id="dash-comptable" label="Comptable — File de validation" width={W} height={H}>
+              <DashboardComptable />
+            </DCArtboard>
+          </DCSection>
+
+          <DCSection id="workflow" title="Workflow budgétaire" subtitle="Création · Validation · Dépenses">
+            <DCArtboard id="budget-creation" label="Création de budget (PERT)" width={W} height={H}>
+              <BudgetCreation />
+            </DCArtboard>
+            <DCArtboard id="validation-detail" label="Détail validation comptable" width={W} height={H}>
+              <ValidationDetail />
+            </DCArtboard>
+            <DCArtboard id="expense-tracking" label="Suivi des dépenses" width={W} height={H}>
+              <ExpenseTracking />
+            </DCArtboard>
+          </DCSection>
+
+          <DCSection id="intelligence" title="Intelligence & Analyse" subtitle="Assistant IA · KPI Analytics">
+            <DCArtboard id="chatbot-ia" label="Assistant IA (Claude)" width={W} height={H}>
+              <ChatbotIA />
+            </DCArtboard>
+            <DCArtboard id="kpi-analytics" label="KPI Analytics" width={W} height={H}>
+              <KPIAnalytics />
+            </DCArtboard>
+          </DCSection>
+
+          <DCSection id="gouvernance" title="Gouvernance" subtitle="Audit · Utilisateurs · Paramètres">
+            <DCArtboard id="audit-log" label="Journal d'audit immuable" width={W} height={H}>
+              <AuditLog />
+            </DCArtboard>
+            <DCArtboard id="users-page" label="Gestion des accès" width={W} height={H}>
+              <UsersPage />
+            </DCArtboard>
+            <DCArtboard id="settings-page" label="Paramètres & Sécurité" width={W} height={H}>
+              <SettingsPage />
+            </DCArtboard>
+          </DCSection>
+
+        </DesignCanvas>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

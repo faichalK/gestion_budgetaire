@@ -1,43 +1,19 @@
-/**
- * Card — conteneur générique dashboard + sous-composants composables
- *
- * Le `.card` CSS a padding: 10px par défaut.
- * Card.Header / Card.Footer utilisent des marges négatives (-mx-[10px])
- * pour que leurs border-b / border-t couvrent bien toute la largeur.
- *
- * Sub-composants :
- *   Card.Header  — en-tête plein-bord avec titre / sous-titre / actions
- *   Card.Body    — corps (le padding de la card suffit comme base)
- *   Card.Footer  — pied plein-bord aligné à droite, fond gris léger
- *   Card.Stat    — carte KPI : icône ronde à gauche, valeur + label à droite
- *   Card.Table   — wrapper card + overflow-hidden + p-0 pour tableaux full-bleed
- *
- * Usage :
- *   <Card hover>
- *     <Card.Header title="Budgets" subtitle="Exercice 2025" actions={<Button size="sm">Exporter</Button>} />
- *     <Card.Body><p>Contenu</p></Card.Body>
- *     <Card.Footer><Button variant="ghost" size="sm">Annuler</Button></Card.Footer>
- *   </Card>
- *
- *   <Card.Stat icon="💰" label="Total alloué" value="42 M FCFA" trend={+8.3} />
- *
- *   <Card.Table>
- *     <Card.Header title="Dépenses" />
- *     <table className="data-table">…</table>
- *   </Card.Table>
- */
+import { cn } from '../../lib/cn'
 
-/* ── Racine ─────────────────────────────────────────────────────────────────── */
+const CARD_BASE = 'bg-white border border-[rgba(14,42,71,0.08)] rounded-[10px] shadow-[0_1px_0_rgba(14,42,71,0.02)] transition-[box-shadow,border-color] duration-150'
+const CARD_HOVER = 'hover:shadow-[0_4px_16px_rgba(14,42,71,0.08)] hover:-translate-y-0.5 hover:border-[rgba(184,134,74,0.30)]'
+
 function Card({ children, className = '', hover = false, ...props }) {
-  const cls = ['card', hover && 'card-hover', className].filter(Boolean).join(' ')
-  return <div className={cls} {...props}>{children}</div>
+  return (
+    <div
+      className={cn(CARD_BASE, 'p-5', hover && CARD_HOVER, className)}
+      {...props}
+    >
+      {children}
+    </div>
+  )
 }
 
-/* ── Card.Header ─────────────────────────────────────────────────────────────
-   Utilise -mx-[10px] -mt-[10px] pour annuler le padding de .card et couvrir
-   toute la largeur, puis rajoute son propre padding.
-   Le border-b couvre donc bord à bord comme attendu.
-────────────────────────────────────────────────────────────────────────────── */
 Card.Header = function CardHeader({
   title,
   subtitle,
@@ -47,90 +23,71 @@ Card.Header = function CardHeader({
   border    = true,
   ...props
 }) {
-  const cls = [
-    /* breakout du padding card (16px) */
-    '-mx-[16px] -mt-[16px]',
-    /* coins arrondis haut pour matcher la card */
-    'rounded-t-[var(--radius-lg)]',
-    /* padding propre */
-    'px-4 pt-4 pb-4',
-    border && 'border-b border-gray-100',
-    /* disposition */
-    'flex items-start justify-between gap-4',
-    className,
-  ].filter(Boolean).join(' ')
-
   return (
-    <div className={cls} {...props}>
+    <div
+      className={cn(
+        '-mx-5 -mt-5 rounded-t-[10px] px-5 py-4',
+        'flex items-start justify-between gap-4',
+        border && 'border-b border-[rgba(14,42,71,0.08)]',
+        className
+      )}
+      {...props}
+    >
       {title ? (
         <div className="min-w-0">
-          <h3 className="text-base font-semibold text-gray-900 leading-snug tracking-tight truncate">
+          <h3 className="text-base font-semibold text-[#0E2A47] leading-snug tracking-tight truncate">
             {title}
           </h3>
           {subtitle && (
-            <p className="text-sm text-gray-500 mt-0.5 font-normal">{subtitle}</p>
+            <p className="text-sm text-[#5A6B7E] mt-0.5 font-normal">{subtitle}</p>
           )}
         </div>
       ) : (
         children
       )}
       {actions && (
-        <div className="flex items-center gap-2 shrink-0">
-          {actions}
-        </div>
+        <div className="flex items-center gap-2 shrink-0">{actions}</div>
       )}
     </div>
   )
 }
 
-/* ── Card.Body ──────────────────────────────────────────────────────────────
-   La card a déjà padding: 10px. On ajoute juste un peu plus si padded=true.
-────────────────────────────────────────────────────────────────────────────── */
 Card.Body = function CardBody({ children, className = '', padded = false, ...props }) {
-  const cls = [padded && 'p-4', className].filter(Boolean).join(' ')
-  return <div className={cls || undefined} {...props}>{children}</div>
+  return (
+    <div className={cn(padded && 'p-4', className) || undefined} {...props}>
+      {children}
+    </div>
+  )
 }
 
-/* ── Card.Footer ─────────────────────────────────────────────────────────────
-   Même technique que Header : breakout -mx-[10px] -mb-[10px].
-────────────────────────────────────────────────────────────────────────────── */
 Card.Footer = function CardFooter({
   children,
   className = '',
   align     = 'right',
   ...props
 }) {
-  const alignCls = align === 'between'
-    ? 'justify-between'
-    : align === 'left'
-    ? 'justify-start'
-    : 'justify-end'
-
-  const cls = [
-    /* breakout du padding card (16px) */
-    '-mx-[16px] -mb-[16px]',
-    /* coins arrondis bas */
-    'rounded-b-[var(--radius-lg)]',
-    /* padding propre */
-    'px-4 py-3',
-    /* visuel */
-    'border-t border-gray-100 bg-gray-50',
-    'flex items-center gap-3',
-    alignCls,
-    className,
-  ].filter(Boolean).join(' ')
+  const alignCls = {
+    between: 'justify-between',
+    left:    'justify-start',
+    right:   'justify-end',
+  }[align] ?? 'justify-end'
 
   return (
-    <div className={cls} {...props}>
+    <div
+      className={cn(
+        '-mx-5 -mb-5 rounded-b-[10px] px-5 py-3',
+        'border-t border-[rgba(14,42,71,0.08)] bg-[#FAF8F3]',
+        'flex items-center gap-3',
+        alignCls,
+        className
+      )}
+      {...props}
+    >
       {children}
     </div>
   )
 }
 
-/* ── Card.Stat (KPI) ────────────────────────────────────────────────────────
-   Icône arrondie à gauche (44×44), valeur + label à droite.
-   Utilise p-[10px] via Tailwind utility (> .card CSS) pour un padding net.
-────────────────────────────────────────────────────────────────────────────── */
 Card.Stat = function CardStat({
   icon,
   label,
@@ -138,41 +95,34 @@ Card.Stat = function CardStat({
   sub,
   trend,
   trendPositive,
-  color    = 'var(--color-gold)',
-  bgColor  = 'var(--color-gold-soft)',
+  color    = '#B8864A',
+  bgColor  = 'rgba(184,134,74,0.12)',
   onClick,
   className = '',
 }) {
   let trendLabel = null
-  let trendColor = 'var(--color-gray-400)'
+  let trendColor = '#5A6B7E'
 
   if (trend != null) {
     trendLabel = `${trend >= 0 ? '↑' : '↓'} ${trend >= 0 ? '+' : ''}${trend}% vs mois dernier`
-    trendColor = trend >= 0 ? 'var(--color-success-600)' : 'var(--color-danger-600)'
+    trendColor = trend >= 0 ? '#15803D' : '#B91C1C'
   } else if (sub) {
     trendLabel = sub
-    trendColor = trendPositive === false
-      ? 'var(--color-danger-600)'
-      : trendPositive === true
-      ? 'var(--color-success-600)'
-      : 'var(--color-gray-400)'
+    trendColor = trendPositive === false ? '#B91C1C' : trendPositive === true ? '#15803D' : '#5A6B7E'
   }
-
-  const cls = [
-    'card p-[16px] flex items-center gap-4',  /* p-[16px] utility > .card CSS */
-    onClick && 'card-hover cursor-pointer',
-    className,
-  ].filter(Boolean).join(' ')
 
   return (
     <div
-      className={cls}
+      className={cn(
+        CARD_BASE, 'p-4 flex items-center gap-4',
+        onClick && cn(CARD_HOVER, 'cursor-pointer'),
+        className
+      )}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
-      onKeyDown={onClick ? (e) => e.key === 'Enter' && onClick(e) : undefined}
+      onKeyDown={onClick ? e => e.key === 'Enter' && onClick(e) : undefined}
     >
-      {/* Icône ronde 44×44 */}
       <div
         className="flex items-center justify-center rounded-xl shrink-0 text-xl"
         style={{ width: 44, height: 44, background: bgColor, color }}
@@ -181,20 +131,15 @@ Card.Stat = function CardStat({
         {icon}
       </div>
 
-      {/* Valeur + label */}
       <div className="flex-1 min-w-0">
-        <div className="stat-value leading-none">{value}</div>
-        <div
-          className="text-[13px] font-medium mt-1 truncate"
-          style={{ color: 'var(--color-gray-500)' }}
-        >
+        <div className="text-[28px] leading-none tracking-[-0.02em] text-[#0E2A47] tabular-nums">
+          {value}
+        </div>
+        <div className="text-[13px] font-medium mt-1 truncate text-[rgba(90,107,126,0.7)]">
           {label}
         </div>
         {trendLabel && (
-          <div
-            className="text-[12px] font-semibold mt-1"
-            style={{ color: trendColor }}
-          >
+          <div className="text-[12px] font-semibold mt-1" style={{ color: trendColor }}>
             {trendLabel}
           </div>
         )}
@@ -203,16 +148,9 @@ Card.Stat = function CardStat({
   )
 }
 
-/* ── Card.Table ──────────────────────────────────────────────────────────────
-   p-0 (Tailwind utility) annule le padding: 10px du .card CSS.
-   overflow-hidden pour couper les bords arrondis sur la table.
-────────────────────────────────────────────────────────────────────────────── */
 Card.Table = function CardTable({ children, className = '', ...props }) {
   return (
-    <div
-      className={['card p-0 overflow-hidden', className].filter(Boolean).join(' ')}
-      {...props}
-    >
+    <div className={cn(CARD_BASE, 'p-0 overflow-hidden', className)} {...props}>
       {children}
     </div>
   )

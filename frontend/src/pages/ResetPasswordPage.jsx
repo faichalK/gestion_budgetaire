@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
-import { Eye, EyeOff, Lock, CheckCircle2, Wallet } from 'lucide-react'
+import { Eye, EyeOff, Lock, CheckCircle2, Wallet } from '../components/AtlasIcons'
 import { resetPasswordConfirm } from '../api/accounts'
 
 export default function ResetPasswordPage() {
@@ -75,7 +75,7 @@ export default function ResetPasswordPage() {
               <p style={{ fontSize: 14, color: '#57616E', lineHeight: 1.7, marginBottom: 24, margin: '0 0 24px' }}>
                 Ce lien de réinitialisation est manquant ou mal formé. Refaites une demande depuis la page de connexion.
               </p>
-              <Link to="/login" className="btn btn-primary btn-md" style={{ textDecoration: 'none', display: 'inline-flex', justifyContent: 'center' }}>
+              <Link to="/login" className="btn btn-primary btn-sm" style={{ textDecoration: 'none', display: 'inline-flex', justifyContent: 'center' }}>
                 Retour à la connexion
               </Link>
             </div>
@@ -96,7 +96,7 @@ export default function ResetPasswordPage() {
               </p>
               <button
                 onClick={() => navigate('/login')}
-                className="btn btn-primary btn-md"
+                className="btn btn-primary btn-sm"
                 style={{ width: '100%', justifyContent: 'center' }}
               >
                 Se connecter
@@ -182,7 +182,7 @@ export default function ResetPasswordPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="btn btn-primary btn-md"
+                  className="btn btn-primary btn-sm"
                   style={{ width: '100%', justifyContent: 'center' }}
                 >
                   {loading

@@ -1,10 +1,6 @@
-/**
- * ChatbotDrawer — Chatbot IA flottant accessible depuis toutes les pages
- * Suggestions et accès filtrés selon le rôle de l'utilisateur.
- */
 import { useState, useRef, useEffect } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Brain, Lock } from 'lucide-react'
+import { useMutation } from '@tanstack/react-query'
+import { Brain, Lock, RotateCcw, X } from '../AtlasIcons'
 import { useAuth } from '../../context/AuthContext'
 import {
   creerConversation,
@@ -13,7 +9,6 @@ import {
   supprimerConversation,
 } from '../../api/ia'
 
-/* Suggestions par rôle */
 const SUGGESTIONS_ADMIN = [
   "Résumé global des budgets",
   "Anomalies détectées",
@@ -39,48 +34,24 @@ export default function ChatbotDrawer() {
   const [erreur,   setErreur]   = useState(null)
   const messagesEndRef = useRef(null)
   const inputRef       = useRef(null)
-  const qc = useQueryClient()
 
   const suggestions = isGestionnaire ? SUGGESTIONS_GESTIONNAIRE : SUGGESTIONS_ADMIN
   const msgAccueil  = isGestionnaire ? MSG_ACCUEIL_GESTIONNAIRE : MSG_ACCUEIL_DEFAULT
 
-  /* ── Scroll auto vers le bas ───────────────────────────────────────────── */
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  /* ── Focus input quand le drawer s'ouvre ──────────────────────────────── */
   useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 150)
   }, [open])
 
-  /* ── Ouverture depuis n'importe quelle page via événement custom ───────── */
   useEffect(() => {
     const h = () => setOpen(true)
     window.addEventListener('open-chatbot', h)
     return () => window.removeEventListener('open-chatbot', h)
   }, [])
 
-  /* ── Charger l'historique d'une conversation existante ────────────────── */
-  const chargerConversation = async (id) => {
-    if (!id) return
-    try {
-      const r     = await getConversations()
-      const convs = r.data?.data || r.data?.results || []
-      const conv  = convs.find(c => c.id === id)
-      if (conv?.messages?.length) {
-        setMessages(conv.messages.map(m => ({ role: m.role, contenu: m.contenu })))
-      } else {
-        setMessages([{ role: 'assistant', contenu: msgAccueil }])
-      }
-    } catch {
-      setConvId(null)
-      sessionStorage.removeItem('bf_chat_conv')
-      creer()
-    }
-  }
-
-  /* ── Mutation : créer une conversation ───────────────────────────────── */
   const { mutate: creer, isPending: creating } = useMutation({
     mutationFn: () => creerConversation({ titre: 'Assistant Gestion Budgétaire' }),
     onSuccess: (r) => {
@@ -93,7 +64,6 @@ export default function ChatbotDrawer() {
     onError: () => setErreur('Impossible de démarrer une conversation IA.'),
   })
 
-  /* ── Mutation : envoyer un message ───────────────────────────────────── */
   const { mutate: envoyer, isPending: sending } = useMutation({
     mutationFn: (msg) => envoyerMessage(convId, msg),
     onMutate: (msg) => {
@@ -111,7 +81,6 @@ export default function ChatbotDrawer() {
     },
   })
 
-  /* ── Mutation : réinitialiser ─────────────────────────────────────────── */
   const { mutate: reinitialiser } = useMutation({
     mutationFn: async () => {
       if (convId) await supprimerConversation(convId).catch(() => {})
@@ -125,17 +94,29 @@ export default function ChatbotDrawer() {
     },
   })
 
-  /* ── Ouvrir le drawer ─────────────────────────────────────────────────── */
-  const handleOpen = () => {
-    setOpen(true)
-    if (!convId) {
-      creer()
-    } else if (messages.length === 0) {
-      chargerConversation(convId)
-    }
-  }
+  useEffect(() => {
+    if (!open) return
+    const timeoutId = window.setTimeout(async () => {
+      if (!convId) { creer(); return }
+      if (messages.length !== 0) return
+      try {
+        const r = await getConversations()
+        const convs = r.data?.data || r.data?.results || []
+        const conv = convs.find(c => c.id === convId)
+        if (conv?.messages?.length) {
+          setMessages(conv.messages.map(m => ({ role: m.role, contenu: m.contenu })))
+        } else {
+          setMessages([{ role: 'assistant', contenu: msgAccueil }])
+        }
+      } catch {
+        setConvId(null)
+        sessionStorage.removeItem('bf_chat_conv')
+        creer()
+      }
+    }, 0)
+    return () => window.clearTimeout(timeoutId)
+  }, [open, convId, messages.length, msgAccueil, creer])
 
-  /* ── Soumettre un message ─────────────────────────────────────────────── */
   const handleSubmit = (e) => {
     e?.preventDefault()
     const txt = input.trim()
@@ -143,28 +124,29 @@ export default function ChatbotDrawer() {
     envoyer(txt)
   }
 
-  /* ── Cliquer sur une suggestion ──────────────────────────────────────── */
   const handleSuggestion = (suggestion) => {
     if (sending || !convId) return
     envoyer(suggestion)
   }
 
-  /* ── Render ──────────────────────────────────────────────────────────── */
   return (
     <>
-      {/* Drawer */}
       {open && (
-        <div
-          className="fixed bottom-[88px] right-6 z-[1001] w-[370px] h-[540px] bg-white rounded-[16px] overflow-hidden flex flex-col border border-[#E5E7EB]"
-          style={{ boxShadow: '0 8px 40px rgba(0,0,0,.18)' }}
-        >
-
+        <div style={{
+          position: 'fixed', bottom: 88, right: 24, zIndex: 1001,
+          width: 370, height: 540,
+          background: '#fff', borderRadius: 16, overflow: 'hidden',
+          display: 'flex', flexDirection: 'column',
+          border: '1px solid var(--af-line-2)',
+          boxShadow: '0 8px 40px rgba(14,42,71,.22)',
+        }}>
           {/* Header */}
-          <div
-            className="px-4 py-3 flex items-center justify-between shrink-0"
-            style={{ background: 'var(--af-ink)', borderBottom: '2px solid rgba(184,134,74,.3)' }}
-          >
-            <div className="flex items-center gap-[10px]">
+          <div style={{
+            padding: '12px 14px', display: 'flex', alignItems: 'center',
+            justifyContent: 'space-between', flexShrink: 0,
+            background: 'var(--af-ink)', borderBottom: '2px solid rgba(184,134,74,.3)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{
                 width: 32, height: 32, borderRadius: 9, flexShrink: 0,
                 background: 'rgba(255,255,255,.15)',
@@ -173,41 +155,42 @@ export default function ChatbotDrawer() {
                 <Brain size={15} strokeWidth={2} style={{ color: '#fff' }} />
               </div>
               <div>
-                <div className="text-white font-bold text-[.85rem]">Assistant Gestion Budgétaire</div>
+                <div style={{ color: '#fff', fontWeight: 700, fontSize: 13 }}>Assistant Gestion Budgétaire</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 1 }}>
                   <div style={{
                     width: 5, height: 5, borderRadius: '50%',
                     background: '#86efac', animation: 'ia-pulse 2s ease-in-out infinite',
                   }} />
-                  <span style={{ fontSize: '9px', color: 'rgba(255,255,255,.75)', fontWeight: 600, letterSpacing: '.3px' }}>
+                  <span style={{ fontSize: 9, color: 'rgba(255,255,255,.75)', fontWeight: 600, letterSpacing: '.3px' }}>
                     Propulsé par Claude IA
                   </span>
                 </div>
               </div>
             </div>
-            <div className="flex gap-[6px]">
+            <div style={{ display: 'flex', gap: 6 }}>
               <button
                 onClick={() => reinitialiser()}
                 title="Nouvelle conversation"
-                className="text-white text-[.75rem] rounded-[6px] px-2 py-1 border-none cursor-pointer"
-                style={{ background: 'rgba(255,255,255,.15)' }}
+                style={{ background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', color: '#fff', fontSize: 12 }}
               >
-                🔄
+                <RotateCcw size={12} strokeWidth={2} />
               </button>
               <button
                 onClick={() => setOpen(false)}
-                className="text-white text-[.85rem] leading-none rounded-[6px] px-2 py-1 border-none cursor-pointer"
-                style={{ background: 'rgba(255,255,255,.15)' }}
+                style={{ background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center' }}
               >
-                ✕
+                <X size={13} strokeWidth={2} />
               </button>
             </div>
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto px-[14px] py-3 flex flex-col gap-[10px]">
+          <div style={{
+            flex: 1, overflowY: 'auto', padding: '14px', display: 'flex',
+            flexDirection: 'column', gap: 10, background: 'var(--af-steel)',
+          }}>
             {creating && (
-              <div className="text-center text-[#9CA3AF] text-[.75rem] py-5">
+              <div style={{ textAlign: 'center', color: 'var(--af-mute)', fontSize: 12, padding: '20px 0' }}>
                 Connexion à l'assistant IA…
               </div>
             )}
@@ -215,26 +198,43 @@ export default function ChatbotDrawer() {
               <MessageBubble key={i} msg={msg} />
             ))}
             {sending && (
-              <div className="self-start bg-[#F3F4F6] rounded-[0_12px_12px_12px] px-3 py-2">
+              <div style={{
+                alignSelf: 'flex-start', background: '#fff', borderRadius: '0 10px 10px 10px',
+                padding: '8px 12px', border: '1px solid var(--af-line)',
+              }}>
                 <TypingDots />
               </div>
             )}
             {erreur && (
-              <div className="bg-[#fff1f2] text-[#be123c] text-[.72rem] px-[10px] py-2 rounded-[8px] border border-[#fecdd3]">
+              <div style={{
+                background: 'var(--color-danger-50)', color: 'var(--color-danger-700)',
+                fontSize: 11, padding: '8px 12px', borderRadius: 8,
+                border: '1px solid var(--color-danger-200)',
+              }}>
                 ⚠️ {erreur}
               </div>
             )}
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Suggestions — gestionnaire : toujours visibles + saisie libre bloquée */}
+          {/* Suggestions */}
           {!sending && convId && (
-            <div className="px-3 pb-2 flex gap-[6px] flex-wrap shrink-0">
+            <div style={{
+              padding: '8px 12px', display: 'flex', gap: 6, flexWrap: 'wrap', flexShrink: 0,
+              borderTop: '1px solid var(--af-line)', background: '#fff',
+            }}>
               {suggestions.map(s => (
                 <button
                   key={s}
                   onClick={() => handleSuggestion(s)}
-                  className="bg-[#F9FAFB] border border-[#E5E7EB] rounded-[20px] px-[10px] py-1 text-[.68rem] text-[#4B5563] cursor-pointer whitespace-nowrap hover:bg-[#FEF9EC] transition-colors"
+                  style={{
+                    background: 'var(--af-steel)', border: '1px solid var(--af-line)',
+                    borderRadius: 20, padding: '3px 10px', fontSize: 11,
+                    color: 'var(--af-cream)', cursor: 'pointer', whiteSpace: 'nowrap',
+                    transition: 'background .12s',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--af-gold-soft)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'var(--af-steel)'}
                 >
                   {s}
                 </button>
@@ -242,21 +242,21 @@ export default function ChatbotDrawer() {
             </div>
           )}
 
-          {/* Input — masqué pour le gestionnaire */}
+          {/* Input */}
           {isGestionnaire ? (
-            <div
-              className="px-[14px] py-[10px] border-t border-[#F3F4F6] flex items-center gap-2 shrink-0"
-              style={{ background: '#F9FAFB' }}
-            >
-              <Lock size={13} strokeWidth={2} style={{ color: '#9CA3AF', flexShrink: 0 }} />
-              <span style={{ fontSize: '11px', color: '#9CA3AF', fontStyle: 'italic' }}>
+            <div style={{
+              padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 8,
+              borderTop: '1px solid var(--af-line)', background: 'var(--af-steel)', flexShrink: 0,
+            }}>
+              <Lock size={13} strokeWidth={2} style={{ color: 'var(--af-mute)', flexShrink: 0 }} />
+              <span style={{ fontSize: 11, color: 'var(--af-mute)', fontStyle: 'italic' }}>
                 Utilisez les raccourcis ci-dessus pour poser votre question
               </span>
             </div>
           ) : (
             <form
               onSubmit={handleSubmit}
-              className="px-[14px] py-[10px] border-t border-[#F3F4F6] flex gap-2 shrink-0"
+              style={{ padding: '10px 14px', display: 'flex', gap: 8, flexShrink: 0, borderTop: '1px solid var(--af-line)' }}
             >
               <input
                 ref={inputRef}
@@ -264,13 +264,25 @@ export default function ChatbotDrawer() {
                 onChange={e => setInput(e.target.value)}
                 placeholder={convId ? 'Votre question…' : 'Initialisation…'}
                 disabled={sending || !convId}
-                className="flex-1 border border-[#E5E7EB] rounded-[8px] px-3 py-2 text-[.8rem] outline-none bg-[#F9FAFB] transition-colors focus:border-[#C9910A]"
+                style={{
+                  flex: 1, border: '1px solid var(--af-line-2)', borderRadius: 8,
+                  padding: '8px 12px', fontSize: 13, outline: 'none',
+                  background: '#fff', fontFamily: 'var(--af-sans)',
+                  transition: 'border-color .15s',
+                }}
+                onFocus={e => e.target.style.borderColor = 'var(--af-gold)'}
+                onBlur={e => e.target.style.borderColor = 'var(--af-line-2)'}
               />
               <button
                 type="submit"
                 disabled={!input.trim() || sending || !convId}
-                className="border-none rounded-[8px] px-[14px] py-2 text-[.85rem] cursor-pointer transition-opacity"
-                style={{ background: 'var(--af-ink)', color: 'var(--color-gold)', border: '1px solid var(--color-gold-line)', opacity: (!input.trim() || sending || !convId) ? 0.45 : 1 }}
+                style={{
+                  background: 'var(--af-ink)', color: 'var(--af-gold)',
+                  border: '1px solid var(--af-gold-line)', borderRadius: 8,
+                  padding: '8px 14px', cursor: 'pointer', fontSize: 14,
+                  opacity: (!input.trim() || sending || !convId) ? 0.45 : 1,
+                  transition: 'opacity .15s',
+                }}
               >
                 ➤
               </button>
@@ -284,22 +296,20 @@ export default function ChatbotDrawer() {
 
 /* ── Sous-composants ──────────────────────────────────────────────────────── */
 
-const MSG_ACCUEIL_DEFAULT = "Bonjour\u00a0! Je suis l'assistant IA Gestion Budgétaire. Je peux vous aider avec l'analyse des budgets, le suivi des dépenses, la détection d'anomalies et toutes vos questions de gestion financière. Comment puis-je vous aider\u00a0?"
+const MSG_ACCUEIL_DEFAULT = "Bonjour ! Je suis l'assistant IA Gestion Budgétaire. Je peux vous aider avec l'analyse des budgets, le suivi des dépenses, la détection d'anomalies et toutes vos questions de gestion financière. Comment puis-je vous aider ?"
 
-const MSG_ACCUEIL_GESTIONNAIRE = "Bonjour\u00a0! Je suis votre assistant budgétaire. Je peux vous donner un **résumé de vos budgets** ou un **résumé de vos dépenses**. Sélectionnez l'une des deux options ci-dessous."
+const MSG_ACCUEIL_GESTIONNAIRE = "Bonjour ! Je suis votre assistant budgétaire. Je peux vous donner un **résumé de vos budgets** ou un **résumé de vos dépenses**. Sélectionnez l'une des deux options ci-dessous."
 
-/* Rendu Markdown minimal : **gras**, _italique_, `code`, listes */
 function renderMd(text) {
   if (!text) return null
   return text.split('\n').map((line, i) => {
-    // Convertir les segments inline : **bold**, _italic_, `code`
     const parts = []
     let rest = line
     let key = 0
     while (rest.length) {
-      const boldMatch  = rest.match(/^(.*?)\*\*(.+?)\*\*(.*)$/s)
+      const boldMatch   = rest.match(/^(.*?)\*\*(.+?)\*\*(.*)$/s)
       const italicMatch = rest.match(/^(.*?)_(.+?)_(.*)$/s)
-      const codeMatch  = rest.match(/^(.*?)`(.+?)`(.*)$/s)
+      const codeMatch   = rest.match(/^(.*?)`(.+?)`(.*)$/s)
       const first = [boldMatch, italicMatch, codeMatch]
         .filter(Boolean)
         .sort((a, b) => a[1].length - b[1].length)[0]
@@ -313,7 +323,6 @@ function renderMd(text) {
         parts.push(<code key={key++} style={{ background: 'rgba(0,0,0,.08)', borderRadius: 3, padding: '0 3px', fontFamily: 'monospace', fontSize: '0.85em' }}>{first[2]}</code>)
       rest = first[3]
     }
-    // Lignes vides → espaceur
     if (!line.trim()) return <div key={i} style={{ height: 4 }} />
     return <div key={i} style={{ marginBottom: 1 }}>{parts}</div>
   })
@@ -322,15 +331,15 @@ function renderMd(text) {
 function MessageBubble({ msg }) {
   const isUser = msg.role === 'user'
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-      <div
-        className="max-w-[82%] px-3 py-[9px] text-[.78rem] leading-[1.6] break-words"
-        style={{
-          background: isUser ? 'var(--af-ink)' : '#F3F4F6',
-          color: isUser ? '#fff' : '#1F2937',
-          borderRadius: isUser ? '12px 12px 0 12px' : '0 12px 12px 12px',
-        }}
-      >
+    <div style={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start' }}>
+      <div style={{
+        maxWidth: '82%', padding: '9px 13px', fontSize: 12.5,
+        lineHeight: 1.6, wordBreak: 'break-word',
+        background: isUser ? 'var(--af-ink)' : '#fff',
+        color: isUser ? '#fff' : 'var(--af-ink)',
+        border: isUser ? 'none' : '1px solid var(--af-line)',
+        borderRadius: isUser ? '12px 12px 0 12px' : '0 12px 12px 12px',
+      }}>
         {isUser ? msg.contenu : renderMd(msg.contenu)}
       </div>
     </div>
@@ -339,22 +348,21 @@ function MessageBubble({ msg }) {
 
 function TypingDots() {
   return (
-    <div className="flex gap-1 items-center py-[2px]">
+    <div style={{ display: 'flex', gap: 4, alignItems: 'center', padding: '2px 0' }}>
       {[0, 1, 2].map(i => (
         <div
           key={i}
-          className="w-[6px] h-[6px] rounded-full bg-[#9CA3AF]"
-          style={{ animation: `typingBounce 1.2s ${i * 0.2}s ease-in-out infinite` }}
+          style={{
+            width: 6, height: 6, borderRadius: '50%',
+            background: 'var(--af-mute)',
+            animation: `typingBounce 1.2s ${i * 0.2}s ease-in-out infinite`,
+          }}
         />
       ))}
       <style>{`
         @keyframes typingBounce {
           0%, 60%, 100% { transform: translateY(0); }
           30% { transform: translateY(-6px); }
-        }
-        @keyframes ia-chatbot-ring {
-          0%, 90%, 100% { box-shadow: 0 4px 20px rgba(201,168,76,.4); }
-          45% { box-shadow: 0 4px 20px rgba(201,168,76,.4), 0 0 0 8px rgba(201,168,76,.12); }
         }
       `}</style>
     </div>

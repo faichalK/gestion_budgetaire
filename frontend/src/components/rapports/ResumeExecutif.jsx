@@ -1,10 +1,11 @@
-import { TrendingUp, TrendingDown, Wallet, CreditCard, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { TrendingUp, TrendingDown, Wallet, CreditCard, CheckCircle2 } from '../AtlasIcons'
 import { formaterNombre, formaterPourcentage } from '../../utils/formatters'
 
 const fmt = (n) => formaterNombre(n, { maximumFractionDigits: 0 })
 const fmtPct = (n) => formaterPourcentage(n, { decimales: 1 })
 
-function KpiCard({ icon: Icon, label, value, sub, color = 'var(--af-ink)', bg = '#F8FAFC' }) {
+function KpiCard({ icon, label, value, sub, color = 'var(--af-ink)', bg = '#F8FAFC' }) {
+  const Icon = icon
   return (
     <div style={{
       background: '#fff',

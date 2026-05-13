@@ -1,7 +1,7 @@
 import datetime
 import uuid
 from decimal import Decimal
-from django.db import models
+from django.db import IntegrityError, models, transaction
 from django.core.validators import MinValueValidator
 from django.core.exceptions import ValidationError
 from accounts.models import Utilisateur, Departement
@@ -568,7 +568,19 @@ class LigneBudgetaire(models.Model):
             ligne_dest.refresh_from_db()
             self.budget.recalculer_montants()
 
-    def enregistrer_consommation(self, montant, piece_justificative=None, note='', enregistre_par=None):
+    def enregistrer_consommation(self, montant, note='', enregistre_par=None, depense_parent=None, fournisseur='', **_ignored):
+        """
+        Enregistre une ConsommationLigne sur cette ligne budgétaire.
+
+        Args:
+            montant         : montant à consommer (Decimal ou float)
+            note            : libellé / description de la ligne
+            enregistre_par  : Utilisateur auteur
+            depense_parent  : Depense parente (si fournie, la ligne y est rattachée)
+            fournisseur     : fournisseur (copié depuis la Depense si fourni)
+        Returns:
+            ConsommationLigne créée
+        """
         if self.budget.niveau_alerte == NiveauAlerte.CRITIQUE:
             raise ValidationError("Dépense bloquée : le budget a atteint 100% de sa consommation (CRITIQUE).")
         montant = Decimal(str(montant))
@@ -578,27 +590,43 @@ class LigneBudgetaire(models.Model):
             raise ValidationError(
                 f"Montant ({montant:,.0f} FCFA) supérieur au disponible sur cette ligne ({self.montant_disponible:,.0f} FCFA)."
             )
-        # La pièce justificative est recommandée mais pas bloquante en mode API
-        # if not piece_justificative:
-        #     raise ValidationError("Une pièce justificative est obligatoire.")
-        # Enregistrement de la consommation détaillée
-        ConsommationLigne.objects.create(
-            ligne=self,
-            montant=montant,
-            piece_justificative=piece_justificative,
-            note=note or '',
-            enregistre_par=enregistre_par,
-        )
-        self.montant_consomme   += montant
-        self.montant_disponible  = self.montant_alloue - self.montant_consomme
-        LigneBudgetaire.objects.filter(pk=self.pk).update(
-            montant_consomme=self.montant_consomme,
-            montant_disponible=self.montant_disponible,
-        )
-        self.budget.recalculer_montants()
+        with transaction.atomic():
+            cl = ConsommationLigne.objects.create(
+                ligne=self,
+                depense=depense_parent,
+                montant=montant,
+                note=note or '',
+                fournisseur=fournisseur or '',
+                enregistre_par=enregistre_par,
+                statut=depense_parent.statut if depense_parent else StatutDepense.SAISIE,
+            )
+            self.montant_consomme += montant
+            self.montant_disponible = self.montant_alloue - self.montant_consomme
+            LigneBudgetaire.objects.filter(pk=self.pk).update(
+                montant_consomme=self.montant_consomme,
+                montant_disponible=self.montant_disponible,
+            )
+            self.budget.recalculer_montants()
+        return cl
+
+    def annuler_consommation(self, montant):
+        montant = Decimal(str(montant))
+        if montant <= 0:
+            raise ValidationError("Le montant a annuler doit etre positif.")
+        if montant > self.montant_consomme:
+            raise ValidationError("Impossible d'annuler plus que le montant consomme sur cette ligne.")
+
+        with transaction.atomic():
+            self.montant_consomme -= montant
+            self.montant_disponible = self.montant_alloue - self.montant_consomme
+            LigneBudgetaire.objects.filter(pk=self.pk).update(
+                montant_consomme=self.montant_consomme,
+                montant_disponible=self.montant_disponible,
+            )
+            self.budget.recalculer_montants()
 
 
-# ── Consommation détaillée avec pièce justificative ───────────────────────────
+# ── Statuts dépense ───────────────────────────────────────────────────────────
 
 class StatutDepense(models.TextChoices):
     SAISIE  = 'SAISIE',  'En attente'
@@ -606,90 +634,251 @@ class StatutDepense(models.TextChoices):
     REJETEE = 'REJETEE', 'Rejetée'
 
 
+# ── Dépense (entité parente regroupant les lignes d'une soumission) ────────────
+
+class Depense(models.Model):
+    """
+    Représente une soumission complète : une ou plusieurs lignes de consommation
+    couvertes par un ou plusieurs pièces justificatives.
+    Remplace le champ groupe_ref flottant.
+    """
+    id             = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    budget         = models.ForeignKey(
+                         'Budget',
+                         on_delete=models.CASCADE,
+                         related_name='depenses',
+                         verbose_name="Budget"
+                     )
+    statut         = models.CharField(
+                         max_length=12,
+                         choices=StatutDepense.choices,
+                         default=StatutDepense.SAISIE,
+                         verbose_name="Statut"
+                     )
+    fournisseur    = models.CharField(max_length=200, blank=True, verbose_name="Fournisseur")
+    note           = models.CharField(max_length=500, blank=True, verbose_name="Note / description")
+    motif_rejet    = models.CharField(max_length=500, blank=True, verbose_name="Motif de rejet")
+    enregistre_par = models.ForeignKey(
+                         Utilisateur,
+                         on_delete=models.SET_NULL,
+                         null=True, blank=True,
+                         related_name='depenses_soumises',
+                         verbose_name="Enregistré par"
+                     )
+    validateur     = models.ForeignKey(
+                         Utilisateur,
+                         on_delete=models.SET_NULL,
+                         null=True, blank=True,
+                         related_name='depenses_traitees',
+                         verbose_name="Validé/Rejeté par"
+                     )
+    date           = models.DateTimeField(auto_now_add=True, verbose_name="Date de soumission")
+    montant_total  = models.DecimalField(
+                         max_digits=18, decimal_places=2, default=0,
+                         verbose_name="Montant total"
+                     )
+
+    class Meta:
+        db_table            = 'depense'
+        verbose_name        = 'Dépense'
+        verbose_name_plural = 'Dépenses'
+        ordering            = ['-date']
+
+    def __str__(self):
+        return f"Dépense {self.id} — {self.montant_total:,.0f} FCFA ({self.get_statut_display()})"
+
+    def recalculer_total(self):
+        from django.db.models import Sum
+        total = self.lignes.aggregate(s=Sum('montant'))['s'] or Decimal('0')
+        self.montant_total = total
+        self.save(update_fields=['montant_total'])
+
+    @property
+    def nombre_pieces(self):
+        return self.pieces_justificatives.count()
+
+    def valider(self, validateur):
+        if self.statut != StatutDepense.SAISIE:
+            raise ValidationError(f"Impossible de valider une dépense au statut {self.statut}.")
+        with transaction.atomic():
+            self.statut    = StatutDepense.VALIDEE
+            self.validateur = validateur
+            self.save(update_fields=['statut', 'validateur'])
+            self.lignes.update(statut=StatutDepense.VALIDEE, validateur=validateur)
+
+    def rejeter(self, validateur, motif):
+        motif = (motif or '').strip()
+        if self.statut != StatutDepense.SAISIE:
+            raise ValidationError(f"Impossible de rejeter une dépense au statut {self.statut}.")
+        if len(motif) < 10:
+            raise ValidationError("Motif trop court (minimum 10 caractères).")
+        with transaction.atomic():
+            for ligne in self.lignes.select_related('ligne').all():
+                ligne.ligne.annuler_consommation(ligne.montant)
+                ligne.statut      = StatutDepense.REJETEE
+                ligne.motif_rejet = motif
+                ligne.validateur  = validateur
+                ligne.save(update_fields=['statut', 'motif_rejet', 'validateur'])
+            self.statut      = StatutDepense.REJETEE
+            self.motif_rejet = motif
+            self.validateur  = validateur
+            self.save(update_fields=['statut', 'motif_rejet', 'validateur'])
+
+
+# ── Ligne de consommation (enfant d'une Depense) ──────────────────────────────
+
 class ConsommationLigne(models.Model):
-    id                  = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    ligne               = models.ForeignKey(
-                              LigneBudgetaire,
-                              on_delete=models.CASCADE,
-                              related_name='consommations',
-                              verbose_name="Ligne budgétaire"
-                          )
-    reference           = models.CharField(
-                              max_length=50, unique=True, null=True, blank=True,
-                              verbose_name="Référence"
-                          )
-    fournisseur         = models.CharField(max_length=200, blank=True, verbose_name="Fournisseur")
-    statut              = models.CharField(
-                              max_length=12,
-                              choices=StatutDepense.choices,
-                              default=StatutDepense.SAISIE,
-                              verbose_name="Statut"
-                          )
-    motif_rejet         = models.CharField(max_length=500, blank=True, verbose_name="Motif de rejet")
-    montant             = models.DecimalField(max_digits=18, decimal_places=2, verbose_name="Montant dépensé")
-    piece_justificative = models.FileField(
-                              upload_to='justificatifs/%Y/%m/',
-                              null=True, blank=True,
-                              verbose_name="Pièce justificative"
-                          )
-    note                = models.CharField(max_length=500, blank=True, verbose_name="Note / description")
-    date                = models.DateTimeField(auto_now_add=True, verbose_name="Date d'enregistrement")
-    enregistre_par      = models.ForeignKey(
-                              Utilisateur,
-                              on_delete=models.SET_NULL,
-                              null=True, blank=True,
-                              related_name='depenses_enregistrees',
-                              verbose_name="Enregistré par"
-                          )
-    validateur          = models.ForeignKey(
-                              Utilisateur,
-                              on_delete=models.SET_NULL,
-                              null=True, blank=True,
-                              related_name='depenses_validees',
-                              verbose_name="Validé/Rejeté par"
-                          )
+    id             = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    depense        = models.ForeignKey(
+                         Depense,
+                         on_delete=models.CASCADE,
+                         null=True, blank=True,
+                         related_name='lignes',
+                         verbose_name="Dépense parente"
+                     )
+    ligne          = models.ForeignKey(
+                         LigneBudgetaire,
+                         on_delete=models.CASCADE,
+                         related_name='consommations',
+                         verbose_name="Ligne budgétaire"
+                     )
+    reference      = models.CharField(
+                         max_length=50, unique=True, null=True, blank=True,
+                         verbose_name="Référence"
+                     )
+    groupe_ref     = models.UUIDField(
+                         null=True, blank=True, db_index=True,
+                         verbose_name="Référence groupe (legacy)"
+                     )
+    fournisseur    = models.CharField(max_length=200, blank=True, verbose_name="Fournisseur")
+    statut         = models.CharField(
+                         max_length=12,
+                         choices=StatutDepense.choices,
+                         default=StatutDepense.SAISIE,
+                         verbose_name="Statut"
+                     )
+    motif_rejet    = models.CharField(max_length=500, blank=True, verbose_name="Motif de rejet")
+    montant        = models.DecimalField(max_digits=18, decimal_places=2, verbose_name="Montant dépensé")
+    note           = models.CharField(max_length=500, blank=True, verbose_name="Note / libellé")
+    date           = models.DateTimeField(auto_now_add=True, verbose_name="Date d'enregistrement")
+    enregistre_par = models.ForeignKey(
+                         Utilisateur,
+                         on_delete=models.SET_NULL,
+                         null=True, blank=True,
+                         related_name='depenses_enregistrees',
+                         verbose_name="Enregistré par"
+                     )
+    validateur     = models.ForeignKey(
+                         Utilisateur,
+                         on_delete=models.SET_NULL,
+                         null=True, blank=True,
+                         related_name='depenses_validees',
+                         verbose_name="Validé/Rejeté par"
+                     )
 
     class Meta:
         db_table            = 'consommation_ligne'
-        verbose_name        = 'Dépense enregistrée'
-        verbose_name_plural = 'Dépenses enregistrées'
+        verbose_name        = 'Ligne de dépense'
+        verbose_name_plural = 'Lignes de dépense'
         ordering            = ['-date']
 
+    @classmethod
+    def _generer_reference(cls):
+        year = datetime.date.today().year
+        prefix = f'DEP-{year}-'
+        existing = cls.objects.filter(reference__startswith=prefix).values_list('reference', flat=True)
+        max_seq = 0
+        for reference in existing:
+            try:
+                max_seq = max(max_seq, int(reference[len(prefix):]))
+            except (TypeError, ValueError):
+                continue
+        return f'{prefix}{max_seq + 1:04d}'
+
     def save(self, *args, **kwargs):
-        if not kwargs.get('update_fields') and not self.reference:
-            year = datetime.date.today().year
-            seq  = ConsommationLigne.objects.filter(
-                reference__startswith=f'DEP-{year}-'
-            ).count() + 1
-            self.reference = f'DEP-{year}-{seq:04d}'
-        super().save(*args, **kwargs)
+        if kwargs.get('update_fields') or self.reference or not self._state.adding:
+            super().save(*args, **kwargs)
+            return
+
+        for _ in range(5):
+            self.reference = self._generer_reference()
+            try:
+                super().save(*args, **kwargs)
+                return
+            except IntegrityError:
+                self.reference = None
+        raise IntegrityError("Impossible de generer une reference de depense unique.")
+
+    def valider(self, validateur):
+        if self.statut != StatutDepense.SAISIE:
+            raise ValidationError(f"Impossible de valider une depense au statut {self.statut}.")
+        self.statut = StatutDepense.VALIDEE
+        self.validateur = validateur
+        self.save(update_fields=['statut', 'validateur'])
+
+    def rejeter(self, validateur, motif):
+        motif = (motif or '').strip()
+        if self.statut != StatutDepense.SAISIE:
+            raise ValidationError(f"Impossible de rejeter une depense au statut {self.statut}.")
+        if len(motif) < 10:
+            raise ValidationError("Motif trop court (minimum 10 caracteres).")
+        with transaction.atomic():
+            self.ligne.annuler_consommation(self.montant)
+            self.statut     = StatutDepense.REJETEE
+            self.motif_rejet = motif
+            self.validateur  = validateur
+            self.save(update_fields=['statut', 'motif_rejet', 'validateur'])
 
     def __str__(self):
-        return f"{self.reference or self.id} – {self.montant:,.0f} FCFA ({self.date.date() if self.date else ''})"
+        return f"{self.reference or self.id} – {self.montant:,.0f} FCFA"
 
 
-# ── Pièce justificative multiple ──────────────────────────────────────────────
+# ── Pièce justificative (liée à la Depense parente) ───────────────────────────
+
+PIECE_FORMATS_AUTORISES = {'application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/webp'}
+PIECE_TAILLE_MAX        = 5 * 1024 * 1024   # 5 Mo par fichier
+PIECE_TAILLE_TOTALE_MAX = 20 * 1024 * 1024  # 20 Mo par dépense
+
 
 class PieceJustificative(models.Model):
-    id         = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    depense    = models.ForeignKey(
-                     ConsommationLigne,
-                     on_delete=models.CASCADE,
-                     related_name='pieces',
-                     verbose_name="Dépense"
-                 )
-    fichier    = models.FileField(upload_to='justificatifs/%Y/%m/', verbose_name="Fichier")
-    nom        = models.CharField(max_length=200, blank=True, verbose_name="Nom du fichier")
-    date_ajout = models.DateTimeField(auto_now_add=True)
+    id           = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    depense      = models.ForeignKey(
+                       Depense,
+                       on_delete=models.CASCADE,
+                       related_name='pieces_justificatives',
+                       verbose_name="Dépense"
+                   )
+    fichier      = models.FileField(
+                       upload_to='pieces_justificatives/%Y/%m/',
+                       verbose_name="Fichier"
+                   )
+    nom_original = models.CharField(max_length=255, verbose_name="Nom original")
+    taille       = models.PositiveIntegerField(verbose_name="Taille (octets)")
+    type_mime    = models.CharField(max_length=100, verbose_name="Type MIME")
+    description  = models.CharField(max_length=255, blank=True, verbose_name="Description")
+    md5_hash     = models.CharField(max_length=32, blank=True, verbose_name="Hash MD5")
+    uploaded_at  = models.DateTimeField(auto_now_add=True, verbose_name="Date d'upload")
+    uploaded_by  = models.ForeignKey(
+                       Utilisateur,
+                       on_delete=models.PROTECT,
+                       related_name='pieces_uploadees',
+                       verbose_name="Uploadé par"
+                   )
 
     class Meta:
         db_table            = 'piece_justificative'
         verbose_name        = 'Pièce justificative'
         verbose_name_plural = 'Pièces justificatives'
-        ordering            = ['date_ajout']
+        ordering            = ['-uploaded_at']
+
+    @property
+    def taille_lisible(self) -> str:
+        if self.taille >= 1024 * 1024:
+            return f"{self.taille / 1024 / 1024:.1f} Mo"
+        return f"{self.taille / 1024:.0f} Ko"
 
     def __str__(self):
-        return self.nom or str(self.fichier)
+        return self.nom_original or str(self.fichier)
 
 
 # ── Notifications in-app ──────────────────────────────────────────────────────

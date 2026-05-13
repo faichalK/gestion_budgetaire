@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { getDepenses, validerDepense, rejeterDepense } from '../../api/depenses'
 import { getBudget, getBudgetArbre, exportDepensesExcel, exportDepensesPdf } from '../../api/budget'
-import { ArrowLeft, ExternalLink, Download, ChevronDown, ChevronRight, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, ExternalLink, Download, ChevronDown, ChevronRight, CheckCircle2, XCircle, AlertTriangle } from '../../components/AtlasIcons'
 import { formaterNombre } from '../../utils/formatters'
 
 const fmt = (n) => formaterNombre(n, { maximumFractionDigits: 0 })
@@ -31,6 +31,7 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
 
   const [rejectModal, setRejectModal] = useState({ open: false, depense: null, motif: '', saving: false, error: '' })
   const [validating,  setValidating]  = useState('')
+  const loadRef = useRef(() => {})
 
   const load = () => {
     setLoading(true)
@@ -51,7 +52,12 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
       .catch(() => navigate(basePath))
       .finally(() => setLoading(false))
   }
-  useEffect(() => { load() }, [budgetId])
+  loadRef.current = load
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => loadRef.current(), 0)
+    return () => window.clearTimeout(timeoutId)
+  }, [budgetId])
 
   // Fermer le dropdown au clic extérieur
   useEffect(() => {
@@ -60,16 +66,31 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  if (loading) return <div className="page-loader"><div className="spinner" /></div>
+  if (loading) return <div className="af-loader"><div className="af-spinner" /></div>
 
+  // Flatten Depense.lignes into per-ligne buckets for the category tree
   const depByLigne = {}
-  depenses.forEach(d => {
-    if (!d.ligne_id) return
-    if (!depByLigne[d.ligne_id]) depByLigne[d.ligne_id] = []
-    depByLigne[d.ligne_id].push(d)
+  depenses.forEach(dep => {
+    (dep.lignes || []).forEach(cl => {
+      if (!cl.ligne_id) return
+      if (!depByLigne[cl.ligne_id]) depByLigne[cl.ligne_id] = []
+      depByLigne[cl.ligne_id].push({
+        id:                   dep.id,
+        ligne_id:             cl.ligne_id,
+        ligne_designation:    cl.ligne_libelle,
+        montant:              cl.montant,
+        statut:               dep.statut,
+        date_depense:         cl.date,
+        note:                 cl.note || dep.note,
+        fournisseur:          dep.fournisseur,
+        piece_justificative_url: dep.pieces?.[0]?.url_download || null,
+        nombre_pieces:        dep.nombre_pieces,
+        motif_rejet:          dep.motif_rejet,
+      })
+    })
   })
 
-  const total      = depenses.reduce((s, d) => s + parseFloat(d.montant || 0), 0)
+  const total      = depenses.reduce((s, d) => s + parseFloat(d.montant_total || 0), 0)
   const budgetGlobal = parseFloat(budget?.montant_global || 0)
   const disponible = budgetGlobal - total
   const taux       = budgetGlobal > 0 ? Math.min(100, Math.round(total / budgetGlobal * 100)) : 0
@@ -81,17 +102,6 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
       ? `/validation/${budgetId}`
       : `/mes-budgets/${budgetId}`
 
-  const handleValider = async (depense) => {
-    if (validating) return
-    setValidating(depense.id)
-    try {
-      await validerDepense(depense.id)
-      load()
-    } catch (e) {
-      alert(e?.response?.data?.detail || 'Erreur lors de la validation')
-    } finally { setValidating('') }
-  }
-
   const openRejet = (depense) => setRejectModal({ open: true, depense, motif: '', saving: false, error: '' })
 
   const handleRejeter = async (e) => {
@@ -102,10 +112,10 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
       if (rejectModal.depense.id === '__all__') {
         const enAttente = depenses.filter(d => d.statut === 'SAISIE')
         for (const d of enAttente) {
-          try { await rejeterDepense(d.id, { motif_rejet: rejectModal.motif }) } catch { /* continue */ }
+          try { await rejeterDepense(d.id, { motif: rejectModal.motif }) } catch { /* continue */ }
         }
       } else {
-        await rejeterDepense(rejectModal.depense.id, { motif_rejet: rejectModal.motif })
+        await rejeterDepense(rejectModal.depense.id, { motif: rejectModal.motif })
       }
       setRejectModal({ open: false, depense: null, motif: '', saving: false, error: '' })
       load()
@@ -133,7 +143,7 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
         </button>
       </div>
 
-      <div className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: 20 }}>
+      <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)] overflow-hidden mb-5">
 
         {/* ── Header navy ── */}
         <div style={{ background: 'var(--af-ink)', padding: '20px 28px', color: '#fff', position: 'relative', overflow: 'hidden' }}>
@@ -141,7 +151,7 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
             <div style={{ minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
-                <span style={{ background: 'rgba(255,255,255,.18)', borderRadius: 7, padding: '3px 10px', fontSize: '11px', fontWeight: 700, fontFamily: 'var(--font-mono)', letterSpacing: '.5px' }}>
+                <span style={{ background: 'rgba(255,255,255,.18)', borderRadius: 7, padding: '3px 10px', fontSize: '11px', fontWeight: 700, fontFamily: 'var(--af-mono)', letterSpacing: '.5px' }}>
                   {budget?.code}
                 </span>
                 <span style={{ fontSize: '12px', opacity: .7 }}>
@@ -155,7 +165,7 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
             </div>
             <div style={{ textAlign: 'right', flexShrink: 0 }}>
               <div style={{ fontSize: '10px', opacity: .55, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 3 }}>Total dépensé</div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 900, fontSize: '1.5rem', lineHeight: 1 }}>{fmt(total)}</div>
+              <div style={{ fontFamily: 'var(--af-mono)', fontWeight: 900, fontSize: '1.5rem', lineHeight: 1 }}>{fmt(total)}</div>
               <div style={{ fontSize: '11px', opacity: .6, marginTop: 2 }}>FCFA</div>
             </div>
           </div>
@@ -177,7 +187,7 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
                   transition: 'width .4s',
                 }} />
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: '10px', opacity: .5, fontFamily: 'var(--font-mono)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: '10px', opacity: .5, fontFamily: 'var(--af-mono)' }}>
                 <span>{fmt(total)} FCFA dépensés</span>
                 <span>{fmt(budgetGlobal)} FCFA alloués</span>
               </div>
@@ -186,22 +196,22 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
         </div>
 
         {/* ── Mini KPI strip ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', borderBottom: '1px solid var(--color-gray-100)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', borderBottom: '1px solid var(--af-line)' }}>
           {[
-            { label: 'Budget global',  val: fmt(budgetGlobal) + ' FCFA', color: 'var(--color-gold-dark)', bg: 'var(--color-gold-soft)' },
-            { label: 'Total dépensé',  val: fmt(total) + ' FCFA',        color: '#6a2fa0',                  bg: '#f5f0fd' },
-            { label: 'Disponible',     val: fmt(Math.max(0, disponible)) + ' FCFA', color: disponible <= 0 ? 'var(--color-danger-700)' : 'var(--color-success-700)', bg: disponible <= 0 ? 'var(--color-danger-50)' : 'var(--color-success-50)' },
-            { label: "Taux d'exéc.",   val: taux + '%',                  color: tauxColor,                  bg: taux > 75 ? 'var(--color-danger-50)' : taux > 50 ? 'var(--color-warning-50)' : 'var(--color-success-50)' },
+            { label: 'Budget global',  val: fmt(budgetGlobal) + ' FCFA', color: 'var(--af-ink)' },
+            { label: 'Total dépensé',  val: fmt(total) + ' FCFA',        color: 'var(--af-ink)' },
+            { label: 'Disponible',     val: fmt(Math.max(0, disponible)) + ' FCFA', color: disponible <= 0 ? 'var(--color-danger-700)' : 'var(--af-ink)' },
+            { label: "Taux d'exéc.",   val: taux + '%',                  color: tauxColor },
           ].map((k, idx, arr) => (
             <div key={k.label} style={{
-              padding: '12px 20px', background: k.bg,
-              borderRight: idx < arr.length - 1 ? '1px solid var(--color-gray-100)' : 'none',
+              padding: '12px 20px', background: '#fff',
+              borderRight: idx < arr.length - 1 ? '1px solid var(--af-line)' : 'none',
               textAlign: 'center',
             }}>
-              <div style={{ fontSize: '10px', fontWeight: 700, color: k.color, textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 4 }}>
+              <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--af-mute)', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 4 }}>
                 {k.label}
               </div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: '13px', color: k.color }}>
+              <div style={{ fontFamily: 'var(--af-mono)', fontWeight: 800, fontSize: '13px', color: k.color }}>
                 {k.val}
               </div>
             </div>
@@ -209,12 +219,12 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
         </div>
 
         {/* ── Bande budget parent + export ── */}
-        <div style={{ padding: '10px 24px', borderBottom: '1px solid var(--color-gray-100)', background: 'var(--color-gray-50)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--color-gray-400)', textTransform: 'uppercase', letterSpacing: '.4px' }}>Budget</span>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 700, background: 'rgba(184,134,74,0.15)', color: 'var(--color-gold-dark)', padding: '2px 8px', borderRadius: 6 }}>
+        <div style={{ padding: '10px 24px', borderBottom: '1px solid var(--af-line)', background: 'var(--af-steel)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--af-mute)', textTransform: 'uppercase', letterSpacing: '.4px' }}>Budget</span>
+          <span style={{ fontFamily: 'var(--af-mono)', fontSize: '11px', fontWeight: 700, background: 'rgba(184,134,74,0.15)', color: 'var(--color-gold-dark)', padding: '2px 8px', borderRadius: 6 }}>
             {budget?.code}
           </span>
-          <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-gray-700)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--af-cream)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {budget?.nom}
           </span>
           <Link to={budgetPath} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '12px', fontWeight: 600, color: 'var(--color-gold)', textDecoration: 'none', flexShrink: 0 }}>
@@ -237,7 +247,7 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
             {exportOpen && (
               <div style={{
                 position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 50,
-                background: '#fff', border: '1px solid var(--color-gray-200)',
+                background: '#fff', border: '1px solid var(--af-line)',
                 borderRadius: 10, boxShadow: '0 8px 24px rgba(15,23,42,.12)',
                 minWidth: 190, overflow: 'hidden',
               }}>
@@ -247,16 +257,16 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
                     style={{
                       display: 'flex', alignItems: 'center', gap: 10, width: '100%',
                       padding: '9px 16px', background: 'none', border: 'none',
-                      cursor: 'pointer', fontSize: '13px', color: 'var(--color-gray-700)',
+                      cursor: 'pointer', fontSize: '13px', color: 'var(--af-cream)',
                       textAlign: 'left',
                     }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'var(--color-gray-50)'}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--af-steel)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'none'}
                   >
                     <span style={{ fontSize: '15px' }}>📄</span>
                     <div>
                       <div style={{ fontWeight: 600 }}>Exporter en PDF</div>
-                      <div style={{ fontSize: '11px', color: 'var(--color-gray-400)' }}>Document imprimable</div>
+                      <div style={{ fontSize: '11px', color: 'var(--af-mute)' }}>Document imprimable</div>
                     </div>
                   </button>
                   <button
@@ -264,16 +274,16 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
                     style={{
                       display: 'flex', alignItems: 'center', gap: 10, width: '100%',
                       padding: '9px 16px', background: 'none', border: 'none',
-                      cursor: 'pointer', fontSize: '13px', color: 'var(--color-gray-700)',
+                      cursor: 'pointer', fontSize: '13px', color: 'var(--af-cream)',
                       textAlign: 'left',
                     }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'var(--color-gray-50)'}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--af-steel)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'none'}
                   >
                     <span style={{ fontSize: '15px' }}>📊</span>
                     <div>
                       <div style={{ fontWeight: 600 }}>Exporter en Excel</div>
-                      <div style={{ fontSize: '11px', color: 'var(--color-gray-400)'  }}>.xlsx — compatible Excel</div>
+                      <div style={{ fontSize: '11px', color: 'var(--af-mute)'  }}>.xlsx — compatible Excel</div>
                     </div>
                   </button>
                 </div>
@@ -283,19 +293,19 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
         </div>
 
         {/* ── Titre section ── */}
-        <div style={{ padding: '12px 24px 10px', borderBottom: '1px solid var(--color-gray-200)', background: '#fff' }}>
-          <span style={{ fontWeight: 700, fontSize: '13px', color: 'var(--color-gray-700)' }}>Dépenses par ligne budgétaire</span>
+        <div style={{ padding: '12px 24px 10px', borderBottom: '1px solid var(--af-line)', background: '#fff' }}>
+          <span style={{ fontWeight: 700, fontSize: '13px', color: 'var(--af-cream)' }}>Dépenses par ligne budgétaire</span>
         </div>
 
         {/* ── Arbre catégories ── */}
         {arbre.length === 0 ? (
-          <div style={{ padding: '36px 24px', textAlign: 'center', color: 'var(--color-gray-400)', fontSize: '13px' }}>
+          <div style={{ padding: '36px 24px', textAlign: 'center', color: 'var(--af-mute)', fontSize: '13px' }}>
             Aucune structure budgétaire trouvée.
           </div>
         ) : arbre.map(cat => {
           const catDeps = cat.sous_categories.flatMap(sc => sc.lignes.flatMap(l => depByLigne[l.id] || []))
           if (catDeps.length === 0) return null
-          const catTotal = catDeps.reduce((s, d) => s + parseFloat(d.montant || 0), 0)
+          const catTotal = catDeps.reduce((s, d) => s + parseFloat(d.montant || d.montant_total || 0), 0)
           const isOpen   = openCats[cat.id] !== false
 
           return (
@@ -312,10 +322,10 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
                     ? <ChevronDown  size={14} strokeWidth={2.5} style={{ color: 'var(--color-gold)', flexShrink: 0 }} />
                     : <ChevronRight size={14} strokeWidth={2.5} style={{ color: 'var(--color-gold)', flexShrink: 0 }} />
                   }
-                  {cat.code && <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: '13px', color: 'var(--af-ink)' }}>{cat.code}</span>}
+                  {cat.code && <span style={{ fontFamily: 'var(--af-mono)', fontWeight: 800, fontSize: '13px', color: 'var(--af-ink)' }}>{cat.code}</span>}
                   <span style={{ fontWeight: 700, fontSize: '13.5px', color: 'var(--af-ink)' }}>{cat.libelle}</span>
                 </div>
-                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: '13px', color: 'var(--af-ink)', whiteSpace: 'nowrap' }}>
+                <span style={{ fontFamily: 'var(--af-mono)', fontWeight: 800, fontSize: '13px', color: 'var(--af-ink)', whiteSpace: 'nowrap' }}>
                   {fmt(catTotal)} FCFA
                 </span>
               </div>
@@ -328,12 +338,12 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
                 return (
                   <div key={sc.id}>
                     {/* ── Sous-catégorie ── */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 24px 8px 48px', background: '#F8FAFC', borderBottom: '1px solid var(--color-gray-100)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 24px 8px 48px', background: '#F8FAFC', borderBottom: '1px solid var(--af-line)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        {sc.code && <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '12px', color: 'var(--color-gray-600)' }}>{sc.code}</span>}
-                        <span style={{ fontWeight: 600, fontSize: '13px', color: 'var(--color-gray-700)' }}>{sc.libelle}</span>
+                        {sc.code && <span style={{ fontFamily: 'var(--af-mono)', fontWeight: 700, fontSize: '12px', color: 'var(--af-cream)' }}>{sc.code}</span>}
+                        <span style={{ fontWeight: 600, fontSize: '13px', color: 'var(--af-cream)' }}>{sc.libelle}</span>
                       </div>
-                      <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '12px', color: 'var(--color-gray-600)', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontFamily: 'var(--af-mono)', fontWeight: 700, fontSize: '12px', color: 'var(--af-cream)', whiteSpace: 'nowrap' }}>
                         {fmt(scTotal)} FCFA
                       </span>
                     </div>
@@ -348,12 +358,12 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
                           <div style={{
                             display: 'grid', gridTemplateColumns: '1fr 160px 90px',
                             padding: '6px 24px 6px 68px', gap: 12,
-                            background: 'var(--color-gray-50)', borderBottom: '1px solid var(--color-gray-100)',
+                            background: 'var(--af-steel)', borderBottom: '1px solid var(--af-line)',
                             fontSize: '10px', fontWeight: 700, textTransform: 'uppercase',
-                            letterSpacing: '.4px', color: 'var(--color-gray-400)',
+                            letterSpacing: '.4px', color: 'var(--af-mute)',
                           }}>
-                            <span style={{ color: 'var(--color-gray-600)', fontSize: '11px', textTransform: 'none', fontWeight: 600, letterSpacing: 0 }}>
-                              {ligne.code && <span style={{ fontFamily: 'var(--font-mono)', marginRight: 8, color: 'var(--color-gray-500)' }}>{ligne.code}</span>}
+                            <span style={{ color: 'var(--af-cream)', fontSize: '11px', textTransform: 'none', fontWeight: 600, letterSpacing: 0 }}>
+                              {ligne.code && <span style={{ fontFamily: 'var(--af-mono)', marginRight: 8, color: 'var(--af-mute)' }}>{ligne.code}</span>}
                               {ligne.libelle}
                             </span>
                             <span style={{ textAlign: 'right' }}>Montant dépensé</span>
@@ -369,7 +379,7 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
                                 style={{
                                   display: 'grid', gridTemplateColumns: '1fr 160px 90px',
                                   padding: '11px 24px 11px 68px', gap: 12,
-                                  borderBottom: idx < lignesDeps.length - 1 ? '1px solid var(--color-gray-100)' : 'none',
+                                  borderBottom: idx < lignesDeps.length - 1 ? '1px solid var(--af-line)' : 'none',
                                   alignItems: 'center', cursor: 'pointer', transition: 'background .1s',
                                 }}
                                 onMouseEnter={e => e.currentTarget.style.background = 'var(--color-gold-soft)'}
@@ -377,26 +387,24 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
                               >
                                 {/* Désignation */}
                                 <div style={{ minWidth: 0 }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 2 }}>
-                                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', background: 'var(--color-gray-100)', color: 'var(--color-gray-600)', padding: '1px 6px', borderRadius: 4, fontWeight: 700 }}>
-                                      {d.reference}
-                                    </span>
+                                  <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--af-ink)', marginBottom: 2 }}>
+                                    {d.note || d.fournisseur || String(d.id).slice(0, 8).toUpperCase()}
                                   </div>
-                                  {d.fournisseur && (
-                                    <div style={{ fontSize: '11px', color: 'var(--color-gray-400)' }}>{d.fournisseur}</div>
+                                  {d.fournisseur && d.note && (
+                                    <div style={{ fontSize: '11px', color: 'var(--af-mute)' }}>{d.fournisseur}</div>
                                   )}
                                 </div>
 
                                 {/* Montant */}
                                 <div style={{ textAlign: 'right' }}>
-                                  <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '13px', color: 'var(--color-gray-900)' }}>
+                                  <span style={{ fontFamily: 'var(--af-mono)', fontWeight: 700, fontSize: '13px', color: 'var(--af-ink)' }}>
                                     {fmt(d.montant)}
                                   </span>
-                                  <div style={{ fontSize: '10px', color: 'var(--color-gray-400)' }}>FCFA</div>
+                                  <div style={{ fontSize: '10px', color: 'var(--af-mute)' }}>FCFA</div>
                                 </div>
 
                                 {/* Date */}
-                                <div style={{ fontSize: '11px', color: 'var(--color-gray-500)', fontFamily: 'var(--font-mono)', textAlign: 'center' }}>
+                                <div style={{ fontSize: '11px', color: 'var(--af-mute)', fontFamily: 'var(--af-mono)', textAlign: 'center' }}>
                                   {fmtDate(d.date_depense)}
                                 </div>
                               </div>
@@ -415,8 +423,8 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
         {/* ── Total général + actions ── */}
         {depenses.length > 0 && (() => {
           const enAttente    = depenses.filter(d => d.statut === 'SAISIE')
-          const totalAttente = enAttente.reduce((s, d) => s + parseFloat(d.montant || 0), 0)
-          const piece        = depenses.find(d => d.piece_justificative_url)
+          const totalAttente = enAttente.reduce((s, d) => s + parseFloat(d.montant_total || 0), 0)
+          const totalPieces  = depenses.reduce((s, d) => s + (d.nombre_pieces || 0), 0)
           return (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 24px', background: 'var(--af-ink)', gap: 12, flexWrap: 'wrap' }}>
               <span style={{ fontSize: '12px', fontWeight: 700, color: 'rgba(255,255,255,.65)', textTransform: 'uppercase', letterSpacing: '.5px' }}>
@@ -424,12 +432,11 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
               </span>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                {/* Pièce justificative */}
-                {(isComptable || isAdmin) && piece && (
-                  <a href={piece.piece_justificative_url} target="_blank" rel="noreferrer"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '12px', fontWeight: 600, color: '#93C5FD', textDecoration: 'none', padding: '5px 12px', borderRadius: 6, background: 'rgba(147,197,253,.15)', border: '1px solid rgba(147,197,253,.3)' }}>
-                    📎 Pièce justificative
-                  </a>
+                {/* Indicateur pièces */}
+                {(isComptable || isAdmin) && totalPieces > 0 && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '12px', fontWeight: 600, color: '#93C5FD', padding: '5px 12px', borderRadius: 6, background: 'rgba(147,197,253,.15)', border: '1px solid rgba(147,197,253,.3)' }}>
+                    📎 {totalPieces} pièce{totalPieces > 1 ? 's' : ''} jointe{totalPieces > 1 ? 's' : ''}
+                  </span>
                 )}
 
                 {/* Valider / Rejeter — comptable uniquement */}
@@ -458,7 +465,7 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
                       {validating === '__all__' ? <><span className="spinner-sm" /> Validation…</> : <><CheckCircle2 size={14} strokeWidth={2.5} /> Valider</>}
                     </button>
                     <button
-                      onClick={() => openRejet({ id: '__all__', reference: 'Toutes', ligne_designation: `${enAttente.length} dépenses`, montant: totalAttente })}
+                      onClick={() => openRejet({ id: '__all__', note: `${enAttente.length} dépenses en attente`, montant_total: totalAttente })}
                       disabled={!!validating}
                       style={{
                         display: 'inline-flex', alignItems: 'center', gap: 7,
@@ -475,7 +482,7 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
                   </>
                 )}
 
-                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 900, fontSize: '16px', color: '#fff' }}>
+                <span style={{ fontFamily: 'var(--af-mono)', fontWeight: 900, fontSize: '16px', color: '#fff' }}>
                   {fmt(total)} FCFA
                 </span>
               </div>
@@ -497,10 +504,13 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
             </div>
             <form onSubmit={handleRejeter}>
               <div className="modal-body">
-                <div style={{ padding: '10px 14px', borderRadius: 8, background: 'var(--color-gray-50)', border: '1px solid var(--color-gray-200)', marginBottom: 14 }}>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 700, color: 'var(--color-gray-500)', marginBottom: 2 }}>{rejectModal.depense?.reference}</div>
-                  <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--color-gray-800)' }}>{rejectModal.depense?.ligne_designation || '—'}</div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '13px', color: 'var(--color-gray-900)', marginTop: 4 }}>{fmt(rejectModal.depense?.montant)} FCFA</div>
+                <div style={{ padding: '10px 14px', borderRadius: 8, background: 'var(--af-steel)', border: '1px solid var(--af-line)', marginBottom: 14 }}>
+                  <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--af-ink)' }}>
+                    {rejectModal.depense?.note || rejectModal.depense?.fournisseur || '—'}
+                  </div>
+                  <div style={{ fontFamily: 'var(--af-mono)', fontWeight: 700, fontSize: '13px', color: 'var(--af-ink)', marginTop: 4 }}>
+                    {fmt(rejectModal.depense?.montant_total || rejectModal.depense?.montant)} FCFA
+                  </div>
                 </div>
                 <div>
                   <label className="form-label">Motif du rejet <span style={{ color: 'var(--color-danger-500)' }}>*</span></label>
@@ -521,8 +531,8 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
                 )}
               </div>
               <div className="modal-footer">
-                <button type="button" onClick={() => setRejectModal(m => ({ ...m, open: false }))} className="btn btn-secondary btn-md">Annuler</button>
-                <button type="submit" disabled={rejectModal.saving} className="btn btn-danger btn-md" style={{ gap: 6 }}>
+                <button type="button" onClick={() => setRejectModal(m => ({ ...m, open: false }))} className="btn btn-secondary btn-sm">Annuler</button>
+                <button type="submit" disabled={rejectModal.saving} className="btn btn-danger btn-sm" style={{ gap: 6 }}>
                   {rejectModal.saving ? <><span className="spinner-sm" /> Rejet…</> : <><XCircle size={14} strokeWidth={2} /> Confirmer le rejet</>}
                 </button>
               </div>

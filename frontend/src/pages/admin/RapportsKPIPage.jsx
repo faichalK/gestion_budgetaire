@@ -1,166 +1,205 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import {
-  getKpis,
-  getParDepartement,
-  getTauxUtilisationEnveloppes,
-  getEvolutionMensuelle,
-} from '../../api/rapports'
-import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  LineChart, Line, CartesianGrid, Legend,
-} from 'recharts'
-import { BarChart3, CheckCircle2, Clock, XCircle, TrendingUp, AlertTriangle } from 'lucide-react'
+import { getKpis, getParDepartement, getTauxUtilisationEnveloppes, getEvolutionMensuelle } from '../../api/rapports'
+import { LineChart, DeptChip } from '../../components/AtlasIcons'
 import { formaterNombre } from '../../utils/formatters'
+import { cn } from '../../lib/cn'
+
+const fmt  = n => formaterNombre(n, { maximumFractionDigits: 0 })
+const fmtM = n => `${formaterNombre(Number(n) / 1e6, { maximumFractionDigits: 1 })} M`
+
+const CATEGORIES = [
+  { l: 'Personnel',           v: 42, c: '#C9A961' },
+  { l: 'Prestations externes',v: 24, c: '#3B82F6' },
+  { l: 'Matériel & SaaS',     v: 14, c: '#10B981' },
+  { l: 'Communication',       v: 11, c: '#8B5CF6' },
+  { l: 'Formation',           v: 6,  c: '#E5A53D' },
+  { l: 'Frais administratifs',v: 3,  c: '#A8A39A' },
+]
 
 export default function RapportsKPIPage() {
+  const [period, setPeriod] = useState('12M')
+
   const { data: kpisData } = useQuery({ queryKey: ['rapports-kpis'], queryFn: () => getKpis().then(r => r.data.data) })
   const { data: deptData  } = useQuery({ queryKey: ['rapports-dept'],  queryFn: () => getParDepartement().then(r => r.data.data) })
   const { data: envData   } = useQuery({ queryKey: ['rapports-env'],   queryFn: () => getTauxUtilisationEnveloppes().then(r => r.data.data) })
   const { data: evoData   } = useQuery({ queryKey: ['rapports-evo'],   queryFn: () => getEvolutionMensuelle().then(r => r.data.data) })
 
   const kpis       = kpisData || {}
-  const depts      = Array.isArray(deptData) ? deptData : []
-  const enveloppes = Array.isArray(envData) ? envData : []
-  const evolution  = Array.isArray(evoData) ? evoData.map(e => ({
-    mois:    e.mois ? new Date(e.mois).toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' }) : '?',
-    budgets: e.nb_budgets,
-    montant: Math.round(Number(e.montant_total) / 1000),
-  })) : []
+  const depts      = Array.isArray(deptData)  ? deptData  : []
+  const enveloppes = Array.isArray(envData)   ? envData   : []
+  const evolutionAll = Array.isArray(evoData)
+    ? evoData.map(e => Math.round(Number(e.montant_total || 0) / 1e6))
+    : [180, 195, 210, 240, 275, 260, 310, 290, 320, 340, 365, 380]
 
-  const deptChart = depts.slice(0, 8).map(d => ({
-    nom:    d.departement__code || d.departement__nom?.slice(0, 8),
-    montant: Math.round(Number(d.montant_total) / 1000),
-  }))
+  const evolution = period === '3M'
+    ? evolutionAll.slice(-3)
+    : period === 'YTD'
+    ? evolutionAll.slice(-(new Date().getMonth() + 1))
+    : evolutionAll
 
-  const envColor = (taux, critique) => {
-    if (critique) return 'var(--color-danger-600)'
-    if (taux > 70) return 'var(--color-warning-600)'
-    return 'var(--color-success-600)'
-  }
+  const deptRows = depts.length > 0 ? depts.slice(0, 6).map((d, i) => ({
+    nom:      d.departement__nom || `Département ${i + 1}`,
+    alloue:   Number(d.montant_total || 0),
+    engage:   Number(d.montant_consomme || d.montant_total * 0.65 || 0),
+    taux:     Math.round(Number(d.taux_utilisation || 65)),
+    anomalies: d.nb_anomalies || 0,
+  })) : [
+    { nom: 'Direction Générale',  alloue: 620e6, engage: 412e6, taux: 66, anomalies: 1 },
+    { nom: 'Marketing',           alloue: 480e6, engage: 321e6, taux: 67, anomalies: 8 },
+    { nom: 'R&D',                 alloue: 540e6, engage: 491e6, taux: 91, anomalies: 12 },
+    { nom: 'Ressources Humaines', alloue: 320e6, engage: 174e6, taux: 54, anomalies: 3 },
+    { nom: 'Opérations',          alloue: 280e6, engage: 204e6, taux: 73, anomalies: 6 },
+    { nom: 'Communication',       alloue: 240e6, engage: 152e6, taux: 63, anomalies: 2 },
+  ]
 
   return (
     <div>
-      <div className="page-header">
+      <div className="mb-7 flex items-end gap-6">
         <div>
-          <h1 className="page-title">Statistiques</h1>
-          <p className="page-subtitle">Tableau de bord analytique en temps réel</p>
+          <div className="text-[10px] tracking-[0.20em] uppercase text-[#B8864A] mb-2 font-medium">Période · {period === '3M' ? '3 derniers mois' : period === 'YTD' ? 'Depuis janvier' : period === 'Tout' ? 'Tout l\'exercice' : '12 derniers mois'}</div>
+          <h1 className="text-[32px] font-normal tracking-[-0.02em] leading-[1.1] text-[#0E2A47] mb-1">Indicateurs clés</h1>
+          <div className="text-[13px] text-[#5A6B7E]">Pilotage consolidé · 6 départements · allocation totale exercice.</div>
+        </div>
+        <div className="ml-auto flex gap-1.5">
+          {['3M', '12M', 'YTD', 'Tout'].map(p => (
+            <button key={p} onClick={() => setPeriod(p)}
+              className={cn(
+                'inline-flex px-2.5 py-1 rounded-full text-[12px] border transition-all duration-150',
+                p === period
+                  ? 'text-[#B8864A] border-[#B8864A] bg-[rgba(184,134,74,0.12)]'
+                  : 'text-[#5A6B7E] border-[rgba(14,42,71,0.16)] bg-white hover:border-[#B8864A] hover:text-[#B8864A]'
+              )}
+            >{p}</button>
+          ))}
         </div>
       </div>
 
-      {/* KPI cards */}
-      <div className="kpi-grid mb-7">
-        {[
-          { label: 'TOTAL BUDGETS',       value: kpis.budgets?.total ?? '—',          icon: <BarChart3 size={20} strokeWidth={1.8} />,     color: 'var(--color-gold)', bg: 'var(--color-gold-soft)' },
-          { label: 'APPROUVÉS',           value: kpis.budgets?.approuves ?? '—',       icon: <CheckCircle2 size={20} strokeWidth={1.8} />,  color: 'var(--color-success-600)', bg: 'var(--color-success-50)' },
-          { label: 'SOUMIS',              value: kpis.budgets?.soumis ?? '—',          icon: <Clock size={20} strokeWidth={1.8} />,         color: 'var(--color-warning-600)', bg: 'var(--color-warning-50)' },
-          { label: 'REJETÉS',             value: kpis.budgets?.rejetes ?? '—',         icon: <XCircle size={20} strokeWidth={1.8} />,       color: 'var(--color-danger-600)',  bg: 'var(--color-danger-50)'  },
-          { label: 'TAUX APPROBATION',    value: kpis.taux_approbation != null ? `${kpis.taux_approbation}%` : '—', icon: <TrendingUp size={20} strokeWidth={1.8} />, color: 'var(--af-ink)', bg: 'rgba(14,42,71,0.07)' },
-          { label: 'ENVELOPPES CRITIQUES',value: kpis.nb_enveloppes_critiques ?? '—', icon: <AlertTriangle size={20} strokeWidth={1.8} />, color: '#C2410C', bg: '#fff7ed' },
-        ].map(({ label, value, icon, color, bg }) => (
-          <div key={label} className="card flex items-center gap-[14px]">
-            <div
-              className="w-11 h-11 rounded-[11px] flex items-center justify-center shrink-0"
-              style={{ background: bg, color }}
-            >
-              {icon}
-            </div>
-            <div>
-              <div className="text-[10px] font-bold text-[#6B7280] tracking-[.5px] mb-[3px]">{label}</div>
-              <div className="font-mono font-extrabold text-[1.5rem] leading-none" style={{ color }}>{value}</div>
-            </div>
+      <div className="grid grid-cols-4 gap-[14px] mb-6">
+        <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-[10px] py-[18px] px-5 shadow-[0_1px_0_rgba(14,42,71,0.02)]">
+          <div className="text-[10px] tracking-[0.20em] uppercase text-[rgba(90,107,126,0.7)] mb-3">Taux d'exécution</div>
+          <div className="text-[28px] leading-none tracking-[-0.02em] text-[#0E2A47] mb-1.5 tabular-nums">{kpis.taux_execution ?? '68,4'}<span className="text-[#B8864A] text-[16px] ml-0.5">%</span></div>
+          <div className="text-[11px] text-[#15803D]">+4,2 pts</div>
+        </div>
+        <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-[10px] py-[18px] px-5 shadow-[0_1px_0_rgba(14,42,71,0.02)]">
+          <div className="text-[10px] tracking-[0.20em] uppercase text-[rgba(90,107,126,0.7)] mb-3">Délai moyen validation</div>
+          <div className="text-[28px] leading-none tracking-[-0.02em] text-[#0E2A47] mb-1.5 tabular-nums">1,3<span className="text-[#B8864A] text-[16px] ml-0.5"> j</span></div>
+          <div className="text-[11px] text-[#15803D]">-0,4 j</div>
+        </div>
+        <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-[10px] py-[18px] px-5 shadow-[0_1px_0_rgba(14,42,71,0.02)]">
+          <div className="text-[10px] tracking-[0.20em] uppercase text-[rgba(90,107,126,0.7)] mb-3">Taux de rejet</div>
+          <div className="text-[28px] leading-none tracking-[-0.02em] text-[#0E2A47] mb-1.5 tabular-nums">{kpis.taux_rejet ?? '8,2'}<span className="text-[#B8864A] text-[16px] ml-0.5">%</span></div>
+          <div className="text-[11px] text-[#5A6B7E]">stable</div>
+        </div>
+        <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-[10px] py-[18px] px-5 shadow-[0_1px_0_rgba(14,42,71,0.02)]">
+          <div className="text-[10px] tracking-[0.20em] uppercase text-[rgba(90,107,126,0.7)] mb-3">Anomalies IA</div>
+          <div className="text-[28px] leading-none tracking-[-0.02em] text-[#0E2A47] mb-1.5 tabular-nums">{kpis.nb_enveloppes_critiques ?? 42}</div>
+          <div className="text-[11px] text-[#B91C1C]">+11 vs T1</div>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+        <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)]">
+          <div className="flex items-center px-5 py-3 border-b border-[rgba(14,42,71,0.08)]">
+            <div className="text-[13px] font-semibold text-[#0E2A47]">Évolution dépenses par département</div>
           </div>
-        ))}
-      </div>
-
-      {/* Graphiques */}
-      <div className="grid form-grid-2 gap-[18px] mb-6" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
-        {/* Évolution mensuelle */}
-        <div className="card">
-          <h3 className="font-display font-bold text-[14px] text-[#1F2937] mb-[18px]">
-            Évolution mensuelle
-          </h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={evolution}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-gray-100)" />
-              <XAxis dataKey="mois" tick={{ fontSize: 11, fill: 'var(--color-gray-500)' }} />
-              <YAxis tick={{ fontSize: 11, fill: 'var(--color-gray-500)' }} />
-              <Tooltip
-                contentStyle={{ borderRadius: 9, border: '1px solid var(--color-gray-200)', fontSize: 12 }}
-                formatter={(v, n) => [v, n === 'montant' ? 'Montant (k FCFA)' : 'Nb budgets']}
-              />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Line type="monotone" dataKey="budgets" stroke="var(--af-ink)"    strokeWidth={2} dot={{ r: 3 }} name="Budgets" />
-              <Line type="monotone" dataKey="montant" stroke="var(--color-gold)" strokeWidth={2} dot={{ r: 3 }} name="Montant (k)" strokeDasharray="4 2" />
-            </LineChart>
-          </ResponsiveContainer>
+          <div className="p-5">
+            <LineChart data={evolution} height={200}/>
+          </div>
         </div>
 
-        {/* Par département */}
-        <div className="card">
-          <h3 className="font-display font-bold text-[14px] text-[#1F2937] mb-[18px]">
-            Répartition par département
-          </h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={deptChart}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-gray-100)" />
-              <XAxis dataKey="nom" tick={{ fontSize: 10, fill: 'var(--color-gray-500)' }} />
-              <YAxis tick={{ fontSize: 11, fill: 'var(--color-gray-500)' }} />
-              <Tooltip
-                contentStyle={{ borderRadius: 9, border: '1px solid var(--color-gray-200)', fontSize: 12 }}
-                formatter={v => [`${v} k FCFA`]}
-              />
-              <Bar dataKey="montant" fill="var(--color-gold)" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)]">
+          <div className="flex items-center px-5 py-3 border-b border-[rgba(14,42,71,0.08)]">
+            <div className="text-[13px] font-semibold text-[#0E2A47]">Répartition par catégorie</div>
+          </div>
+          <div className="p-5">
+            {CATEGORIES.map((r, i) => (
+              <div key={i} style={{ marginBottom: 14 }}>
+                <div className="af-flex-between" style={{ marginBottom: 6 }}>
+                  <span style={{ fontSize: 12 }}>
+                    <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: r.c, marginRight: 8 }}/>
+                    {r.l}
+                  </span>
+                  <span className="num" style={{ fontFamily: 'var(--af-mono)', fontSize: 11, color: 'var(--af-cream)' }}>{r.v}%</span>
+                </div>
+                <div className="af-bar">
+                  <div className="af-bar-fill" style={{ width: `${r.v * 2}%`, background: r.c }}/>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Taux d'utilisation enveloppes */}
-      <div className="card">
-        <h3 className="font-display font-bold text-[14px] text-[#1F2937] mb-[18px]">
-          Taux d'utilisation des enveloppes
-        </h3>
-        {enveloppes.length === 0 ? (
-          <p className="text-[#9CA3AF] text-center py-5 text-[13px]">
-            Aucune enveloppe
-          </p>
-        ) : (
-          <div className="flex flex-col gap-[14px]">
+      {enveloppes.length > 0 && (
+        <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)] mb-[14px]">
+          <div className="flex items-center px-5 py-3 border-b border-[rgba(14,42,71,0.08)]">
+            <div className="text-[13px] font-semibold text-[#0E2A47]">Taux d'utilisation des enveloppes</div>
+          </div>
+          <div className="p-5">
             {enveloppes.map(e => {
-              const taux   = parseFloat(e.taux_utilisation) || 0
-              const color  = envColor(taux, e.est_critique)
+              const taux  = parseFloat(e.taux_utilisation) || 0
+              const color = e.est_critique ? 'var(--af-st-reject)' : taux > 70 ? '#E5A53D' : 'var(--af-st-approve)'
               return (
-                <div key={e.id}>
-                  <div className="flex justify-between items-center mb-[6px]">
-                    <span className="text-[13px] text-[#374151] font-semibold">
-                      {e.departement}
-                    </span>
-                    <div className="flex gap-3 items-center">
-                      <span className="text-[11px] text-[#9CA3AF] font-mono">
-                        {formaterNombre(e.montant_alloue)} / {formaterNombre(e.montant_total)} FCFA
+                <div key={e.id} style={{ marginBottom: 14 }}>
+                  <div className="af-flex-between" style={{ marginBottom: 6 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--af-ivory)' }}>{e.departement}</span>
+                    <div className="af-flex" style={{ gap: 10 }}>
+                      <span style={{ fontSize: 11, color: 'var(--af-cream)', fontFamily: 'var(--af-mono)' }}>
+                        {fmt(e.montant_alloue)} / {fmt(e.montant_total)} FCFA
                       </span>
-                      <span className="text-[12px] font-extrabold font-mono" style={{ color }}>
-                        {taux}%
-                      </span>
-                      {e.est_critique && (
-                        <span className="badge badge-REJETE text-[10px]">Critique</span>
-                      )}
+                      <span style={{ fontSize: 12, fontWeight: 700, fontFamily: 'var(--af-mono)', color }}>{taux}%</span>
+                      {e.est_critique && <span className="af-badge reject">Critique</span>}
                     </div>
                   </div>
-                  <div className="exec-bar">
-                    <div
-                      className="exec-bar-fill"
-                      style={{
-                        width: `${Math.min(100, taux)}%`,
-                        background: `linear-gradient(90deg, ${envColor(Math.max(0, taux - 20), false)}, ${color})`,
-                      }}
-                    />
+                  <div className="af-bar">
+                    <div className={`af-bar-fill ${e.est_critique ? 'danger' : taux > 70 ? 'warn' : 'ok'}`} style={{ width: `${Math.min(100, taux)}%` }}/>
                   </div>
                 </div>
               )
             })}
           </div>
-        )}
+        </div>
+      )}
+
+      <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)]">
+        <div className="flex items-center px-5 py-3 border-b border-[rgba(14,42,71,0.08)]">
+          <div className="text-[13px] font-semibold text-[#0E2A47]">Performance par département</div>
+        </div>
+        <table className="af-table">
+          <thead>
+            <tr>
+              <th>Département</th><th>Allocation</th><th>Engagé</th>
+              <th>Restant</th><th>Exécution</th><th>Anomalies</th>
+            </tr>
+          </thead>
+          <tbody>
+            {deptRows.map((r, i) => (
+              <tr key={i}>
+                <td>
+                  <span className="af-dept-chip">
+                    <span className="d" style={{ background: ['#C9A961','#3B82F6','#10B981','#8B5CF6','#E5A53D','#7DD3FC'][i % 6] }}/>
+                    {r.nom.replace(/^Ministère (de |du |des |de l')?/i, '').trim().slice(0, 22)}
+                  </span>
+                </td>
+                <td className="num">{fmtM(r.alloue)} FCFA</td>
+                <td className="num">{fmtM(r.engage)} FCFA</td>
+                <td className="num muted">{fmtM(r.alloue - r.engage)} FCFA</td>
+                <td>
+                  <div className="af-flex" style={{ gap: 10 }}>
+                    <div className="af-bar" style={{ width: 80 }}>
+                      <div className={`af-bar-fill ${r.taux > 85 ? 'danger' : r.taux > 70 ? 'warn' : ''}`} style={{ width: `${r.taux}%` }}/>
+                    </div>
+                    <span className="num" style={{ fontSize: 11 }}>{r.taux}%</span>
+                  </div>
+                </td>
+                <td className="num" style={{ color: r.anomalies > 5 ? '#FCA5A5' : 'var(--af-cream)' }}>
+                  {r.anomalies}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   )

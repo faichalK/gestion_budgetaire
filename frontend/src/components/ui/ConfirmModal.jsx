@@ -1,6 +1,5 @@
-import { AlertTriangle, Trash2, CheckCircle2, LogOut, XCircle } from 'lucide-react'
+import { AlertTriangle, Trash2, CheckCircle2, LogOut, XCircle } from '../AtlasIcons'
 
-// Flat header colors per variant — no gradients (design system rule)
 const VARIANTS = {
   danger: {
     headerBg: '#C0392B',
@@ -18,23 +17,12 @@ const VARIANTS = {
     Icon: CheckCircle2,
   },
   primary: {
-    headerBg: 'var(--af-ink)',
+    headerBg: '#0E2A47',
     btnClass: 'btn btn-primary btn-md',
     Icon: LogOut,
   },
 }
 
-/**
- * Modal de confirmation réutilisable — remplace window.confirm()
- *
- * Props :
- *   title        — titre affiché dans le header
- *   message      — texte de la question
- *   confirmLabel — libellé du bouton de confirmation (défaut : "Confirmer")
- *   variant      — 'danger' | 'warning' | 'success' | 'primary'  (défaut : 'danger')
- *   onConfirm    — callback si l'utilisateur confirme
- *   onClose      — callback si l'utilisateur annule / ferme
- */
 export default function ConfirmModal({
   title        = 'Confirmation',
   message      = 'Êtes-vous sûr de vouloir effectuer cette action ?',
@@ -48,70 +36,40 @@ export default function ConfirmModal({
 
   return (
     <div
-      className="modal-overlay"
+      className="fixed inset-0 bg-[rgba(14,42,71,0.45)] backdrop-blur-[8px] z-[500] flex items-center justify-center p-5 animate-[fadeIn_.15s_ease]"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
-        className="modal-panel"
+        className="bg-white rounded-[14px] shadow-[0_20px_60px_rgba(14,42,71,0.25)] border border-[rgba(14,42,71,0.08)] w-full max-w-[420px] animate-[scaleIn_.2s_cubic-bezier(.34,1.56,.64,1)] overflow-hidden"
         onClick={e => e.stopPropagation()}
-        style={{ maxWidth: 420, padding: 0, overflow: 'hidden' }}
       >
-        {/* Header — flat solid color, no gradient */}
-        <div style={{
-          background: v.headerBg,
-          padding: '18px 24px',
-          color: '#fff',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 14,
-        }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: 8, flexShrink: 0,
-            background: 'rgba(255,255,255,.15)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
+        {/* Header — couleur dynamique selon la variante */}
+        <div
+          className="flex items-center gap-[14px] px-6 py-[18px] text-white"
+          style={{ background: v.headerBg }}
+        >
+          <div className="w-9 h-9 rounded-lg shrink-0 bg-white/15 flex items-center justify-center">
             <Icon size={17} strokeWidth={2} />
           </div>
-
           <div>
-            <div style={{ fontWeight: 700, fontSize: '15px', letterSpacing: '-.1px' }}>
-              {title}
-            </div>
-            <div style={{ fontSize: '12px', opacity: 0.65, marginTop: 2 }}>
-              Cette action nécessite votre confirmation
-            </div>
+            <div className="font-bold text-[15px] tracking-[-0.1px]">{title}</div>
+            <div className="text-xs opacity-65 mt-0.5">Cette action nécessite votre confirmation</div>
           </div>
         </div>
 
         {/* Corps */}
-        <div style={{ padding: '20px 24px' }}>
-          <p style={{
-            margin: 0,
-            fontSize: '14px',
-            color: 'var(--color-gray-700)',
-            lineHeight: 1.65,
-          }}>
-            {message}
-          </p>
+        <div className="px-6 py-5">
+          <p className="text-sm text-[#5A6B7E] leading-[1.65]">{message}</p>
         </div>
 
         {/* Footer */}
-        <div style={{
-          display: 'flex', justifyContent: 'flex-end', gap: 10,
-          padding: '12px 24px',
-          borderTop: '1px solid var(--color-gray-100)',
-          background: 'var(--color-gray-50)',
-        }}>
-          <button
-            onClick={onClose}
-            className="btn btn-secondary btn-md"
-          >
+        <div className="flex justify-end gap-[10px] px-6 py-3 border-t border-[rgba(14,42,71,0.08)] bg-[#EDE7DA]">
+          <button onClick={onClose} className="btn btn-secondary btn-md">
             Annuler
           </button>
           <button
             onClick={() => { onConfirm(); onClose() }}
             className={v.btnClass}
-            style={{ gap: 7 }}
           >
             <Icon size={14} strokeWidth={2} />
             {confirmLabel}

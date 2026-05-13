@@ -430,11 +430,11 @@ class ForgotPasswordView(APIView):
             plain_body = (
                 f"Bonjour {user.prenom} {user.nom},\n\n"
                 f"Cliquez sur ce lien pour réinitialiser votre mot de passe :\n{reset_url}\n\n"
-                "Ce lien est valable 24 heures.\n\n— Gestion budgétaire"
+                "Ce lien est valable 24 heures.\n\n— Atlas Finance"
             )
 
             send_mail(
-                subject='Réinitialisation de votre mot de passe — Gestion budgétaire',
+                subject='Réinitialisation de votre mot de passe — Atlas Finance',
                 message=plain_body,
                 html_message=html_body,
                 from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@budgetflow.bf'),

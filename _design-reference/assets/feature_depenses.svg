@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500" role="img">
+  <defs>
+    <linearGradient id="bgd" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fafbfc"></stop><stop offset="1" stop-color="#f1f3f7"></stop></linearGradient>
+    <pattern id="gd" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M24 0H0V24" fill="none" stroke="#e6eaf0" stroke-width=".5"></path></pattern>
+  </defs>
+  <rect width="800" height="500" fill="url(#bgd)"></rect>
+  <rect width="800" height="500" fill="url(#gd)" opacity=".6"></rect>
+  <text x="32" y="48" font-family="Inter, sans-serif" font-size="11" letter-spacing="1.6" fill="#5b6573">DÉPENSES · TEMPS RÉEL</text>
+  <text x="32" y="80" font-family="Inter, sans-serif" font-weight="700" font-size="24" fill="#0c1626">Suivi des engagements</text>
+
+  
+  <rect x="32" y="100" width="736" height="40" rx="8" fill="#fef6e3" stroke="#b45309" stroke-opacity=".5"></rect>
+  <circle cx="52" cy="120" r="5" fill="#b45309"></circle>
+  <text x="68" y="124" font-family="Inter, sans-serif" font-size="12" fill="#b45309">Dépassement détecté · Communication 14.8% au-dessus du seuil</text>
+  <text x="752" y="124" text-anchor="end" font-family="Inter, sans-serif" font-size="11" fill="#b45309" letter-spacing="1.4">RÉSOUDRE →</text>
+
+  
+  <g font-family="Inter, sans-serif" font-size="10" letter-spacing="1.5" fill="#5b6573">
+    <text x="32" y="172">DATE</text><text x="120" y="172">LIBELLÉ</text>
+    <text x="430" y="172">JUSTIFICATIF</text><text x="560" y="172">MONTANT</text>
+    <text x="700" y="172">STATUT</text>
+  </g>
+  <line x1="32" y1="180" x2="768" y2="180" stroke="#e6eaf0"></line>
+
+  
+  <g font-family="Inter, sans-serif" font-size="12">
+    <g transform="translate(0,0)">
+      <text x="32" y="208" fill="#5b6573">14 avr.</text>
+      <text x="120" y="208" fill="#0c1626">Hôtel mission Bamako · 4 nuits</text>
+      <rect x="430" y="194" width="100" height="22" rx="5" fill="#ffffff" stroke="#e6eaf0"></rect>
+      <text x="442" y="208" font-size="11" fill="#2563eb">▤ facture.pdf</text>
+      <text x="560" y="208" fill="#0c4a6e">€ 1 240,00</text>
+      <circle cx="708" cy="204" r="4" fill="#15803d"></circle>
+      <text x="720" y="208" font-size="11" fill="#15803d">Validé</text>
+    </g>
+    <g transform="translate(0,40)">
+      <text x="32" y="208" fill="#5b6573">13 avr.</text>
+      <text x="120" y="208" fill="#0c1626">Licences Adobe · 12 postes</text>
+      <rect x="430" y="194" width="100" height="22" rx="5" fill="#ffffff" stroke="#e6eaf0"></rect>
+      <text x="442" y="208" font-size="11" fill="#2563eb">▤ devis.pdf</text>
+      <text x="560" y="208" fill="#0c4a6e">€ 8 940,00</text>
+      <circle cx="708" cy="204" r="4" fill="#b45309"></circle>
+      <text x="720" y="208" font-size="11" fill="#b45309">En cours</text>
+    </g>
+    <g transform="translate(0,80)">
+      <text x="32" y="208" fill="#5b6573">12 avr.</text>
+      <text x="120" y="208" fill="#0c1626">Édition rapport annuel · 1 200 ex.</text>
+      <rect x="430" y="194" width="100" height="22" rx="5" fill="#ffffff" stroke="#e6eaf0"></rect>
+      <text x="442" y="208" font-size="11" fill="#2563eb">▤ facture.pdf</text>
+      <text x="560" y="208" fill="#b45309">€ 18 400,00</text>
+      <circle cx="708" cy="204" r="4" fill="#b45309"></circle>
+      <text x="720" y="208" font-size="11" fill="#b45309">Alerte</text>
+    </g>
+    <g transform="translate(0,120)">
+      <text x="32" y="208" fill="#5b6573">11 avr.</text>
+      <text x="120" y="208" fill="#0c1626">Frais de transport · équipe terrain</text>
+      <rect x="430" y="194" width="100" height="22" rx="5" fill="#ffffff" stroke="#e6eaf0"></rect>
+      <text x="442" y="208" font-size="11" fill="#2563eb">▤ note.pdf</text>
+      <text x="560" y="208" fill="#0c4a6e">€ 642,80</text>
+      <circle cx="708" cy="204" r="4" fill="#15803d"></circle>
+      <text x="720" y="208" font-size="11" fill="#15803d">Validé</text>
+    </g>
+    <g transform="translate(0,160)">
+      <text x="32" y="208" fill="#5b6573">10 avr.</text>
+      <text x="120" y="208" fill="#0c1626">Honoraires conseil · cabinet ext.</text>
+      <rect x="430" y="194" width="100" height="22" rx="5" fill="#ffffff" stroke="#e6eaf0"></rect>
+      <text x="442" y="208" font-size="11" fill="#2563eb">▤ contrat.pdf</text>
+      <text x="560" y="208" fill="#0c4a6e">€ 12 500,00</text>
+      <circle cx="708" cy="204" r="4" fill="#15803d"></circle>
+      <text x="720" y="208" font-size="11" fill="#15803d">Validé</text>
+    </g>
+    <g transform="translate(0,200)">
+      <text x="32" y="208" fill="#5b6573">9 avr.</text>
+      <text x="120" y="208" fill="#0c1626">Maintenance serveurs · trim.</text>
+      <rect x="430" y="194" width="100" height="22" rx="5" fill="#ffffff" stroke="#e6eaf0"></rect>
+      <text x="442" y="208" font-size="11" fill="#2563eb">▤ facture.pdf</text>
+      <text x="560" y="208" fill="#0c4a6e">€ 4 280,00</text>
+      <circle cx="708" cy="204" r="4" fill="#15803d"></circle>
+      <text x="720" y="208" font-size="11" fill="#15803d">Validé</text>
+    </g>
+  </g>
+</svg>

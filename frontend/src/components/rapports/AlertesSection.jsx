@@ -1,4 +1,4 @@
-import { AlertTriangle, AlertCircle, Info } from 'lucide-react'
+import { AlertTriangle, AlertCircle, Info } from '../AtlasIcons'
 import { formaterNombre, formaterPourcentage } from '../../utils/formatters'
 
 const NIVEAU_META = {

@@ -8,10 +8,10 @@ const TRUST_BADGES = [
 ]
 
 const BUDGET_ROWS = [
-  { name: 'Mission Afrique Subsaharienne', dept: 'Direction Générale', amount: '4 200 000 €', status: 0 },
-  { name: 'Programme Santé Communautaire', dept: 'Santé & Social',     amount: '1 850 000 €', status: 2 },
-  { name: 'Infrastructure SI 2024',        dept: 'Informatique',       amount: '730 000 €',   status: 1 },
-  { name: 'Formation & Renforcement',      dept: 'RH / Formation',     amount: '420 000 €',   status: 2 },
+  { name: 'Mission Afrique Subsaharienne', dept: 'Direction Générale', amount: '4 200 000 FCFA', status: 0 },
+  { name: 'Programme Santé Communautaire', dept: 'Santé & Social',     amount: '1 850 000 FCFA', status: 2 },
+  { name: 'Infrastructure SI 2024',        dept: 'Informatique',       amount: '730 000 FCFA',   status: 1 },
+  { name: 'Formation & Renforcement',      dept: 'RH / Formation',     amount: '420 000 FCFA',   status: 2 },
 ]
 
 export default function Hero() {
@@ -169,9 +169,9 @@ export default function Hero() {
                 {/* KPI cards */}
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12 }}>
                   {[
-                    { label:'Budget Total', value:'12 450 000 €', sub:'+2.4% vs 2023', subColor:'#16A34A', accent:false },
-                    { label:'Dépenses Engagées', value:'8 920 400 €', sub:'3 alertes actives', subColor:'#D97706', accent:false },
-                    { label:'Fonds Restants', value:'3 529 600 €', sub:'Disponible', subColor:'#64748B', accent:true },
+                    { label:'Budget Total', value:'12 450 000 FCFA', sub:'+2.4% vs 2023', subColor:'#16A34A', accent:false },
+                    { label:'Dépenses Engagées', value:'8 920 400 FCFA', sub:'3 alertes actives', subColor:'#D97706', accent:false },
+                    { label:'Fonds Restants', value:'3 529 600 FCFA', sub:'Disponible', subColor:'#64748B', accent:true },
                   ].map(card => (
                     <div key={card.label} style={{
                       padding:'14px 16px', borderRadius:10,

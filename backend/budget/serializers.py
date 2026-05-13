@@ -130,7 +130,7 @@ class ConsommationLigneSerializer(serializers.ModelSerializer):
         model  = ConsommationLigne
         fields = [
             'id', 'montant', 'montant_fmt',
-            'piece_justificative', 'note',
+            'note',
             'date', 'date_fmt',
             'enregistre_par_nom',
             'statut_config',
@@ -167,6 +167,7 @@ class LigneBudgetaireSerializer(serializers.ModelSerializer):
             'id', 'budget', 'parent',
             'code', 'libelle', 'unite', 'section',
             'quantite', 'prix_unitaire',
+            'cout_optimiste', 'cout_probable', 'cout_pessimiste',
             'montant_alloue', 'montant_consomme', 'montant_disponible',
             'date_creation', 'consommations', 'sous_lignes',
         ]

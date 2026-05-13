@@ -2,7 +2,7 @@ import { useState } from 'react'
 import {
   FileBarChart, Calendar, CalendarDays, CalendarRange,
   Download, RefreshCw, AlertTriangle, ChevronDown,
-} from 'lucide-react'
+} from '../../components/AtlasIcons'
 import { useGenererRapport, useExportRapport } from '../../hooks/useRapport'
 import ResumeExecutif           from '../../components/rapports/ResumeExecutif'
 import AlertesSection           from '../../components/rapports/AlertesSection'
@@ -32,7 +32,7 @@ const TABS = [
 function Select({ label, value, onChange, children }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <label style={{ fontSize: '11px', fontWeight: 600, color: '#6B7280', letterSpacing: '.3px' }}>
+      <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--af-cream)', letterSpacing: '.3px' }}>
         {label}
       </label>
       <div style={{ position: 'relative' }}>
@@ -42,8 +42,8 @@ function Select({ label, value, onChange, children }) {
           style={{
             appearance: 'none', width: '100%',
             padding: '8px 36px 8px 12px',
-            border: '1.5px solid #E5E7EB', borderRadius: 8,
-            fontSize: '13px', color: '#111827', background: '#fff',
+            border: '1.5px solid var(--af-line-2)', borderRadius: 8,
+            fontSize: 13, color: 'var(--af-ink)', background: '#fff',
             cursor: 'pointer', fontFamily: 'inherit',
           }}
         >
@@ -51,7 +51,7 @@ function Select({ label, value, onChange, children }) {
         </select>
         <ChevronDown size={14} strokeWidth={2} style={{
           position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
-          color: '#9CA3AF', pointerEvents: 'none',
+          color: 'var(--af-mute)', pointerEvents: 'none',
         }} />
       </div>
     </div>
@@ -63,21 +63,21 @@ function Select({ label, value, onChange, children }) {
 function ResultPanel({ rapport, isLoading, error }) {
   if (isLoading) return (
     <div style={{ padding: '72px 0', textAlign: 'center' }}>
-      <div className="spinner" style={{ margin: '0 auto 14px' }} />
-      <p style={{ fontSize: '13px', color: '#9CA3AF' }}>Génération du rapport en cours…</p>
+      <div className="af-spinner" style={{ margin: '0 auto 14px' }} />
+      <p style={{ fontSize: 13, color: 'var(--af-mute)' }}>Génération du rapport en cours…</p>
     </div>
   )
 
   if (error) return (
     <div style={{
-      background: '#FFF1F2', border: '1px solid #FECDD3',
+      background: 'var(--color-danger-50)', border: '1px solid var(--color-danger-200)',
       borderRadius: 10, padding: '16px 20px',
       display: 'flex', gap: 12, alignItems: 'flex-start',
     }}>
-      <AlertTriangle size={18} strokeWidth={2} style={{ color: '#DC2626', flexShrink: 0, marginTop: 1 }} />
+      <AlertTriangle size={18} strokeWidth={2} style={{ color: 'var(--color-danger-700)', flexShrink: 0, marginTop: 1 }} />
       <div>
-        <div style={{ fontSize: '13px', fontWeight: 600, color: '#DC2626' }}>Erreur de chargement</div>
-        <div style={{ fontSize: '12px', color: '#6B7280', marginTop: 3 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-danger-700)' }}>Erreur de chargement</div>
+        <div style={{ fontSize: 12, color: 'var(--af-cream)', marginTop: 3 }}>
           {error.response?.data?.detail || error.message || 'Une erreur inattendue s\'est produite.'}
         </div>
       </div>
@@ -85,17 +85,10 @@ function ResultPanel({ rapport, isLoading, error }) {
   )
 
   if (!rapport) return (
-    <div style={{
-      background: '#F9FAFB', border: '1.5px dashed #E5E7EB',
-      borderRadius: 12, padding: '56px 24px', textAlign: 'center',
-    }}>
-      <FileBarChart size={36} strokeWidth={1.5} style={{ color: '#D1D5DB', margin: '0 auto 12px', display: 'block' }} />
-      <p style={{ fontSize: '14px', fontWeight: 600, color: '#9CA3AF', margin: '0 0 6px' }}>
-        Aucun rapport généré
-      </p>
-      <p style={{ fontSize: '12px', color: '#D1D5DB', margin: 0 }}>
-        Sélectionnez les paramètres et cliquez sur <strong style={{ color: '#9CA3AF' }}>Générer</strong>
-      </p>
+    <div className="af-loader" style={{ padding: '56px 24px', border: '1.5px dashed var(--af-line-2)', borderRadius: 12 }}>
+      <FileBarChart size={36} strokeWidth={1.5} style={{ color: 'var(--af-mute)' }} />
+      <span>Aucun rapport généré</span>
+      <span style={{ fontSize: 12 }}>Sélectionnez les paramètres et cliquez sur <strong>Générer</strong></span>
     </div>
   )
 
@@ -151,17 +144,16 @@ function ResultPanel({ rapport, isLoading, error }) {
             {rapport.detail_mois.map((m) => {
               const fmt = (n) => formaterNombre(n, { maximumFractionDigits: 0 })
               return (
-                <div key={m.mois} style={{
-                  background: '#fff', borderRadius: 10, padding: '14px 16px',
-                  boxShadow: '0 1px 4px rgba(0,0,0,.06)', borderTop: '3px solid #C9910A',
+                <div key={m.mois} className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)]" style={{
+                  padding: '14px 16px', borderTop: '3px solid var(--af-gold)',
                 }}>
-                  <div style={{ fontSize: '10px', fontWeight: 700, color: '#9CA3AF', letterSpacing: '.5px', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--af-mute)', letterSpacing: '.5px', textTransform: 'uppercase' }}>
                     {MOIS_FR[m.mois - 1]}
                   </div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '15px', color: '#111827', marginTop: 4 }}>
+                  <div style={{ fontFamily: 'var(--af-mono)', fontWeight: 700, fontSize: 15, color: 'var(--af-ink)', marginTop: 4 }}>
                     {fmt(m.total)} FCFA
                   </div>
-                  <div style={{ fontSize: '11px', color: '#6B7280', marginTop: 2 }}>
+                  <div style={{ fontSize: 11, color: 'var(--af-cream)', marginTop: 2 }}>
                     {m.nb} dépense{m.nb !== 1 ? 's' : ''}
                   </div>
                 </div>
@@ -238,13 +230,14 @@ export default function RapportPage() {
   return (
     <div>
       {/* En-tête */}
-      <div className="page-header">
+      <div className="mb-7 flex items-end gap-6">
         <div>
-          <h1 className="page-title">Rapports détaillés</h1>
-          <p className="page-subtitle">Génération de rapports budgétaires par période</p>
+          <div className="text-[10px] tracking-[0.20em] uppercase text-[#B8864A] mb-2 font-medium">Finance · Analyse périodique</div>
+          <h1 className="text-[32px] font-normal tracking-[-0.02em] leading-[1.1] text-[#0E2A47] mb-1">Rapports détaillés</h1>
+          <div className="text-[13px] text-[#5A6B7E]">Génération de rapports budgétaires par période</div>
         </div>
         {rapport && (
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="ml-auto flex gap-2.5">
             <button
               onClick={() => handleExport('EXCEL')}
               disabled={exportMut.isPending}
@@ -256,7 +249,7 @@ export default function RapportPage() {
             <button
               onClick={() => handleExport('PDF')}
               disabled={exportMut.isPending}
-              className="btn btn-secondary btn-sm"
+              className="btn btn-primary btn-sm"
               style={{ gap: 6 }}
             >
               <Download size={13} strokeWidth={2} /> PDF
@@ -266,7 +259,7 @@ export default function RapportPage() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid var(--color-gray-200)' }}>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid var(--af-line)' }}>
         {TABS.map(t => {
           const active = tab === t.key
           const IconComp = t.icon
@@ -277,11 +270,11 @@ export default function RapportPage() {
               style={{
                 background: 'none', border: 'none', cursor: 'pointer',
                 padding: '8px 18px 10px',
-                fontSize: '13px', fontWeight: active ? 700 : 500,
-                color: active ? 'var(--af-ink)' : 'var(--color-gray-500)',
-                borderBottom: active ? '2.5px solid var(--af-ink)' : '2.5px solid transparent',
+                fontSize: 13, fontWeight: active ? 700 : 500,
+                color: active ? 'var(--af-gold)' : 'var(--af-cream)',
+                borderBottom: active ? '2.5px solid var(--af-gold)' : '2.5px solid transparent',
                 display: 'flex', alignItems: 'center', gap: 7,
-                transition: 'color .15s',
+                transition: 'color .15s', fontFamily: 'var(--af-sans)',
               }}
             >
               <IconComp size={14} strokeWidth={active ? 2.2 : 1.8} />
@@ -295,18 +288,18 @@ export default function RapportPage() {
 
         {/* ── Panneau paramètres ───────────────────────────────────────────── */}
         <div style={{
-          background: '#fff', borderRadius: 12, padding: '20px',
-          boxShadow: '0 1px 6px rgba(0,0,0,.07)',
+          background: 'var(--af-slate)', borderRadius: 12, padding: '20px',
+          border: '1px solid var(--af-line)', boxShadow: 'var(--shadow-sm)',
           position: 'sticky', top: 24,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
             <div style={{
-              width: 30, height: 30, borderRadius: 8, background: '#F8FAFC',
+              width: 30, height: 30, borderRadius: 8, background: 'var(--af-steel)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               <FileBarChart size={14} strokeWidth={2} style={{ color: 'var(--af-ink)' }} />
             </div>
-            <span style={{ fontSize: '13px', fontWeight: 700, color: '#111827' }}>Paramètres</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--af-ink)' }}>Paramètres</span>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -341,7 +334,7 @@ export default function RapportPage() {
           <button
             onClick={handleGenerer}
             disabled={!canGenerate() || isLoading}
-            className="btn btn-primary btn-md"
+            className="btn btn-primary btn-sm"
             style={{ width: '100%', marginTop: 20, gap: 8, justifyContent: 'center' }}
           >
             {isLoading

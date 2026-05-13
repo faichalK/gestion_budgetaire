@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { updateMe, changePassword } from '../api/accounts'
-import { User, Lock, Eye, EyeOff, CheckCircle2, AlertTriangle } from 'lucide-react'
+import { User, Lock, Eye, EyeOff, CheckCircle2, AlertTriangle } from '../components/AtlasIcons'
 import { RoleBadge } from '../components/StatusBadge'
 
 export default function ProfilPage() {
