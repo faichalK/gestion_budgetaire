@@ -1,12 +1,11 @@
 """
-Script de création automatique du superuser au démarrage.
-Lit les variables d'environnement DJANGO_SUPERUSER_*.
+Création automatique du superuser au démarrage du conteneur.
 Appelé par start.sh — ne fait rien si l'utilisateur existe déjà.
+Les identifiants sont lus depuis les variables d'environnement Railway.
 """
 import os
 import sys
 
-# Ajouter le backend au path
 sys.path.insert(0, '/app/backend')
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 
@@ -15,11 +14,15 @@ django.setup()
 
 from accounts.models import Utilisateur
 
-email     = os.environ.get('DJANGO_SUPERUSER_EMAIL',    'stanislaskonate@gmail.com')
-password  = os.environ.get('DJANGO_SUPERUSER_PASSWORD', '1234')
-nom       = os.environ.get('DJANGO_SUPERUSER_NOM',      'Stanislas')
-prenom    = os.environ.get('DJANGO_SUPERUSER_PRENOM',   'Konaté')
+email     = os.environ.get('DJANGO_SUPERUSER_EMAIL')
+password  = os.environ.get('DJANGO_SUPERUSER_PASSWORD')
+nom       = os.environ.get('DJANGO_SUPERUSER_NOM',      'Admin')
+prenom    = os.environ.get('DJANGO_SUPERUSER_PRENOM',   'Super')
 matricule = os.environ.get('DJANGO_SUPERUSER_MATRICULE', 'ADM001')
+
+if not email or not password:
+    print('[superuser] DJANGO_SUPERUSER_EMAIL ou DJANGO_SUPERUSER_PASSWORD non défini — ignoré.')
+    sys.exit(0)
 
 if Utilisateur.objects.filter(email=email).exists():
     print(f'[superuser] déjà existant : {email}')

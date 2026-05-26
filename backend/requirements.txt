@@ -1,18 +1,31 @@
+# Core
 Django==5.2.12
-djangorestframework>=3.15.2
-django-cors-headers>=4.4.0
+djangorestframework==3.17.1
+django-cors-headers==4.9.0
 djangorestframework-simplejwt==5.3.1
 python-dotenv==1.0.1
-psycopg2-binary==2.9.11
-Pillow>=10.0.0
-django-simpleui
-argon2-cffi>=23.1.0
-openpyxl>=3.1.0
-reportlab>=4.0.0
 
-anthropic>=0.40.0
+# Base de données
+psycopg2-binary==2.9.11
+
+# Médias & fichiers
+Pillow==12.1.1
+openpyxl>=3.1.0
+reportlab==4.5.1
+
+# Sécurité
+argon2-cffi==25.1.0
+argon2-cffi-bindings==25.1.0
+PyJWT==2.12.1
+
+# Admin
+django-jazzmin==3.0.3
+django-simpleui==2026.1.13
+
+# IA
+anthropic==0.89.0
 
 # Production
 gunicorn>=23.0.0
-whitenoise[brotli]>=6.8.0
+whitenoise>=6.8.0
 dj-database-url>=2.3.0
