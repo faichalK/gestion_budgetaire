@@ -111,9 +111,6 @@ export default function AdminDashboard() {
           </div>
         </div>
         <div className="ml-auto flex gap-2.5">
-          <button className="btn btn-secondary btn-sm" onClick={() => navigate('/rapports')}>
-            {Icon.download}Exporter
-          </button>
         </div>
       </div>
 
