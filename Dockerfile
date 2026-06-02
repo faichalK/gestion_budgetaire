@@ -17,8 +17,6 @@ FROM python:3.10-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    # Clé factice uniquement pour le build (collectstatic n'utilise pas la DB)
-    SECRET_KEY=build-only-placeholder-replaced-at-runtime \
     DEBUG=False
 
 WORKDIR /app
@@ -38,7 +36,7 @@ COPY --from=frontend-builder /build/backend/frontend_dist ./backend/frontend_dis
 
 # Collecter les fichiers statiques pendant le build (pas au démarrage)
 WORKDIR /app/backend
-RUN python manage.py collectstatic --noinput
+RUN SECRET_KEY=collectstatic-build-only python manage.py collectstatic --noinput
 
 # Script de démarrage
 COPY start.sh /start.sh
