@@ -41,9 +41,9 @@ class BudgetAnnuelSerializer(serializers.ModelSerializer):
             'id', 'annee', 'annee_fin', 'periode_display', 'date_fin_exercice',
             'montant_global', 'description',
             'montant_alloue_depts', 'montant_disponible_global',
-            'allocations', 'date_creation',
+            'allocations', 'date_creation', 'est_cloture',
         ]
-        read_only_fields = ['id', 'date_creation']
+        read_only_fields = ['id', 'date_creation', 'est_cloture']
 
     def validate(self, data):
         inst     = self.instance

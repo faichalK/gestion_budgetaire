@@ -107,7 +107,7 @@ class BudgetAnnuelListCreateView(generics.ListCreateAPIView):
         return BudgetAnnuel.objects.prefetch_related('allocations__departement').all()
 
     def perform_create(self, serializer):
-        instance = serializer.save()
+        instance = serializer.save(est_cloture=False)
         LogAudit.enregistrer(
             utilisateur=self.request.user,
             table='budget_annuel',
