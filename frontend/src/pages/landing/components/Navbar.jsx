@@ -93,11 +93,6 @@ export default function Navbar() {
 
               {/* Desktop CTA */}
               <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                <a href="/login"
-                  style={{ fontSize: 14, fontWeight: 500, color: '#475569', textDecoration: 'none', padding: '8px 4px', transition: 'color .15s' }}
-                  onMouseEnter={e => { e.currentTarget.style.color = 'var(--color-gold)' }}
-                  onMouseLeave={e => { e.currentTarget.style.color = '#475569' }}
-                >Connexion</a>
                 <a href="/login" className="nav-cta"
                   style={{
                     fontSize: 14, fontWeight: 600, color: '#FFFFFF', textDecoration: 'none',
@@ -106,7 +101,7 @@ export default function Navbar() {
                     boxShadow: '0 2px 12px rgba(184,134,74,0.25)',
                     transition: 'background .15s',
                   }}
-                >Démarrer</a>
+                >Connexion</a>
               </div>
             </>
           )}
@@ -151,7 +146,7 @@ export default function Navbar() {
             padding: '12px 24px', borderRadius: 10,
             background: 'var(--af-ink)', color: '#FFFFFF', textDecoration: 'none',
             fontWeight: 600, fontSize: 15,
-          }}>Démarrer</a>
+          }}>Connexion</a>
         </div>
       )}
     </>

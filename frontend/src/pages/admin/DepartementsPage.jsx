@@ -133,9 +133,6 @@ export default function DepartementsPage() {
           </div>
           <p className="empty-title">Aucun département</p>
           <p className="empty-body">Créez votre premier département pour commencer.</p>
-          <button onClick={openCreate} className="btn btn-primary btn-sm" style={{ marginTop: 16, gap: 7 }}>
-            <Plus size={15} strokeWidth={2.5} /> Nouveau département
-          </button>
         </div>
       ) : (
         <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)]" style={{ overflowX: 'auto' }}>

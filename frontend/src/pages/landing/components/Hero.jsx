@@ -97,7 +97,7 @@ export default function Hero() {
             boxShadow:'0 4px 24px rgba(0,0,0,0.25)',
             transition:'background .15s, box-shadow .15s',
           }}>
-            Démarrer maintenant
+            Connexion
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
           </a>
         </div>

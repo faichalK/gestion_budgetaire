@@ -40,18 +40,6 @@ export default function CTAFinal() {
         </h2>
 
         <div style={{ display:'flex', flexWrap:'wrap', gap:12, justifyContent:'center', marginBottom:36 }}>
-          <a href="/login" style={{
-            display:'inline-flex', alignItems:'center', gap:8,
-            padding:'14px 32px', borderRadius:10,
-            background:'var(--af-ink)', color:'#FFFFFF',
-            fontWeight:700, fontSize:15, textDecoration:'none',
-            boxShadow:'0 4px 16px rgba(14,42,71,0.25)',
-            transition:'background .15s, transform .15s',
-          }}
-            onMouseEnter={e => { e.currentTarget.style.background='var(--color-gold-dark)'; e.currentTarget.style.transform='translateY(-1px)' }}
-            onMouseLeave={e => { e.currentTarget.style.background='var(--af-ink)'; e.currentTarget.style.transform='' }}
-          >Démarrer gratuitement</a>
-
           <Link to="/contact" style={{
             display:'inline-flex', alignItems:'center', gap:8,
             padding:'14px 28px', borderRadius:10,
