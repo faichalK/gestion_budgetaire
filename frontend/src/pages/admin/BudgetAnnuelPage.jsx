@@ -55,10 +55,7 @@ export default function BudgetAnnuelPage() {
         <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)]" style={{ padding: '48px 24px', textAlign: 'center' }}>
           <CalendarDays size={28} strokeWidth={1.5} style={{ color: 'var(--af-mute)', margin: '0 auto 12px', display: 'block' }} />
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--af-ivory)', marginBottom: 6 }}>Aucun budget annuel voté</div>
-          <div style={{ fontSize: 13, color: 'var(--af-mute)', marginBottom: 20 }}>Votez un budget global pour démarrer l'exercice.</div>
-          <button onClick={() => setShowNewBA(true)} className="btn btn-primary btn-sm" style={{ gap: 7 }}>
-            <Plus size={14} strokeWidth={2.5} /> Voter le budget
-          </button>
+          <div style={{ fontSize: 13, color: 'var(--af-mute)' }}>Votez un budget global pour démarrer l'exercice.</div>
         </div>
       ) : (
         <div style={{ maxWidth: 760 }}>

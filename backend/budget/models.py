@@ -32,6 +32,8 @@ class BudgetAnnuel(models.Model):
                      )
     description    = models.TextField(blank=True, verbose_name="Description / note")
     date_creation  = models.DateTimeField(auto_now_add=True)
+    est_cloture    = models.BooleanField(default=False, verbose_name="Exercice clôturé")
+    date_cloture   = models.DateTimeField(null=True, blank=True, verbose_name="Date de clôture de l'exercice")
 
     class Meta:
         db_table            = 'budget_annuel'
@@ -646,8 +648,13 @@ class Depense(models.Model):
     budget         = models.ForeignKey(
                          'Budget',
                          on_delete=models.CASCADE,
+                         null=True, blank=True,
                          related_name='depenses',
                          verbose_name="Budget"
+                     )
+    libelle_hors_budget = models.CharField(
+                         max_length=300, blank=True,
+                         verbose_name="Libellé (hors budget)"
                      )
     statut         = models.CharField(
                          max_length=12,
@@ -739,6 +746,7 @@ class ConsommationLigne(models.Model):
     ligne          = models.ForeignKey(
                          LigneBudgetaire,
                          on_delete=models.CASCADE,
+                         null=True, blank=True,
                          related_name='consommations',
                          verbose_name="Ligne budgétaire"
                      )
@@ -758,6 +766,10 @@ class ConsommationLigne(models.Model):
                          verbose_name="Statut"
                      )
     motif_rejet    = models.CharField(max_length=500, blank=True, verbose_name="Motif de rejet")
+    designation    = models.CharField(max_length=500, blank=True, default='', verbose_name="Désignation du poste")
+    quantite       = models.DecimalField(max_digits=12, decimal_places=3, null=True, blank=True, verbose_name="Quantité")
+    unite          = models.CharField(max_length=50, blank=True, default='', verbose_name="Unité")
+    prix_unitaire  = models.DecimalField(max_digits=18, decimal_places=2, null=True, blank=True, verbose_name="Prix unitaire (FCFA)")
     montant        = models.DecimalField(max_digits=18, decimal_places=2, verbose_name="Montant dépensé")
     note           = models.CharField(max_length=500, blank=True, verbose_name="Note / libellé")
     date           = models.DateTimeField(auto_now_add=True, verbose_name="Date d'enregistrement")
@@ -823,7 +835,8 @@ class ConsommationLigne(models.Model):
         if len(motif) < 10:
             raise ValidationError("Motif trop court (minimum 10 caracteres).")
         with transaction.atomic():
-            self.ligne.annuler_consommation(self.montant)
+            if self.ligne:
+                self.ligne.annuler_consommation(self.montant)
             self.statut     = StatutDepense.REJETEE
             self.motif_rejet = motif
             self.validateur  = validateur
