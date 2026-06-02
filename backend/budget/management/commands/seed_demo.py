@@ -273,9 +273,7 @@ class Command(BaseCommand):
 
     # ─── Dépenses ──────────────────────────────────────────────────────────────
     def _seed_depenses(self, budgets, users):
-        self.stdout.write("  >>Dépenses…")
-        gst1 = users.get("GST-001")
-        gst2 = users.get("GST-002")
+        self.stdout.write("  >>Depenses…")
         cpt1 = users.get("CPT-001")
         cpt2 = users.get("CPT-002")
 
@@ -290,59 +288,65 @@ class Command(BaseCommand):
                 continue
 
             gst = budget.gestionnaire
+            cpt = cpt1 if budget.departement.code in ("FIN", "RH", "MKT") else cpt2
 
-            # Dépense 1 — validée
-            d1 = Depense.objects.create(
+            # ── 1 Dépense VALIDÉE avec 2 lignes budgétaires consommées ──────────
+            # C'est LA règle métier : 1 dépense = N lignes = 1 pièce justificative
+            d_validee = Depense.objects.create(
                 budget=budget,
                 fournisseur="SARL Techno Solutions CI",
-                note="Première livraison — bon de commande N°2026-001",
+                note="Bon de commande N°2026-001 — facture jointe",
                 enregistre_par=gst,
                 statut=StatutDepense.SAISIE,
             )
-            for ligne in lignes[:1]:
+            for ligne in lignes:
                 montant = min(ligne.montant_disponible * Decimal("0.4"), ligne.montant_disponible)
                 if montant > 0:
                     ligne.enregistrer_consommation(
                         montant=montant,
-                        note=f"Paiement partiel — {ligne.libelle}",
+                        note=f"Livraison partielle — {ligne.libelle}",
                         enregistre_par=gst,
-                        depense_parent=d1,
-                        fournisseur=d1.fournisseur,
+                        depense_parent=d_validee,
+                        fournisseur=d_validee.fournisseur,
                         designation=ligne.libelle,
                         quantite=ligne.quantite / 2,
                         unite=ligne.unite,
                         prix_unitaire=ligne.prix_unitaire,
                     )
-            cpt = cpt1 if budget.departement.code in ("FIN", "RH", "MKT") else cpt2
-            d1.statut = StatutDepense.VALIDEE
-            d1.save(update_fields=["statut"])
-            self._sync_consommations(d1, StatutDepense.VALIDEE)
-            self.stdout.write(f"      + Dépense validée — {budget.code}")
+            d_validee.recalculer_total()
+            d_validee.statut = StatutDepense.VALIDEE
+            d_validee.validateur = cpt
+            d_validee.save(update_fields=["statut", "validateur"])
+            self._sync_consommations(d_validee, StatutDepense.VALIDEE)
+            self.stdout.write(f"      + Depense validee ({len(lignes)} lignes) — {budget.code}")
 
-            # Dépense 2 — en attente
-            if len(lignes) >= 2:
-                d2 = Depense.objects.create(
-                    budget=budget,
-                    fournisseur="CFAO Technologies",
-                    note="Deuxième tranche — en cours de validation",
-                    enregistre_par=gst,
-                    statut=StatutDepense.SAISIE,
-                )
-                for ligne in lignes[1:2]:
-                    montant = min(ligne.montant_disponible * Decimal("0.25"), ligne.montant_disponible)
-                    if montant > 0:
-                        ligne.enregistrer_consommation(
-                            montant=montant,
-                            note=f"Acompte — {ligne.libelle}",
-                            enregistre_par=gst,
-                            depense_parent=d2,
-                            fournisseur=d2.fournisseur,
-                            designation=ligne.libelle,
-                            quantite=1,
-                            unite=ligne.unite,
-                            prix_unitaire=montant,
-                        )
-                self.stdout.write(f"      + Dépense en attente — {budget.code}")
+            # ── 1 Dépense EN ATTENTE avec 2 lignes budgétaires consommées ───────
+            lignes2 = list(budget.lignes.all()[2:4])
+            if not lignes2:
+                lignes2 = lignes  # fallback si moins de 4 lignes
+            d_saisie = Depense.objects.create(
+                budget=budget,
+                fournisseur="CFAO Technologies",
+                note="Deuxieme tranche — en attente de validation comptable",
+                enregistre_par=gst,
+                statut=StatutDepense.SAISIE,
+            )
+            for ligne in lignes2:
+                montant = min(ligne.montant_disponible * Decimal("0.25"), ligne.montant_disponible)
+                if montant > 0:
+                    ligne.enregistrer_consommation(
+                        montant=montant,
+                        note=f"Acompte — {ligne.libelle}",
+                        enregistre_par=gst,
+                        depense_parent=d_saisie,
+                        fournisseur=d_saisie.fournisseur,
+                        designation=ligne.libelle,
+                        quantite=1,
+                        unite=ligne.unite,
+                        prix_unitaire=montant,
+                    )
+            d_saisie.recalculer_total()
+            self.stdout.write(f"      + Depense en attente ({len(lignes2)} lignes) — {budget.code}")
 
     def _sync_consommations(self, depense, statut):
         ConsommationLigne.objects.filter(depense=depense).update(statut=statut)

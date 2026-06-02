@@ -7,6 +7,7 @@ import { cn } from '../../lib/cn'
 import { Icon, StatusBadge } from '../../components/AtlasIcons'
 import Card from '../../components/ui/Card'
 import { formaterNombre } from '../../utils/formatters'
+import AlertesZone from '../../components/ui/AlertesZone'
 
 const fmt  = n => formaterNombre(n, { maximumFractionDigits: 0 })
 const fmtM = n => `${formaterNombre(n / 1e6, { maximumFractionDigits: 1 })}`
@@ -80,6 +81,8 @@ export default function GestionnaireDashboard() {
           </button>
         </div>
       </div>
+
+      <AlertesZone budgets={budgets} budgetBasePath="/mes-budgets" />
 
       <div className="grid grid-cols-4 gap-[14px] mb-6">
         {kpis.map(k => (

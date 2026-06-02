@@ -2,14 +2,16 @@
 BudgetFlow — Vues KPIs & Rapports analytiques
 Endpoints: /api/v1/rapports/
 """
+import datetime
 from decimal import Decimal
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import permissions
 from django.db.models import Sum, Count
 from django.db.models.functions import TruncMonth
+from django.utils import timezone
 
-from .models import Budget, StatutBudget, AllocationDepartementale
+from .models import Budget, StatutBudget, AllocationDepartementale, ConsommationLigne
 
 
 class KpisView(APIView):
@@ -44,11 +46,26 @@ class EvolutionMensuelleView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
+        period = request.query_params.get('period', '12M')
+        today  = timezone.now().date()
+
+        if period == '3M':
+            date_debut = (today.replace(day=1) - datetime.timedelta(days=60))
+        elif period == 'YTD':
+            date_debut = today.replace(month=1, day=1)
+        elif period == 'Tout':
+            date_debut = None
+        else:  # 12M (défaut)
+            date_debut = today.replace(day=1) - datetime.timedelta(days=335)
+
+        qs = ConsommationLigne.objects.annotate(mois=TruncMonth('date'))
+        if date_debut:
+            qs = qs.filter(date__date__gte=date_debut)
+
         data = (
-            Budget.objects
-            .annotate(mois=TruncMonth('date_creation'))
+            qs
             .values('mois')
-            .annotate(nb_budgets=Count('id'), montant_total=Sum('montant_global'))
+            .annotate(montant_total=Sum('montant'), nb_depenses=Count('id'))
             .order_by('mois')
         )
         return Response({'data': list(data)})
@@ -101,3 +118,54 @@ class ExecutionBudgetaireView(APIView):
             .order_by('-montant_global')[:20]
         )
         return Response({'data': list(data)})
+
+
+class ParCategorieView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        # Dépenses réelles regroupées par catégorie principale
+        qs = (
+            ConsommationLigne.objects
+            .filter(ligne__isnull=False, ligne__sous_categorie__categorie__isnull=False)
+            .values('ligne__sous_categorie__categorie__libelle')
+            .annotate(montant_total=Sum('montant'), nb_lignes=Count('id'))
+            .order_by('-montant_total')
+        )
+
+        rows = list(qs)
+        total = sum(float(r['montant_total'] or 0) for r in rows)
+
+        result = [
+            {
+                'libelle':     r['ligne__sous_categorie__categorie__libelle'] or 'Autre',
+                'montant':     float(r['montant_total'] or 0),
+                'pourcentage': round(float(r['montant_total'] or 0) / total * 100, 1) if total else 0,
+                'nb_lignes':   r['nb_lignes'],
+            }
+            for r in rows
+        ]
+
+        # Si aucune dépense : revenir aux montants budgétisés par catégorie
+        if not result:
+            from .models import LigneBudgetaire
+            qs2 = (
+                LigneBudgetaire.objects
+                .filter(sous_categorie__categorie__isnull=False)
+                .values('sous_categorie__categorie__libelle')
+                .annotate(montant_total=Sum('montant_global'), nb_lignes=Count('id'))
+                .order_by('-montant_total')
+            )
+            rows2 = list(qs2)
+            total2 = sum(float(r['montant_total'] or 0) for r in rows2)
+            result = [
+                {
+                    'libelle':     r['sous_categorie__categorie__libelle'] or 'Autre',
+                    'montant':     float(r['montant_total'] or 0),
+                    'pourcentage': round(float(r['montant_total'] or 0) / total2 * 100, 1) if total2 else 0,
+                    'nb_lignes':   r['nb_lignes'],
+                }
+                for r in rows2
+            ]
+
+        return Response({'data': result})

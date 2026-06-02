@@ -292,9 +292,17 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
           </div>
         </div>
 
-        {/* ── Titre section ── */}
-        <div style={{ padding: '12px 24px 10px', borderBottom: '1px solid var(--af-line)', background: '#fff' }}>
-          <span style={{ fontWeight: 700, fontSize: '13px', color: 'var(--af-cream)' }}>Dépenses par ligne budgétaire</span>
+        {/* ── Titre section dépenses ── */}
+        <div style={{
+          padding: '14px 24px', borderBottom: '1px solid rgba(255,255,255,0.12)',
+          background: '#B91C1C', display: 'flex', alignItems: 'center', gap: 12,
+        }}>
+          <span style={{ fontWeight: 700, fontSize: '13px', color: '#fff', letterSpacing: '.01em' }}>
+            Dépenses par ligne budgétaire
+          </span>
+          <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.55)', fontWeight: 500 }}>
+            {depenses.length} dépense{depenses.length !== 1 ? 's' : ''} enregistrée{depenses.length !== 1 ? 's' : ''}
+          </span>
         </div>
 
         {/* ── Arbre catégories ── */}
@@ -304,7 +312,6 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
           </div>
         ) : arbre.map(cat => {
           const catDeps = cat.sous_categories.flatMap(sc => sc.lignes.flatMap(l => depByLigne[l.id] || []))
-          if (catDeps.length === 0) return null
           const catTotal = catDeps.reduce((s, d) => s + parseFloat(d.montant || d.montant_total || 0), 0)
           const isOpen   = openCats[cat.id] !== false
 
@@ -313,9 +320,9 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
               {/* ── Catégorie ── */}
               <div
                 onClick={() => setOpenCats(o => ({ ...o, [cat.id]: !isOpen }))}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 24px', cursor: 'pointer', background: 'var(--color-gold-soft)', borderBottom: '1px solid rgba(184,134,74,0.15)', userSelect: 'none' }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(184,134,74,0.20)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'var(--color-gold-soft)'}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 24px', cursor: 'pointer', background: catDeps.length === 0 ? 'var(--af-steel)' : 'var(--color-gold-soft)', borderBottom: '1px solid rgba(184,134,74,0.15)', userSelect: 'none' }}
+                onMouseEnter={e => e.currentTarget.style.background = catDeps.length === 0 ? '#e8e4dc' : 'rgba(184,134,74,0.20)'}
+                onMouseLeave={e => e.currentTarget.style.background = catDeps.length === 0 ? 'var(--af-steel)' : 'var(--color-gold-soft)'}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   {isOpen
@@ -325,9 +332,10 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
                   {cat.code && <span style={{ fontFamily: 'var(--af-mono)', fontWeight: 800, fontSize: '13px', color: 'var(--af-ink)' }}>{cat.code}</span>}
                   <span style={{ fontWeight: 700, fontSize: '13.5px', color: 'var(--af-ink)' }}>{cat.libelle}</span>
                 </div>
-                <span style={{ fontFamily: 'var(--af-mono)', fontWeight: 800, fontSize: '13px', color: 'var(--af-ink)', whiteSpace: 'nowrap' }}>
-                  {fmt(catTotal)} FCFA
-                </span>
+                {catDeps.length === 0
+                  ? <span style={{ fontSize: '11px', color: 'var(--af-mute)', fontStyle: 'italic' }}>Aucune dépense</span>
+                  : <span style={{ fontFamily: 'var(--af-mono)', fontWeight: 800, fontSize: '13px', color: 'var(--af-ink)', whiteSpace: 'nowrap' }}>{fmt(catTotal)} FCFA</span>
+                }
               </div>
 
               {isOpen && cat.sous_categories.map(sc => {
@@ -439,8 +447,8 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
                   </span>
                 )}
 
-                {/* Valider / Rejeter — comptable uniquement */}
-                {isComptable && enAttente.length > 0 && (
+                {/* Valider / Rejeter — comptable uniquement, jamais admin */}
+                {isComptable && !isAdmin && enAttente.length > 0 && (
                   <>
                     <button
                       onClick={async () => {

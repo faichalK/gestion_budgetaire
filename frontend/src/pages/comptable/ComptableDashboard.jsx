@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { getBudgets } from '../../api/budget'
 import { getDepenses } from '../../api/depenses'
 import { useAuth } from '../../context/AuthContext'
+import AlertesZone from '../../components/ui/AlertesZone'
 import { cn } from '../../lib/cn'
 import { Icon, StatusBadge } from '../../components/AtlasIcons'
 import Card from '../../components/ui/Card'
@@ -81,6 +82,8 @@ export default function ComptableDashboard() {
           </button>
         </div>
       </div>
+
+      <AlertesZone budgets={budgets} budgetBasePath="/validation" />
 
       <div className="grid grid-cols-4 gap-[14px] mb-6">
         {kpis.map(k => (

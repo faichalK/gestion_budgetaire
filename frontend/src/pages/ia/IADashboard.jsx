@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   getAnomalies, getPredictions,
@@ -38,6 +38,22 @@ export default function IADashboard() {
   const predictions   = Array.isArray(predictionsData) ? predictionsData : []
   const critiques     = anomalies.filter(a => ['ELEVE', 'CRITIQUE'].includes(a.niveau))
   const risquesEleves = predictions.filter(p => p.probabilite_depassement >= 0.5)
+
+  /* ── Alertes budgétaires (budgets avec niveau_alerte critique) ── */
+  const { data: budgetsData, refetch: refetchAlertes } = useQuery({
+    queryKey: ['budgets-alertes'],
+    queryFn:  () => getBudgets().then(r => r.data.results ?? r.data ?? []),
+    staleTime: 3 * 60 * 1000,
+  })
+  const tousLesBudgets = Array.isArray(budgetsData) ? budgetsData : []
+  const alertes          = tousLesBudgets.filter(b => ['ROUGE', 'CRITIQUE'].includes(b.niveau_alerte))
+  const alertesCritiques = alertes.filter(b => b.niveau_alerte === 'CRITIQUE')
+  const alertesRouge     = alertes.filter(b => b.niveau_alerte === 'ROUGE')
+
+  const ALERTE_CFG = {
+    CRITIQUE: { color: '#DC2626', bg: 'rgba(220,38,38,0.08)', label: 'Critique (≥100%)' },
+    ROUGE:    { color: '#C2410C', bg: 'rgba(194,65,12,0.08)',  label: 'Rouge (≥90%)'    },
+  }
 
   /* ── Charger tous les budgets actifs ── */
   const getAllBudgets = async () => {
@@ -121,8 +137,9 @@ export default function IADashboard() {
   }
 
   const TABS = [
-    { key: 'anomalies',   label: 'Anomalies',   icon: Icon.ai,  count: anomalies.length   },
-    { key: 'predictions', label: 'Prédictions', icon: Icon.kpi, count: predictions.length },
+    { key: 'anomalies',   label: 'Anomalies',   icon: Icon.ai,    count: anomalies.length },
+    { key: 'predictions', label: 'Prédictions', icon: Icon.kpi,   count: predictions.length },
+    { key: 'alertes',     label: 'Alertes',     icon: Icon.alert, count: alertes.length, danger: alertesCritiques.length > 0 },
   ]
 
   return (
@@ -213,8 +230,8 @@ export default function IADashboard() {
             {t.label}
             {t.count > 0 && (
               <span style={{
-                background: onglet === t.key ? 'var(--af-gold)' : 'var(--af-line)',
-                color: onglet === t.key ? '#fff' : 'var(--af-cream)',
+                background: t.danger ? '#DC2626' : onglet === t.key ? 'var(--af-gold)' : 'var(--af-line)',
+                color: '#fff',
                 fontSize: 11, padding: '1px 7px', borderRadius: 9999, fontWeight: 700,
               }}>
                 {t.count}
@@ -227,6 +244,7 @@ export default function IADashboard() {
       {/* ── Contenu onglets ── */}
       {onglet === 'anomalies'   && <AnomaliesTab   anomalies={anomalies}     onScan={handleScanAnomalies} scanning={scanning} scanResult={scanResult} />}
       {onglet === 'predictions' && <PredictionsTab predictions={predictions} onPredire={handlePredireTous} scanning={scanning} />}
+      {onglet === 'alertes'     && <AlertesTab alertes={alertes} critiques={alertesCritiques} rouge={alertesRouge} cfg={ALERTE_CFG} onRefresh={refetchAlertes} />}
     </div>
   )
 }
@@ -462,6 +480,84 @@ function ScanBanner({ scanResult }) {
         ? `✓ Scan du ${scanResult.timestamp} — ${scanResult.total} budget(s) analysé(s), ${scanResult.found} anomalie(s) détectée(s).`
         : `✓ Scan du ${scanResult.timestamp} — ${scanResult.total} budget(s) analysé(s). Aucune anomalie.`
       }
+    </div>
+  )
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   Onglet Alertes
+══════════════════════════════════════════════════════════════════════════════ */
+function AlertesTab({ alertes, critiques, rouge, cfg, onRefresh }) {
+  const fmt = n => new Intl.NumberFormat('fr-FR').format(Math.round(parseFloat(n) || 0))
+
+  if (!alertes.length) return (
+    <div style={{ padding: '48px 24px', textAlign: 'center' }}>
+      <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-success-600)', marginBottom: 6 }}>Aucune alerte active</div>
+      <div style={{ fontSize: 13, color: 'var(--af-mute)' }}>Tous les budgets sont dans les seuils normaux (taux &lt; 90%).</div>
+      <button onClick={onRefresh} style={{ marginTop: 16, fontSize: 12, color: 'var(--color-gold)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
+        Actualiser
+      </button>
+    </div>
+  )
+
+  const GROUPS = [
+    { key: 'CRITIQUE', label: cfg.CRITIQUE.label, items: critiques, color: cfg.CRITIQUE.color, bg: cfg.CRITIQUE.bg },
+    { key: 'ROUGE',    label: cfg.ROUGE.label,    items: rouge,     color: cfg.ROUGE.color,    bg: cfg.ROUGE.bg    },
+  ].filter(g => g.items.length > 0)
+
+  return (
+    <div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 24 }}>
+        {[
+          { label: 'Critique (≥100%)', count: critiques.length, color: '#DC2626' },
+          { label: 'Rouge (≥90%)',     count: rouge.length,     color: '#C2410C' },
+        ].map(k => (
+          <div key={k.label} style={{ background: '#fff', border: '1px solid var(--af-line)', borderRadius: 10, padding: '16px 20px', borderLeft: `4px solid ${k.color}` }}>
+            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.5px', color: 'var(--af-mute)', marginBottom: 6 }}>{k.label}</div>
+            <div style={{ fontSize: 28, fontWeight: 700, color: k.color, lineHeight: 1 }}>{k.count}</div>
+            <div style={{ fontSize: 11, color: 'var(--af-mute)', marginTop: 4 }}>budget{k.count !== 1 ? 's' : ''}</div>
+          </div>
+        ))}
+      </div>
+
+      {GROUPS.map(g => (
+        <div key={g.key} style={{ marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', background: g.bg, borderRadius: 8, marginBottom: 10, border: `1px solid ${g.color}30` }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: g.color, flexShrink: 0 }} />
+            <span style={{ fontWeight: 700, fontSize: 13, color: g.color }}>{g.label}</span>
+            <span style={{ fontSize: 12, color: 'var(--af-mute)' }}>— {g.items.length} budget{g.items.length > 1 ? 's' : ''}</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {g.items.map(b => (
+              <div key={b.id} style={{ background: '#fff', border: '1px solid var(--af-line)', borderLeft: `3px solid ${g.color}`, borderRadius: 8, padding: '14px 18px', display: 'grid', gridTemplateColumns: '1fr 160px 140px 120px', alignItems: 'center', gap: 12 }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                    <span style={{ fontFamily: 'var(--af-mono)', fontSize: 11, fontWeight: 700, color: 'var(--af-mute)' }}>{b.code}</span>
+                    <span style={{ fontSize: 11, color: 'var(--af-mute)' }}>· {b.departement_nom || '—'}</span>
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--af-ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.nom}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: 10, color: 'var(--af-mute)', marginBottom: 2 }}>Budget global</div>
+                  <div style={{ fontFamily: 'var(--af-mono)', fontWeight: 700, fontSize: 13 }}>{fmt(b.montant_global)}</div>
+                  <div style={{ fontSize: 10, color: 'var(--af-mute)' }}>FCFA</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: 10, color: 'var(--af-mute)', marginBottom: 2 }}>Consommé</div>
+                  <div style={{ fontFamily: 'var(--af-mono)', fontWeight: 700, fontSize: 13, color: g.color }}>{fmt(b.montant_consomme)}</div>
+                  <div style={{ fontSize: 10, color: 'var(--af-mute)' }}>FCFA</div>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 10, color: 'var(--af-mute)', marginBottom: 4 }}>Taux</div>
+                  <div style={{ fontWeight: 900, fontSize: 18, color: g.color, fontFamily: 'var(--af-mono)' }}>
+                    {parseFloat(b.taux_consommation || 0).toFixed(0)}%
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   )
 }

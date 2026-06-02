@@ -24,8 +24,8 @@ const TABS = [
 
 export default function DepensesPage() {
   const navigate = useNavigate()
-  const { isAdmin } = useAuth()
-  const [tab,    setTab]    = useState('SAISIE')
+  const { isAdmin, isComptable } = useAuth()
+  const [tab,    setTab]    = useState(isAdmin ? '' : 'SAISIE')
   const [search, setSearch] = useState('')
 
   const { data: allData, isLoading } = useQuery({
@@ -55,7 +55,7 @@ export default function DepensesPage() {
   const countFor = (key) => {
     if (!key) return allGroups.length
     if (key === 'SAISIE')  return allGroups.filter(g => g.items.some(d => d.statut === 'SAISIE')).length
-    if (key === 'VALIDEE') return allGroups.filter(g => g.items.every(d => d.statut === 'VALIDEE')).length
+    if (key === 'VALIDEE') return allGroups.filter(g => g.items.some(d => d.statut === 'VALIDEE')).length
     if (key === 'REJETEE') return allGroups.filter(g => g.items.some(d => d.statut === 'REJETEE')).length
     return 0
   }
@@ -72,10 +72,10 @@ export default function DepensesPage() {
 
   const groups = Object.values(
     filtered.reduce((acc, d) => {
-      const key = d.budget_reference || '—'
+      const key = d.budget_code || '—'
       if (!acc[key]) acc[key] = {
-        reference: key,
-        nom: (d.budget_nom && d.budget_nom !== '—') ? d.budget_nom : key,
+        reference: d.budget_code || '—',
+        nom: (d.budget_nom && d.budget_nom !== '—') ? d.budget_nom : (d.budget_code || '—'),
         budget_id: d.budget_id || null,
         items: [],
       }
@@ -90,7 +90,7 @@ export default function DepensesPage() {
       <div className="mb-7 flex items-end gap-6">
         <div>
           <div className="text-[10px] tracking-[0.20em] uppercase text-[#B8864A] mb-2 font-medium">
-            Comptable · Dépenses
+            {isAdmin ? 'Administrateur' : 'Comptable'} · Dépenses
           </div>
           <h1 className="text-[32px] font-normal tracking-[-0.02em] leading-[1.1] text-[#0E2A47] mb-1">
             Suivi des engagements

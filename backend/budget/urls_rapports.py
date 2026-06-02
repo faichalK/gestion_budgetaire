@@ -5,6 +5,7 @@ from .views_rapports import (
     ParDepartementView,
     TauxUtilisationEnveloppesView,
     ExecutionBudgetaireView,
+    ParCategorieView,
 )
 from .rapport_view import (
     RapportMensuelView,
@@ -21,6 +22,7 @@ urlpatterns = [
     path('par-departement/',             ParDepartementView.as_view(),          name='rapports-par-dept'),
     path('taux-utilisation-enveloppes/', TauxUtilisationEnveloppesView.as_view(), name='rapports-enveloppes'),
     path('execution-budgetaire/',        ExecutionBudgetaireView.as_view(),     name='rapports-execution'),
+    path('par-categorie/',               ParCategorieView.as_view(),            name='rapports-par-categorie'),
 
     # ── Nouveaux rapports détaillés ─────────────────────────────────────────
     path('mensuel/',      RapportMensuelView.as_view(),      name='rapport-mensuel'),

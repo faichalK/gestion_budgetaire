@@ -425,7 +425,7 @@ export default function DepenseDetail({ basePath = '/mes-depenses' }) {
             )}
           </div>
 
-          {isComptable && enAttente && (
+          {isComptable && !isAdmin && enAttente && (
             <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
               <button
                 onClick={() => { setMotif(''); setMotifError(''); setShowRejeter(true) }}

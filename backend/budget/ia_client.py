@@ -21,6 +21,13 @@ def _build_context(user):
     lines = []
 
     try:
+        # Identité de l'utilisateur — toujours incluse en premier
+        prenom = getattr(user, 'prenom', '') or ''
+        nom    = getattr(user, 'nom', '')    or ''
+        nom_complet = f"{prenom} {nom}".strip() or 'Utilisateur'
+        lines.append(f"Utilisateur connecté : {nom_complet}")
+        lines.append(f"Matricule : {getattr(user, 'matricule', '—')}")
+
         # Budgets selon le rôle
         if getattr(user, 'is_gestionnaire', False) or user.role == 'GESTIONNAIRE':
             budgets = list(
@@ -28,20 +35,20 @@ def _build_context(user):
                 .select_related('departement', 'budget_annuel')
                 .order_by('-date_creation')[:10]
             )
-            lines.append(f"Rôle de l'utilisateur : Gestionnaire de budget")
+            lines.append(f"Rôle : Gestionnaire de budget")
         elif getattr(user, 'is_comptable', False) or user.role == 'COMPTABLE':
             budgets = list(
                 Budget.objects.exclude(statut='BROUILLON')
                 .select_related('departement', 'gestionnaire')
                 .order_by('-date_creation')[:10]
             )
-            lines.append(f"Rôle de l'utilisateur : Comptable / Validateur")
+            lines.append(f"Rôle : Comptable / Validateur")
         else:
             budgets = list(
                 Budget.objects.select_related('departement', 'gestionnaire')
                 .order_by('-date_creation')[:10]
             )
-            lines.append(f"Rôle de l'utilisateur : Administrateur")
+            lines.append(f"Rôle : Administrateur")
 
         if budgets:
             lines.append(f"\nBudgets ({len(budgets)}) :")
@@ -123,6 +130,12 @@ Règles de réponse :
 - Utilise le markdown (gras, listes) pour structurer ta réponse
 - Si l'information n'est pas dans le contexte, dis-le clairement
 - Reste concis : 3-6 paragraphes maximum sauf si l'analyse le justifie
+
+Règles de salutation :
+- Quand l'utilisateur dit bonjour/salut/hello, réponds avec son prénom ET son nom complet
+  Exemple : "Bonjour Aminata COULIBALY ! Comment puis-je vous aider ?"
+- Adapte la salutation à celle de l'utilisateur (salut → salut, bonjour → bonjour)
+- Après la salutation, fais un bref récapitulatif de sa situation budgétaire
 """
 
 

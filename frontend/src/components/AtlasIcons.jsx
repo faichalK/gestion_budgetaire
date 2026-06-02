@@ -191,10 +191,19 @@ export function BarChart({ data, labels }) {
   )
 }
 
-export function LineChart({ data, height = 180 }) {
-  const max = Math.max(...data, 1)
+export function LineChart({ data, height = 180, labels = [] }) {
+  if (!data || data.length === 0) return (
+    <div className="af-line-chart" style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#A8A39A', fontSize: 13 }}>
+      Aucune donnée disponible
+    </div>
+  )
+  const safeData = data.length === 1 ? [0, ...data] : data
+  const max = Math.max(...safeData, 1)
   const w = 100, h = 100
-  const pts = data.map((v, i) => [i / (data.length - 1) * w, h - (v / max) * h * 0.85 - 8])
+  const pts = safeData.map((v, i) => [
+    i / (safeData.length - 1) * w,
+    h - (v / max) * h * 0.85 - 8,
+  ])
   const path = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p[0]} ${p[1]}`).join(' ')
   const area = `${path} L ${w} ${h} L 0 ${h} Z`
   return (
@@ -213,6 +222,12 @@ export function LineChart({ data, height = 180 }) {
         <path className="line" d={path} vectorEffect="non-scaling-stroke"/>
         {pts.map((p, i) => <circle key={i} className="dot" cx={p[0]} cy={p[1]} r="0.8" vectorEffect="non-scaling-stroke"/>)}
       </svg>
+      {labels.length > 0 && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, padding: '0 2px' }}>
+          {labels.filter((_, i) => i === 0 || i === Math.floor(labels.length / 2) || i === labels.length - 1)
+            .map((l, i) => <span key={i} style={{ fontSize: 10, color: '#A8A39A' }}>{l}</span>)}
+        </div>
+      )}
     </div>
   )
 }

@@ -10,6 +10,7 @@ function navItems(role, t) {
   if (role === 'ADMINISTRATEUR') return [
     { to: '/dashboard',          icon: Icon.dashboard, label: t('nav_dashboard')        },
     { to: '/budget-annuel',      icon: Icon.budget,    label: t('nav_budget_annuel')    },
+    { to: '/budgets',            icon: Icon.budget,    label: 'Budgets'                 },
     { to: '/departements',       icon: Icon.users,     label: t('nav_departements')     },
     { to: '/utilisateurs',       icon: Icon.users,     label: t('nav_utilisateurs')     },
     { to: '/depenses',           icon: Icon.expense,   label: t('nav_depenses')         },

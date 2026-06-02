@@ -5,7 +5,8 @@ import api from './axios'
 
 /* ── KPIs existants ─────────────────────────────────────────────────────── */
 export const getKpis                      = ()       => api.get('/v1/rapports/kpis/')
-export const getEvolutionMensuelle        = (params) => api.get('/v1/rapports/evolution-mensuelle/', { params })
+export const getEvolutionMensuelle        = (period) => api.get('/v1/rapports/evolution-mensuelle/', { params: { period } })
+export const getParCategorie              = ()       => api.get('/v1/rapports/par-categorie/')
 export const getParDepartement            = ()       => api.get('/v1/rapports/par-departement/')
 export const getTauxUtilisationEnveloppes = ()       => api.get('/v1/rapports/taux-utilisation-enveloppes/')
 export const getExecutionBudgetaire = (params) => api.get('/v1/rapports/execution-budgetaire/', { params })

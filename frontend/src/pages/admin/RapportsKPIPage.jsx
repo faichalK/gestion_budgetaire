@@ -1,21 +1,14 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { getKpis, getParDepartement, getTauxUtilisationEnveloppes, getEvolutionMensuelle } from '../../api/rapports'
+import { getKpis, getParDepartement, getTauxUtilisationEnveloppes, getEvolutionMensuelle, getParCategorie } from '../../api/rapports'
 import { LineChart, DeptChip } from '../../components/AtlasIcons'
 import { formaterNombre } from '../../utils/formatters'
 import { cn } from '../../lib/cn'
 
 const fmt  = n => formaterNombre(n, { maximumFractionDigits: 0 })
 const fmtM = n => `${formaterNombre(Number(n) / 1e6, { maximumFractionDigits: 1 })} M`
-
-const CATEGORIES = [
-  { l: 'Personnel',           v: 42, c: '#C9A961' },
-  { l: 'Prestations externes',v: 24, c: '#3B82F6' },
-  { l: 'Matériel & SaaS',     v: 14, c: '#10B981' },
-  { l: 'Communication',       v: 11, c: '#8B5CF6' },
-  { l: 'Formation',           v: 6,  c: '#E5A53D' },
-  { l: 'Frais administratifs',v: 3,  c: '#A8A39A' },
-]
+const CAT_COLORS = ['#C9A961','#3B82F6','#10B981','#8B5CF6','#E5A53D','#F87171','#34D399','#60A5FA']
+const MOIS_LABELS = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc']
 
 export default function RapportsKPIPage() {
   const [period, setPeriod] = useState('12M')
@@ -23,35 +16,34 @@ export default function RapportsKPIPage() {
   const { data: kpisData } = useQuery({ queryKey: ['rapports-kpis'], queryFn: () => getKpis().then(r => r.data.data) })
   const { data: deptData  } = useQuery({ queryKey: ['rapports-dept'],  queryFn: () => getParDepartement().then(r => r.data.data) })
   const { data: envData   } = useQuery({ queryKey: ['rapports-env'],   queryFn: () => getTauxUtilisationEnveloppes().then(r => r.data.data) })
-  const { data: evoData   } = useQuery({ queryKey: ['rapports-evo'],   queryFn: () => getEvolutionMensuelle().then(r => r.data.data) })
+  const { data: evoData   } = useQuery({
+    queryKey: ['rapports-evo', period],
+    queryFn:  () => getEvolutionMensuelle(period).then(r => r.data.data),
+  })
+  const { data: catData } = useQuery({ queryKey: ['rapports-cat'], queryFn: () => getParCategorie().then(r => r.data.data) })
 
   const kpis       = kpisData || {}
   const depts      = Array.isArray(deptData)  ? deptData  : []
   const enveloppes = Array.isArray(envData)   ? envData   : []
-  const evolutionAll = Array.isArray(evoData)
-    ? evoData.map(e => Math.round(Number(e.montant_total || 0) / 1e6))
-    : [180, 195, 210, 240, 275, 260, 310, 290, 320, 340, 365, 380]
+  const categories = Array.isArray(catData)   ? catData.slice(0, 8) : []
 
-  const evolution = period === '3M'
-    ? evolutionAll.slice(-3)
-    : period === 'YTD'
-    ? evolutionAll.slice(-(new Date().getMonth() + 1))
-    : evolutionAll
+  const evoRows  = Array.isArray(evoData) ? evoData : []
+  const evolution = evoRows.map(e => Math.round(Number(e.montant_total || 0) / 1e6))
+  const evoLabels = evoRows.map(e => {
+    if (!e.mois) return ''
+    const d = new Date(e.mois)
+    return `${MOIS_LABELS[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`
+  })
 
-  const deptRows = depts.length > 0 ? depts.slice(0, 6).map((d, i) => ({
+  const deptRows = depts.slice(0, 6).map((d, i) => ({
     nom:      d.departement__nom || `Département ${i + 1}`,
     alloue:   Number(d.montant_total || 0),
-    engage:   Number(d.montant_consomme || d.montant_total * 0.65 || 0),
-    taux:     Math.round(Number(d.taux_utilisation || 65)),
+    engage:   Number(d.montant_consomme || 0),
+    taux:     d.montant_total > 0
+      ? Math.round(Number(d.montant_consomme || 0) / Number(d.montant_total) * 100)
+      : 0,
     anomalies: d.nb_anomalies || 0,
-  })) : [
-    { nom: 'Direction Générale',  alloue: 620e6, engage: 412e6, taux: 66, anomalies: 1 },
-    { nom: 'Marketing',           alloue: 480e6, engage: 321e6, taux: 67, anomalies: 8 },
-    { nom: 'R&D',                 alloue: 540e6, engage: 491e6, taux: 91, anomalies: 12 },
-    { nom: 'Ressources Humaines', alloue: 320e6, engage: 174e6, taux: 54, anomalies: 3 },
-    { nom: 'Opérations',          alloue: 280e6, engage: 204e6, taux: 73, anomalies: 6 },
-    { nom: 'Communication',       alloue: 240e6, engage: 152e6, taux: 63, anomalies: 2 },
-  ]
+  }))
 
   return (
     <div>
@@ -104,7 +96,23 @@ export default function RapportsKPIPage() {
             <div className="text-[13px] font-semibold text-[#0E2A47]">Évolution dépenses par département</div>
           </div>
           <div className="p-5">
-            <LineChart data={evolution} height={200}/>
+            {evolution.length === 0
+              ? <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#A8A39A', fontSize: 13 }}>
+                  Aucune dépense enregistrée sur cette période
+                </div>
+              : <LineChart data={evolution} height={200} labels={evoLabels} />
+            }
+            {evolution.length > 0 && (
+              <div style={{ marginTop: 8, display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                <span style={{ fontSize: 11, color: '#A8A39A' }}>Total période :</span>
+                <span style={{ fontFamily: 'var(--af-mono)', fontWeight: 700, fontSize: 13, color: 'var(--af-ink)' }}>
+                  {fmtM(evolution.reduce((s, v) => s + v * 1e6, 0))} FCFA
+                </span>
+                <span style={{ fontSize: 11, color: '#A8A39A', marginLeft: 8 }}>
+                  {evoRows.length} mois · {evoRows.reduce((s, e) => s + (e.nb_depenses || 0), 0)} dépenses
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -113,20 +121,28 @@ export default function RapportsKPIPage() {
             <div className="text-[13px] font-semibold text-[#0E2A47]">Répartition par catégorie</div>
           </div>
           <div className="p-5">
-            {CATEGORIES.map((r, i) => (
-              <div key={i} style={{ marginBottom: 14 }}>
-                <div className="af-flex-between" style={{ marginBottom: 6 }}>
-                  <span style={{ fontSize: 12 }}>
-                    <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: r.c, marginRight: 8 }}/>
-                    {r.l}
-                  </span>
-                  <span className="num" style={{ fontFamily: 'var(--af-mono)', fontSize: 11, color: 'var(--af-cream)' }}>{r.v}%</span>
+            {categories.length === 0
+              ? <div style={{ textAlign: 'center', color: '#A8A39A', fontSize: 13, padding: '32px 0' }}>
+                  Aucune dépense par catégorie enregistrée
                 </div>
-                <div className="af-bar">
-                  <div className="af-bar-fill" style={{ width: `${r.v * 2}%`, background: r.c }}/>
+              : categories.map((r, i) => (
+                <div key={i} style={{ marginBottom: 14 }}>
+                  <div className="af-flex-between" style={{ marginBottom: 6 }}>
+                    <span style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: CAT_COLORS[i % CAT_COLORS.length], flexShrink: 0 }}/>
+                      {r.libelle}
+                    </span>
+                    <span style={{ fontFamily: 'var(--af-mono)', fontSize: 11, color: 'var(--af-cream)', display: 'flex', gap: 10, alignItems: 'center' }}>
+                      <span style={{ color: 'var(--af-mute)', fontSize: 10 }}>{fmtM(r.montant)} FCFA</span>
+                      <span style={{ fontWeight: 700 }}>{r.pourcentage}%</span>
+                    </span>
+                  </div>
+                  <div className="af-bar">
+                    <div className="af-bar-fill" style={{ width: `${Math.min(r.pourcentage, 100)}%`, background: CAT_COLORS[i % CAT_COLORS.length] }}/>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            }
           </div>
         </div>
       </div>

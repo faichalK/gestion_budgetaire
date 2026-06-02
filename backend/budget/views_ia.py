@@ -326,25 +326,45 @@ def _reponse_chatbot_simulee(question, user=None):
         return '\u2588' * filled + '\u2591' * (longueur - filled)
 
     # Salutation
-    if any(w in q for w in ['bonjour', 'salut', 'hello', 'bonsoir', 'coucou', 'slt', 'bjr']):
-        prenom = getattr(user, 'first_name', '') or getattr(user, 'prenom', '') or ''
-        role_txt = ''
+    SALUTATIONS = {'salut': 'Salut', 'slt': 'Salut', 'coucou': 'Coucou',
+                   'bonsoir': 'Bonsoir', 'bonjour': 'Bonjour', 'bjr': 'Bonjour',
+                   'hello': 'Hello', 'hi': 'Bonjour'}
+    mot_salut = next((SALUTATIONS[w] for w in SALUTATIONS if w in q), None)
+    if mot_salut:
+        prenom    = getattr(user, 'prenom', '') or ''
+        nom       = getattr(user, 'nom', '')    or ''
+        nom_complet = f"{prenom} {nom}".strip() if (prenom or nom) else ''
         if user:
             if user.is_gestionnaire:
-                role_txt = f"En tant que **gestionnaire**, vous gerez **{total_budgets} budget(s)**."
+                role_txt = (
+                    f"En tant que **gestionnaire**, vous gerez **{total_budgets} budget(s)**. "
+                    f"Taux d'execution global : **{taux_global}%**."
+                )
             elif user.is_comptable:
                 role_txt = (
                     f"En tant que **comptable**, vous supervisez **{total_budgets} budget(s)** "
                     f"dont **{len(soumis)}** en attente de validation."
                 )
             else:
-                role_txt = f"Vous avez acces a **{total_budgets} budget(s)** dans le systeme."
+                role_txt = (
+                    f"En tant qu'**administrateur**, vous avez acces a **{total_budgets} budget(s)** "
+                    f"dans le systeme. Taux global : **{taux_global}%**."
+                )
+        else:
+            role_txt = ''
+
+        alerte_txt = ''
+        if en_alerte:
+            alerte_txt = f"\n\n**{len(en_alerte)} alerte(s) active(s)** sur vos budgets — tapez *alertes* pour les details."
+
         return (
-            f"Bonjour{' ' + prenom if prenom else ''} ! Je suis votre assistant financier **BudgetFlow**.\n\n"
-            f"{role_txt}\n\n"
-            f"Situation rapide : **{len(approuves)}** approuve(s) | **{len(soumis)}** soumis | "
-            f"**{len(en_alerte)}** alerte(s) | taux global **{taux_global}%**\n\n"
-            "Que souhaitez-vous savoir ? Tapez **aide** pour voir toutes mes capacites."
+            f"{mot_salut} **{nom_complet}** ! Je suis votre assistant financier **Atlas Finance**. "
+            f"Comment puis-je vous aider ?\n\n"
+            f"{role_txt}"
+            f"{alerte_txt}\n\n"
+            f"**Situation :** {len(approuves)} approuve(s) · {len(soumis)} soumis · "
+            f"{len(en_alerte)} alerte(s) · taux global **{taux_global}%**\n\n"
+            "Tapez **aide** pour voir tout ce que je sais faire."
         )
 
     # Aide

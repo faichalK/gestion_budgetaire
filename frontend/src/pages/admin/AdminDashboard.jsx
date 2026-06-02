@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getBudgets, getBudgetAnnuels } from '../../api/budget'
+import AlertesZone from '../../components/ui/AlertesZone'
 import { Icon, BarChart } from '../../components/AtlasIcons'
 import { formaterNombre } from '../../utils/formatters'
 import { cn } from '../../lib/cn'
@@ -34,24 +35,32 @@ function normShort(raw = '') {
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
-  const [budgets, setBudgets] = useState([])
-  const [annuels, setAnnuels] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [budgets,     setBudgets]     = useState([])
+  const [annuels,     setAnnuels]     = useState([])
+  const [loading,     setLoading]     = useState(true)
+  const [lastRefresh, setLastRefresh] = useState(new Date())
 
-  useEffect(() => {
+  const charger = useCallback(() => {
     Promise.all([getBudgets(), getBudgetAnnuels()])
       .then(([b, a]) => {
         setBudgets(b.data.results ?? b.data)
         setAnnuels(a.data.results ?? a.data)
+        setLastRefresh(new Date())
       })
       .finally(() => setLoading(false))
   }, [])
 
+  useEffect(() => {
+    charger()
+    const interval = setInterval(charger, 3 * 60 * 1000) // 3 minutes
+    return () => clearInterval(interval)
+  }, [charger])
+
   const ba          = annuels[0]
   const annee       = ba?.annee ?? new Date().getFullYear()
-  const actifs      = budgets.filter(b => b.statut !== 'BROUILLON')
-  const approuves   = actifs.filter(b => b.statut === 'APPROUVE')
-  const soumis      = actifs.filter(b => b.statut === 'SOUMIS')
+  const actifs      = budgets  // Admin voit tous les budgets, tous statuts
+  const approuves   = budgets.filter(b => b.statut === 'APPROUVE')
+  const soumis      = budgets.filter(b => b.statut === 'SOUMIS')
   const alertes     = actifs.filter(b => ['ROUGE','CRITIQUE'].includes(b.niveau_alerte))
   const totalAlloue = approuves.reduce((s, b) => s + parseFloat(b.montant_global   || 0), 0)
   const totalConsome= approuves.reduce((s, b) => s + parseFloat(b.montant_consomme || 0), 0)
@@ -94,7 +103,12 @@ export default function AdminDashboard() {
         <div>
           <div className="text-[10px] tracking-[0.20em] uppercase text-[#B8864A] mb-2 font-medium">Exercice {annee} · Vue consolidée</div>
           <h1 className="text-[32px] font-normal tracking-[-0.02em] leading-[1.1] text-[#0E2A47] mb-1">Vue d'ensemble exécutive</h1>
-          <div className="text-[13px] text-[#5A6B7E]">{approuves.length} approuvés · {soumis.length} en attente de validation.</div>
+          <div className="text-[13px] text-[#5A6B7E]">
+            {budgets.length} budgets au total · {approuves.length} approuvés · {soumis.length} en attente
+            <span style={{ marginLeft: 12, fontSize: 11, color: 'var(--af-mute)' }}>
+              Actualisé à {lastRefresh.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} · toutes les 3 min
+            </span>
+          </div>
         </div>
         <div className="ml-auto flex gap-2.5">
           <button className="btn btn-secondary btn-sm" onClick={() => navigate('/rapports')}>
@@ -102,6 +116,8 @@ export default function AdminDashboard() {
           </button>
         </div>
       </div>
+
+      <AlertesZone budgets={budgets} budgetBasePath="/budgets" />
 
       <div className="grid grid-cols-4 gap-[14px] mb-6">
         <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-[10px] py-[18px] px-5 shadow-[0_1px_0_rgba(14,42,71,0.02)]">
