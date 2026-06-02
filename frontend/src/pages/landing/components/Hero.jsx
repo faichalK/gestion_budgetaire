@@ -87,20 +87,7 @@ export default function Hero() {
           La plateforme de gestion financière conçue pour les institutions publiques et organisations de coopération internationale. Transparence totale, conformité garantie.
         </p>
 
-        {/* CTAs */}
-        <div className="hero-reveal" style={{ display:'flex', flexWrap:'wrap', gap:12, justifyContent:'center', marginBottom:72 }}>
-          <a href="/login" className="hero-btn-primary" style={{
-            display:'inline-flex', alignItems:'center', gap:8,
-            padding:'13px 28px', borderRadius:10,
-            background:'#FFFFFF', color:'var(--af-ink)',
-            fontWeight:700, fontSize:15, textDecoration:'none',
-            boxShadow:'0 4px 24px rgba(0,0,0,0.25)',
-            transition:'background .15s, box-shadow .15s',
-          }}>
-            Connexion
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-          </a>
-        </div>
+        <div style={{ marginBottom:72 }} />
 
         {/* Dashboard Mockup */}
         <div className="hero-reveal dash-perspective" style={{ width:'100%', maxWidth:1100, padding:'0 24px', position:'relative', zIndex:10 }}>
