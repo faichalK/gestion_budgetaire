@@ -439,15 +439,17 @@ class ForgotPasswordView(APIView):
                 html_message=html_body,
                 from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@budgetflow.bf'),
                 recipient_list=[user.email],
-                fail_silently=False,
+                fail_silently=True,
             )
             logger.info("RESET_PASSWORD | Email envoyé à %s", user.email)
 
         except Exception as e:
-            logger.error("RESET_PASSWORD | Échec pour %s : %s", user.email, e, exc_info=True)
-            return Response(
-                {'detail': "Impossible d'envoyer l'email. Contactez l'administrateur."},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            # SMTP indisponible (ex: Railway bloque le port 587)
+            # On logue le lien pour que l'admin puisse le transmettre manuellement
+            logger.warning(
+                "RESET_PASSWORD | Email non envoyé pour %s (SMTP indisponible: %s) — "
+                "Lien de réinitialisation : %s",
+                user.email, e, reset_url,
             )
 
         return Response({'detail': 'Si cet email existe, un lien a été envoyé.'})
