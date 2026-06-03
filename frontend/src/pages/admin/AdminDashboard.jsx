@@ -56,15 +56,16 @@ export default function AdminDashboard() {
     return () => clearInterval(interval)
   }, [charger])
 
-  const ba          = annuels[0]
-  const annee       = ba?.annee ?? new Date().getFullYear()
-  const actifs      = budgets  // Admin voit tous les budgets, tous statuts
-  const approuves   = budgets.filter(b => b.statut === 'APPROUVE')
-  const soumis      = budgets.filter(b => b.statut === 'SOUMIS')
-  const alertes     = actifs.filter(b => ['ROUGE','CRITIQUE'].includes(b.niveau_alerte))
-  const totalAlloue = approuves.reduce((s, b) => s + parseFloat(b.montant_global   || 0), 0)
-  const totalConsome= approuves.reduce((s, b) => s + parseFloat(b.montant_consomme || 0), 0)
-  const tauxExec    = totalAlloue > 0 ? Math.round(totalConsome / totalAlloue * 100) : 0
+  const ba           = annuels[0]
+  const annee        = ba?.annee ?? new Date().getFullYear()
+  const actifs       = budgets
+  const approuves    = budgets.filter(b => b.statut === 'APPROUVE')
+  const soumis       = budgets.filter(b => b.statut === 'SOUMIS')
+  const alertes      = actifs.filter(b => ['ROUGE','CRITIQUE'].includes(b.niveau_alerte))
+  // Allocation totale = budget annuel global (pas seulement les budgets approuvés)
+  const totalAlloue  = parseFloat(ba?.montant_global || 0)
+  const totalConsome = budgets.reduce((s, b) => s + parseFloat(b.montant_consomme || 0), 0)
+  const tauxExec     = totalAlloue > 0 ? Math.round(totalConsome / totalAlloue * 100) : 0
 
   /* ── Allocation par département ── */
   const deptMapRaw = {}
