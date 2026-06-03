@@ -228,7 +228,14 @@ class EnvoyerMessageView(APIView):
     def post(self, request, pk):
         conv = _conversations.get(str(pk))
         if not conv:
-            return Response({'detail': 'Conversation introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+            # Conversation perdue (redémarrage serveur) — on la recrée automatiquement
+            conv = {
+                'id':       str(pk),
+                'user_id':  str(request.user.pk),
+                'messages': [],
+                'created':  datetime.now().isoformat(),
+            }
+            _conversations[str(pk)] = conv
 
         contenu = request.data.get('contenu', '').strip()
         if not contenu:
