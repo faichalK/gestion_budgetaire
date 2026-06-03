@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useMutation } from '@tanstack/react-query'
-import { Brain, Lock, RotateCcw, X } from '../AtlasIcons'
+import { Brain, RotateCcw, X } from '../AtlasIcons'
 import { useAuth } from '../../context/AuthContext'
 import {
   creerConversation,
@@ -243,51 +243,39 @@ export default function ChatbotDrawer() {
           )}
 
           {/* Input */}
-          {isGestionnaire ? (
-            <div style={{
-              padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 8,
-              borderTop: '1px solid var(--af-line)', background: 'var(--af-steel)', flexShrink: 0,
-            }}>
-              <Lock size={13} strokeWidth={2} style={{ color: 'var(--af-mute)', flexShrink: 0 }} />
-              <span style={{ fontSize: 11, color: 'var(--af-mute)', fontStyle: 'italic' }}>
-                Utilisez les raccourcis ci-dessus pour poser votre question
-              </span>
-            </div>
-          ) : (
-            <form
-              onSubmit={handleSubmit}
-              style={{ padding: '10px 14px', display: 'flex', gap: 8, flexShrink: 0, borderTop: '1px solid var(--af-line)' }}
+          <form
+            onSubmit={handleSubmit}
+            style={{ padding: '10px 14px', display: 'flex', gap: 8, flexShrink: 0, borderTop: '1px solid var(--af-line)' }}
+          >
+            <input
+              ref={inputRef}
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              placeholder={convId ? 'Votre question…' : 'Initialisation…'}
+              disabled={sending || !convId}
+              style={{
+                flex: 1, border: '1px solid var(--af-line-2)', borderRadius: 8,
+                padding: '8px 12px', fontSize: 13, outline: 'none',
+                background: '#fff', fontFamily: 'var(--af-sans)',
+                transition: 'border-color .15s',
+              }}
+              onFocus={e => e.target.style.borderColor = 'var(--af-gold)'}
+              onBlur={e => e.target.style.borderColor = 'var(--af-line-2)'}
+            />
+            <button
+              type="submit"
+              disabled={!input.trim() || sending || !convId}
+              style={{
+                background: 'var(--af-ink)', color: 'var(--af-gold)',
+                border: '1px solid var(--af-gold-line)', borderRadius: 8,
+                padding: '8px 14px', cursor: 'pointer', fontSize: 14,
+                opacity: (!input.trim() || sending || !convId) ? 0.45 : 1,
+                transition: 'opacity .15s',
+              }}
             >
-              <input
-                ref={inputRef}
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                placeholder={convId ? 'Votre question…' : 'Initialisation…'}
-                disabled={sending || !convId}
-                style={{
-                  flex: 1, border: '1px solid var(--af-line-2)', borderRadius: 8,
-                  padding: '8px 12px', fontSize: 13, outline: 'none',
-                  background: '#fff', fontFamily: 'var(--af-sans)',
-                  transition: 'border-color .15s',
-                }}
-                onFocus={e => e.target.style.borderColor = 'var(--af-gold)'}
-                onBlur={e => e.target.style.borderColor = 'var(--af-line-2)'}
-              />
-              <button
-                type="submit"
-                disabled={!input.trim() || sending || !convId}
-                style={{
-                  background: 'var(--af-ink)', color: 'var(--af-gold)',
-                  border: '1px solid var(--af-gold-line)', borderRadius: 8,
-                  padding: '8px 14px', cursor: 'pointer', fontSize: 14,
-                  opacity: (!input.trim() || sending || !convId) ? 0.45 : 1,
-                  transition: 'opacity .15s',
-                }}
-              >
-                ➤
-              </button>
-            </form>
-          )}
+              ➤
+            </button>
+          </form>
         </div>
       )}
     </>
