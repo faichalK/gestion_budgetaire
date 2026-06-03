@@ -5,6 +5,7 @@ import { getDepenses } from '../../api/depenses'
 import { DepenseBadge } from '../../components/StatusBadge'
 import Card from '../../components/ui/Card'
 import { formaterNombre } from '../../utils/formatters'
+import DepenseMultiModal from '../../components/budget/DepenseMultiModal'
 
 const fmt  = n => formaterNombre(parseFloat(n) || 0, { maximumFractionDigits: 0 })
 const fmtM = n => formaterNombre((parseFloat(n) || 0) / 1e6, { maximumFractionDigits: 2 })
@@ -116,15 +117,19 @@ function DepenseRow({ depense, onClick }) {
 
 export default function MesDepenses() {
   const navigate = useNavigate()
-  const [depenses, setDepenses] = useState([])
-  const [loading,  setLoading]  = useState(true)
-  const [filtre,   setFiltre]   = useState('Tous')
+  const [depenses,       setDepenses]       = useState([])
+  const [loading,        setLoading]        = useState(true)
+  const [filtre,         setFiltre]         = useState('Tous')
+  const [modalOpen,      setModalOpen]      = useState(false)
 
-  useEffect(() => {
+  const charger = () => {
+    setLoading(true)
     getDepenses()
       .then(r => setDepenses(r.data?.data ?? r.data?.results ?? []))
       .finally(() => setLoading(false))
-  }, [])
+  }
+
+  useEffect(() => { charger() }, [])
 
   const validees   = depenses.filter(d => d.statut === 'VALIDEE')
   const enAttente  = depenses.filter(d => d.statut === 'SAISIE')
@@ -161,7 +166,7 @@ export default function MesDepenses() {
         <div className="ml-auto">
           <button
             className="btn btn-primary btn-sm"
-            onClick={() => navigate('/mes-budgets')}
+            onClick={() => setModalOpen(true)}
           >
             + Saisir une dépense
           </button>
@@ -235,6 +240,13 @@ export default function MesDepenses() {
           </table>
         )}
       </Card.Table>
+
+      {modalOpen && (
+        <DepenseMultiModal
+          onClose={() => setModalOpen(false)}
+          onSuccess={() => { setModalOpen(false); charger() }}
+        />
+      )}
     </div>
   )
 }
