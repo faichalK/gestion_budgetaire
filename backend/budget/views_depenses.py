@@ -137,6 +137,88 @@ class DepenseListView(APIView):
         data = [_serialiser_depense(d, request) for d in qs]
         return Response({'data': data})
 
+    def post(self, request):
+        """Créer une dépense hors budget (sans ligne budgétaire) — gestionnaire uniquement."""
+        from decimal import Decimal as _D
+        from .models import PieceJustificative
+        from .views_pieces import _valider_fichier, _md5
+        from accounts.models import Utilisateur
+        from .models import creer_notification
+        import django.db.transaction as _tx
+
+        # C1 — permission gestionnaire uniquement
+        if not (request.user.is_authenticated and request.user.is_gestionnaire):
+            return Response({'detail': 'Permission refusée.'}, status=status.HTTP_403_FORBIDDEN)
+
+        libelle = (request.data.get('libelle_hors_budget') or '').strip()
+        if not libelle:
+            return Response({'detail': 'Le libellé est requis.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            montant_f = float(request.data.get('montant', 0) or 0)
+            if montant_f <= 0:
+                raise ValueError()
+        except (ValueError, TypeError):
+            return Response({'detail': 'Montant invalide.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        fournisseur = (request.data.get('fournisseur') or '').strip()
+        note        = (request.data.get('note')        or '').strip()
+
+        # C4 — valider tous les fichiers AVANT de créer la dépense
+        fichiers_valides = []
+        for f in request.FILES.getlist('pieces'):
+            try:
+                type_mime = _valider_fichier(f)
+            except Exception as exc:
+                return Response(
+                    {'detail': f'Fichier invalide : {f.name}. {exc}'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            fichiers_valides.append((f, type_mime))
+
+        # C2 — transaction atomique : dépense + pièces ou rollback total
+        with _tx.atomic():
+            depense = Depense.objects.create(
+                budget=None,
+                libelle_hors_budget=libelle,
+                statut=StatutDepense.SAISIE,
+                fournisseur=fournisseur,
+                note=note,
+                enregistre_par=request.user,
+                montant_total=_D(str(montant_f)),
+            )
+            for f, type_mime in fichiers_valides:
+                PieceJustificative.objects.create(
+                    depense=depense,
+                    fichier=f,
+                    nom_original=f.name[:255],
+                    taille=f.size,
+                    type_mime=type_mime,
+                    md5_hash=_md5(f),
+                    uploaded_by=request.user,
+                )
+
+        LogAudit.enregistrer(
+            utilisateur=request.user, table='depense',
+            enregistrement_id=str(depense.id), action=ActionAudit.CREATE,
+            valeur_apres=f"Dépense hors budget — {montant_f:,.0f} FCFA : {libelle}",
+            user_agent=request.META.get('HTTP_USER_AGENT', ''),
+        )
+
+        gest = request.user
+        for comptable in Utilisateur.objects.filter(role='COMPTABLE', actif=True):
+            creer_notification(
+                destinataire=comptable,
+                type_notif='DEPENSE_SAISIE',
+                message=(
+                    f"{gest.prenom} {gest.nom} a enregistré une dépense hors budget "
+                    f"de {montant_f:,.0f} FCFA : {libelle}."
+                ),
+                lien='/depenses',
+            )
+
+        return Response({'depense_id': str(depense.id)}, status=status.HTTP_201_CREATED)
+
 
 # ── Détail ─────────────────────────────────────────────────────────────────────
 
@@ -204,22 +286,24 @@ class ValiderDepenseView(APIView):
         )
 
         if depense.enregistre_par:
+            # C3 — budget peut être None pour les dépenses hors budget
+            _ref = depense.budget.code if depense.budget else (depense.libelle_hors_budget or 'hors budget')
+            _ref_long = f"{depense.budget.code} – {depense.budget.nom}" if depense.budget else (depense.libelle_hors_budget or 'hors budget')
             creer_notification(
                 destinataire=depense.enregistre_par,
                 type_notif='DEPENSE_VALIDEE',
                 message=(
                     f"Votre dépense de {depense.montant_total:,.0f} FCFA "
-                    f"sur le budget {depense.budget.code} a été validée."
+                    f"({_ref}) a été validée."
                 ),
                 lien='/mes-depenses',
             )
             _envoyer_email(
                 depense.enregistre_par,
-                f"Dépense validée — {depense.budget.code}",
+                f"Dépense validée — {_ref}",
                 (
                     f"Bonjour {depense.enregistre_par.prenom} {depense.enregistre_par.nom},\n\n"
-                    f"Votre dépense de {depense.montant_total:,.0f} FCFA sur le budget "
-                    f"{depense.budget.code} – {depense.budget.nom} a été validée par "
+                    f"Votre dépense de {depense.montant_total:,.0f} FCFA ({_ref_long}) a été validée par "
                     f"{request.user.prenom} {request.user.nom}."
                 ),
             )
@@ -272,22 +356,24 @@ class RejeterDepenseView(APIView):
         )
 
         if depense.enregistre_par:
+            # C3 — budget peut être None pour les dépenses hors budget
+            _ref = depense.budget.code if depense.budget else (depense.libelle_hors_budget or 'hors budget')
+            _ref_long = f"{depense.budget.code} – {depense.budget.nom}" if depense.budget else (depense.libelle_hors_budget or 'hors budget')
             creer_notification(
                 destinataire=depense.enregistre_par,
                 type_notif='DEPENSE_REJETEE',
                 message=(
                     f"Votre dépense de {depense.montant_total:,.0f} FCFA "
-                    f"sur le budget {depense.budget.code} a été rejetée. Motif : {motif[:100]}"
+                    f"({_ref}) a été rejetée. Motif : {motif[:100]}"
                 ),
                 lien='/mes-depenses',
             )
             _envoyer_email(
                 depense.enregistre_par,
-                f"Dépense rejetée — {depense.budget.code}",
+                f"Dépense rejetée — {_ref}",
                 (
                     f"Bonjour {depense.enregistre_par.prenom} {depense.enregistre_par.nom},\n\n"
-                    f"Votre dépense de {depense.montant_total:,.0f} FCFA sur le budget "
-                    f"{depense.budget.code} – {depense.budget.nom} a été rejetée par "
+                    f"Votre dépense de {depense.montant_total:,.0f} FCFA ({_ref_long}) a été rejetée par "
                     f"{request.user.prenom} {request.user.nom}.\n\nMotif : {motif}"
                 ),
             )

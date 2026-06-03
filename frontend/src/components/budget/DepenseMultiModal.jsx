@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { getBudgets, getBudgetArbre, getLignesSelecteur, depenseMultiLigne } from '../../api/budget'
+import { createDepenseHorsBudget } from '../../api/depenses'
 import { notifRefresh } from '../../utils/notifRefresh'
 import { formaterNombre, getCouleurExecution } from '../../utils/formatters'
 import {
@@ -11,9 +12,20 @@ const fmt = (n) => formaterNombre(n, { maximumFractionDigits: 0 })
 
 export default function DepenseMultiModal({ budgetId: propBudgetId = null, onClose, onSuccess }) {
 
-  /* ── Étapes ─────────────────────────────────────────────────────── */
+  /* ── Étapes : 1=choix budget, 2=lignes, 3=hors budget ──────────── */
   const [step,             setStep]             = useState(propBudgetId ? 2 : 1)
   const [selectedBudgetId, setSelectedBudgetId] = useState(propBudgetId)
+
+  /* ── Étape 3 : hors budget ───────────────────────────────────── */
+  const [hbLibelle,     setHbLibelle]     = useState('')
+  const [hbMontant,     setHbMontant]     = useState('')
+  const [hbFournisseur, setHbFournisseur] = useState('')
+  const [hbNote,        setHbNote]        = useState('')
+  const [hbFiles,       setHbFiles]       = useState([])
+  const [hbDragOver,    setHbDragOver]    = useState(false)
+  const [hbSaving,      setHbSaving]      = useState(false)
+  const [hbError,       setHbError]       = useState('')
+  const hbFileRef = useRef(null)
 
   /* ── Étape 1 : sélection du budget ──────────────────────────────── */
   const [budgets,        setBudgets]        = useState([])
@@ -133,6 +145,34 @@ export default function DepenseMultiModal({ budgetId: propBudgetId = null, onClo
     } finally { setSaving(false) }
   }
 
+  /* ── Soumission hors budget ──────────────────────────────────── */
+  const handleSubmitHorsBudget = async (e) => {
+    e.preventDefault()
+    if (!hbLibelle.trim()) { setHbError('Le libellé est requis.'); return }
+    if (!hbMontant || parseFloat(hbMontant) <= 0) { setHbError('Montant invalide.'); return }
+    setHbError(''); setHbSaving(true)
+    try {
+      await createDepenseHorsBudget({
+        libelle:     hbLibelle.trim(),
+        montant:     parseFloat(hbMontant),
+        fournisseur: hbFournisseur.trim(),
+        note:        hbNote.trim(),
+        files:       hbFiles,
+      })
+      notifRefresh()
+      onSuccess()
+    } catch (err) {
+      setHbError(err.response?.data?.detail || "Erreur lors de l'enregistrement.")
+    } finally { setHbSaving(false) }
+  }
+
+  const addHbFiles = (incoming) => {
+    const valid = Array.from(incoming).filter(f =>
+      /\.(pdf|jpg|jpeg|png|doc|docx|xls|xlsx)$/i.test(f.name)
+    )
+    setHbFiles(prev => [...prev, ...valid])
+  }
+
   const selectedBudget   = budgets.find(b => b.id === selectedBudgetId)
   const filteredBudgets  = budgets.filter(b =>
     !budgetSearch ||
@@ -167,11 +207,15 @@ export default function DepenseMultiModal({ budgetId: propBudgetId = null, onClo
           {/* Indicateur d'étapes */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '11px' }}>
             <span style={{ fontWeight: step === 1 ? 700 : 400, color: step === 1 ? 'var(--color-gold)' : 'var(--af-mute)' }}>
-              1. Budget
+              1. Choix
             </span>
             <span style={{ color: 'var(--af-line-2)' }}>→</span>
             <span style={{ fontWeight: step === 2 ? 700 : 400, color: step === 2 ? 'var(--color-gold)' : 'var(--af-mute)' }}>
               2. Lignes & montants
+            </span>
+            <span style={{ color: 'var(--af-line-2)' }}>·</span>
+            <span style={{ fontWeight: step === 3 ? 700 : 400, color: step === 3 ? 'var(--color-gold)' : 'var(--af-mute)' }}>
+              Autre
             </span>
           </div>
         </div>
@@ -238,6 +282,41 @@ export default function DepenseMultiModal({ budgetId: propBudgetId = null, onClo
                 ))}
               </div>
             )}
+
+            {/* Séparateur + option hors budget */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '10px 0 4px' }}>
+              <div style={{ flex: 1, height: 1, background: 'var(--af-line)' }} />
+              <span style={{ fontSize: '11px', color: 'var(--af-mute)', flexShrink: 0 }}>ou</span>
+              <div style={{ flex: 1, height: 1, background: 'var(--af-line)' }} />
+            </div>
+            <button
+              type="button"
+              onClick={() => setStep(3)}
+              style={{
+                textAlign: 'left', padding: '12px 16px', borderRadius: 10,
+                border: '1.5px dashed var(--af-line-2)',
+                background: 'transparent', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 12,
+                width: '100%', transition: 'all .12s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-gold)'; e.currentTarget.style.background = 'var(--color-gold-soft)' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--af-line-2)'; e.currentTarget.style.background = 'transparent' }}
+            >
+              <div style={{
+                width: 36, height: 36, borderRadius: 8, flexShrink: 0,
+                background: 'var(--color-gray-50)', border: '1px solid var(--af-line)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '18px',
+              }}>📄</div>
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--af-ink)' }}>
+                  Dépense hors budget
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--af-mute)', marginTop: 2 }}>
+                  Saisir une dépense sans ligne budgétaire (fournisseur, montant, pièce justificative)
+                </div>
+              </div>
+            </button>
 
             <div className="modal-footer" style={{ flexShrink: 0, marginTop: 12 }}>
               <button type="button" onClick={onClose} className="btn btn-secondary btn-md">Annuler</button>
@@ -631,6 +710,142 @@ export default function DepenseMultiModal({ budgetId: propBudgetId = null, onClo
             </div>
           </form>
         )}
+        {/* ══════════════ ÉTAPE 3 : dépense hors budget ══════════════ */}
+        {step === 3 && (
+          <form onSubmit={handleSubmitHorsBudget} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+              {/* Libellé */}
+              <div>
+                <label className="form-label">Libellé de la dépense <span style={{ color: 'var(--color-danger-500)' }}>*</span></label>
+                <input
+                  className="form-input"
+                  value={hbLibelle}
+                  onChange={e => setHbLibelle(e.target.value)}
+                  placeholder="Ex : Achat fournitures de bureau, Frais de mission…"
+                  autoFocus
+                  required
+                />
+              </div>
+
+              {/* Montant + Fournisseur côte à côte */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div>
+                  <label className="form-label">Montant (FCFA) <span style={{ color: 'var(--color-danger-500)' }}>*</span></label>
+                  <input
+                    type="number" min="0.01" step="0.01"
+                    className="form-input"
+                    style={{ fontFamily: 'var(--af-mono)' }}
+                    value={hbMontant}
+                    onChange={e => setHbMontant(e.target.value)}
+                    placeholder="0"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="form-label">Fournisseur</label>
+                  <input
+                    className="form-input"
+                    value={hbFournisseur}
+                    onChange={e => setHbFournisseur(e.target.value)}
+                    placeholder="Nom du fournisseur"
+                  />
+                </div>
+              </div>
+
+              {/* Note */}
+              <div>
+                <label className="form-label">Note / Référence</label>
+                <input
+                  className="form-input"
+                  value={hbNote}
+                  onChange={e => setHbNote(e.target.value)}
+                  placeholder="Ex : Facture N°2025-042"
+                />
+              </div>
+
+              {/* Pièces justificatives */}
+              <div>
+                <label className="form-label">
+                  Pièce(s) justificative(s)
+                  <span style={{ fontSize: '10px', fontWeight: 400, color: 'var(--af-mute)', marginLeft: 6 }}>
+                    (requises avant validation)
+                  </span>
+                </label>
+                <input
+                  ref={hbFileRef} type="file" multiple
+                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
+                  style={{ display: 'none' }}
+                  onChange={e => { addHbFiles(e.target.files); e.target.value = '' }}
+                />
+                <div
+                  onDragOver={e => { e.preventDefault(); setHbDragOver(true) }}
+                  onDragLeave={() => setHbDragOver(false)}
+                  onDrop={e => { e.preventDefault(); setHbDragOver(false); addHbFiles(e.dataTransfer.files) }}
+                  onClick={() => hbFileRef.current?.click()}
+                  style={{
+                    border: `1.5px dashed ${hbDragOver ? 'var(--color-gold)' : 'var(--af-line-2)'}`,
+                    borderRadius: 8, padding: '14px 12px',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                    background: hbDragOver ? 'var(--color-gold-soft)' : 'var(--af-steel)',
+                    cursor: 'pointer', transition: 'all .15s', textAlign: 'center',
+                  }}
+                >
+                  <Paperclip size={16} strokeWidth={2} style={{ color: hbDragOver ? 'var(--color-gold)' : 'var(--af-mute)' }} />
+                  <span style={{ fontSize: '12px', color: 'var(--af-mute)' }}>
+                    Déposer les fichiers ici ou <span style={{ color: 'var(--color-gold)', fontWeight: 600 }}>parcourir</span>
+                  </span>
+                  <span style={{ fontSize: '10.5px', color: 'var(--af-mute)' }}>PDF, image, Word, Excel</span>
+                </div>
+                {hbFiles.length > 0 && (
+                  <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {hbFiles.map((f, i) => (
+                      <div key={i} style={{
+                        display: 'flex', alignItems: 'center', gap: 8,
+                        padding: '5px 10px', borderRadius: 6,
+                        background: '#fff', border: '1px solid var(--af-line)',
+                      }}>
+                        <Paperclip size={11} strokeWidth={2} style={{ color: 'var(--af-mute)', flexShrink: 0 }} />
+                        <span style={{ flex: 1, fontSize: '11.5px', color: 'var(--af-ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {f.name}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={e => { e.stopPropagation(); setHbFiles(prev => prev.filter((_, j) => j !== i)) }}
+                          style={{ fontSize: '11px', color: 'var(--color-danger-500)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', flexShrink: 0 }}
+                        >✕</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {hbError && (
+                <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '8px 12px', borderRadius: 8, background: 'var(--color-danger-50)', border: '1px solid var(--color-danger-200)' }}>
+                  <AlertTriangle size={13} style={{ color: 'var(--color-danger-500)', flexShrink: 0, marginTop: 1 }} />
+                  <span style={{ color: 'var(--color-danger-700)', fontSize: '12px' }}>{hbError}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="modal-footer" style={{ flexShrink: 0 }}>
+              <button type="button" onClick={() => setStep(1)} className="btn btn-secondary btn-md">
+                ← Retour
+              </button>
+              <button
+                type="submit"
+                disabled={hbSaving || !hbLibelle.trim() || !hbMontant}
+                className="btn btn-success btn-md" style={{ gap: 6 }}
+              >
+                {hbSaving
+                  ? <><span className="spinner-sm" /> Enregistrement…</>
+                  : <><Check size={14} strokeWidth={2.5} /> Confirmer la dépense</>
+                }
+              </button>
+            </div>
+          </form>
+        )}
+
       </div>
     </div>
   )

@@ -106,7 +106,7 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
 
   const handleRejeter = async (e) => {
     e.preventDefault()
-    if (!rejectModal.motif.trim()) return setRejectModal(m => ({ ...m, error: 'Le motif est obligatoire.' }))
+    if (rejectModal.motif.trim().length < 10) return setRejectModal(m => ({ ...m, error: 'Le motif doit faire au moins 10 caractères.' }))
     setRejectModal(m => ({ ...m, saving: true, error: '' }))
     try {
       if (rejectModal.depense.id === '__all__') {
@@ -525,11 +525,14 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
                   <textarea
                     className="form-input"
                     rows={3}
-                    placeholder="Expliquez la raison du rejet…"
+                    placeholder="Expliquez la raison du rejet (min. 10 caractères)…"
                     value={rejectModal.motif}
                     onChange={e => setRejectModal(m => ({ ...m, motif: e.target.value, error: '' }))}
                     style={{ resize: 'vertical' }}
                   />
+                  <div style={{ fontSize: '11px', marginTop: 4, color: rejectModal.motif.length < 10 ? 'var(--color-danger-500)' : 'var(--color-success-600)' }}>
+                    {rejectModal.motif.length} / min 10 caractères
+                  </div>
                 </div>
                 {rejectModal.error && (
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '8px 12px', borderRadius: 8, background: 'var(--color-danger-50)', border: '1px solid var(--color-danger-200)', marginTop: 10 }}>

@@ -5,6 +5,16 @@ import api from './axios'
 
 export const getDepenses    = (params)    => api.get('/v1/depenses/', { params })
 export const getDepense     = (id)        => api.get(`/v1/depenses/${id}/`)
+
+export const createDepenseHorsBudget = ({ libelle, montant, fournisseur = '', note = '', files = [] }) => {
+  const form = new FormData()
+  form.append('libelle_hors_budget', libelle)
+  form.append('montant', montant)
+  if (fournisseur) form.append('fournisseur', fournisseur)
+  if (note)        form.append('note', note)
+  for (const f of files) form.append('pieces', f)
+  return api.post('/v1/depenses/', form, { headers: { 'Content-Type': 'multipart/form-data' } })
+}
 export const validerDepense = (id, data)  => api.post(`/v1/depenses/${id}/valider/`, data)
 export const rejeterDepense = (id, data)  => api.post(`/v1/depenses/${id}/rejeter/`, data)
 
