@@ -143,7 +143,7 @@ export default function Layout({ children }) {
       gridTemplateColumns: isMobile ? '1fr' : `${sidebarWidth} 1fr`,
       gridTemplateRows: '56px 1fr',
       gridTemplateAreas: isMobile ? '"topbar" "main"' : '"sidebar topbar" "sidebar main"',
-      background: '#F7F5F0',
+      background: 'var(--af-night)',
     }}>
 
       {/* ── Mobile overlay ─────────────────────────────────────────────── */}
@@ -316,7 +316,7 @@ export default function Layout({ children }) {
         style={{
           gridArea: 'main',
           padding: isMobile ? '16px 14px' : '28px 32px 40px',
-          background: '#F7F5F0',
+          background: 'var(--af-night)',
           backgroundImage: 'radial-gradient(ellipse 60% 40% at 90% -10%, rgba(184,134,74,0.06), transparent 60%)',
         }}
       >

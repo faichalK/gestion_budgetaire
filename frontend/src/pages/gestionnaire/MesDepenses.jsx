@@ -158,6 +158,14 @@ export default function MesDepenses() {
           </h1>
           <div className="text-[13px] text-[#5A6B7E]">Consultez et suivez l'avancement de vos dépenses par dossier.</div>
         </div>
+        <div className="ml-auto">
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={() => navigate('/mes-budgets')}
+          >
+            + Saisir une dépense
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-4 gap-[14px] mb-6">

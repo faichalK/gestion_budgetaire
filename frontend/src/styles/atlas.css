@@ -1272,3 +1272,35 @@ html.dark .af-input-bar input { color: #E8EEF5; background: transparent; }
 html.dark .af-dropdown       { background: #1E293B; border-color: rgba(255,255,255,0.07); }
 html.dark .af-dropdown li:hover { background: rgba(255,255,255,0.05); color: #E8EEF5; }
 
+/* ── Overrides larges pour les pages à inline styles ─────────────────────── */
+html.dark .bg-white,
+html.dark [class*="rounded"][class*="border"],
+html.dark .shadow-\[0_1px_4px_rgba\(14\,42\,71\,0\.06\)\] {
+  background-color: #1E293B !important;
+  border-color: rgba(255,255,255,0.07) !important;
+}
+html.dark .text-\[#0E2A47\]  { color: #E8EEF5 !important; }
+html.dark .text-\[#5A6B7E\]  { color: #94A3B8 !important; }
+html.dark .text-\[#B8864A\]  { color: var(--af-gold) !important; }
+html.dark .border-\[rgba\(14\,42\,71\,0\.08\)\] { border-color: rgba(255,255,255,0.07) !important; }
+
+/* Zone principale de contenu */
+html.dark main,
+html.dark #main-content,
+html.dark .page-content {
+  background: #0F172A !important;
+  color: #E8EEF5;
+}
+
+/* KPI cards & panels fréquents */
+html.dark .rounded-\[10px\]  { background-color: #1E293B !important; color: #E8EEF5 !important; }
+html.dark .rounded-xl        { background-color: #1E293B !important; }
+html.dark .rounded-lg        { background-color: #1E293B !important; }
+
+/* Texte générique sombre → clair */
+html.dark p, html.dark span, html.dark label, html.dark div {
+  color: inherit;
+}
+html.dark .empty-state,
+html.dark .af-loader { background: #0F172A; color: #94A3B8; }
+

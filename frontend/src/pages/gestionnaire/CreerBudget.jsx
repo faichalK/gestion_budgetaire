@@ -348,7 +348,7 @@ export default function CreerBudget() {
       }}>
         <Info size={15} strokeWidth={2} style={{ color: 'var(--color-gold)', flexShrink: 0, marginTop: 1 }} />
         <p style={{ fontSize: '13px', color: 'var(--color-gold-dark)', margin: 0 }}>
-          <strong>Étapes suivantes :</strong> après l'enregistrement, vous serez redirigé vers la page du budget où vous pourrez ajouter les lignes budgétaires, puis soumettre avec une pièce justificative.
+          <strong>Étapes suivantes :</strong> après l'enregistrement, vous serez redirigé vers la page du budget où vous pourrez ajouter les lignes budgétaires, puis soumettre pour validation.
         </p>
       </div>
     </div>

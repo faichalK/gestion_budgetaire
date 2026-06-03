@@ -72,14 +72,6 @@ export default function GestionnaireDashboard() {
             {budgets.length} budget{budgets.length !== 1 ? 's' : ''} actifs · {depenses.length} dépense{depenses.length !== 1 ? 's' : ''} ce mois.
           </div>
         </div>
-        <div className="ml-auto flex gap-2.5">
-          <button className="btn btn-secondary btn-sm" onClick={() => navigate('/mes-depenses')}>
-            {Icon.filter} Filtres
-          </button>
-          <button className="btn btn-primary btn-sm" onClick={() => navigate('/creer-budget')}>
-            {Icon.plus} Créer un budget
-          </button>
-        </div>
       </div>
 
       <AlertesZone budgets={budgets} budgetBasePath="/mes-budgets" />

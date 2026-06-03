@@ -1,10 +1,3 @@
-/**
- * LignesBudgetaires — Composant hiérarchique 3 niveaux
- * Catégorie (A, B…) → Sous-catégorie (A.1, A.2…) → Ligne (libellé + montant)
- *
- * Design épuré, sobre, formulaires inline (jamais de modale).
- * readOnly=true masque tous les boutons d'édition.
- */
 import { useState, useEffect, useRef } from 'react'
 import { ChevronRight, ChevronDown, Plus, Trash2, Check, X } from '../AtlasIcons'
 import { ConfirmModal } from '../ui'
@@ -21,22 +14,24 @@ import { formaterMontant } from '../../utils/formatters'
 
 const fmt = (n) => formaterMontant(n, { avecDevise: false })
 
+const EMPTY_LIGNE = { libelle: '', prix: '', qte: '1', unite: '' }
+
 export default function LignesBudgetaires({ budgetId, readOnly = false, onTotalChange }) {
   const [categories,    setCategories]    = useState([])
   const [loading,       setLoading]       = useState(true)
   const [openCats,      setOpenCats]      = useState(new Set())
   const [showNewCat,    setShowNewCat]    = useState(false)
   const [newCatLabel,   setNewCatLabel]   = useState('')
-  const [showSubForm,   setShowSubForm]   = useState(null)   // catId
+  const [showSubForm,   setShowSubForm]   = useState(null)
   const [subLabel,      setSubLabel]      = useState('')
-  const [showLigneForm, setShowLigneForm] = useState(null)   // sousCatId
-  const [newLigne,      setNewLigne]      = useState({ libelle: '', montant: '', qte: '1', unite: '' })
+  const [showLigneForm, setShowLigneForm] = useState(null)
+  const [newLigne,      setNewLigne]      = useState(EMPTY_LIGNE)
   const [saving,        setSaving]        = useState(false)
   const [confirmModal,  setConfirmModal]  = useState(null)
 
-  const newCatRef = useRef(null)
-  const subRef    = useRef(null)
-  const ligneRef  = useRef(null)
+  const newCatRef  = useRef(null)
+  const subRef     = useRef(null)
+  const ligneRef   = useRef(null)
   const chargerRef = useRef(() => {})
 
   /* ── Chargement ─────────────────────────────────────────────────────────── */
@@ -52,13 +47,10 @@ export default function LignesBudgetaires({ budgetId, readOnly = false, onTotalC
       setLoading(false)
     }
   }
+  useEffect(() => { chargerRef.current = charger })
   useEffect(() => {
-    chargerRef.current = charger
-  })
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => chargerRef.current?.(), 0)
-    return () => window.clearTimeout(timeoutId)
+    const id = window.setTimeout(() => chargerRef.current?.(), 0)
+    return () => window.clearTimeout(id)
   }, [budgetId])
 
   useEffect(() => { if (showNewCat)    setTimeout(() => newCatRef.current?.focus(), 50) }, [showNewCat])
@@ -76,11 +68,11 @@ export default function LignesBudgetaires({ budgetId, readOnly = false, onTotalC
       return next
     })
 
-  /* ── Fermer tous les formulaires ────────────────────────────────────────── */
+  /* ── Fermer formulaires ─────────────────────────────────────────────────── */
   const fermerFormulaies = () => {
     setShowNewCat(false); setNewCatLabel('')
     setShowSubForm(null); setSubLabel('')
-    setShowLigneForm(null); setNewLigne({ libelle: '', montant: '', qte: '1', unite: '' })
+    setShowLigneForm(null); setNewLigne(EMPTY_LIGNE)
   }
 
   /* ── Actions CRUD ───────────────────────────────────────────────────────── */
@@ -127,16 +119,18 @@ export default function LignesBudgetaires({ budgetId, readOnly = false, onTotalC
   }
 
   const ajouterLigne = async (scId) => {
-    if (!newLigne.libelle.trim() || !newLigne.montant || saving) return
+    if (!newLigne.libelle.trim() || !newLigne.prix || saving) return
+    const prix = parseFloat(newLigne.prix) || 0
+    const qte  = parseInt(newLigne.qte)   || 1
     setSaving(true)
     try {
       await createLigneHierarchie(scId, {
         libelle:      newLigne.libelle.trim(),
-        montantPrevu: parseFloat(newLigne.montant) || 0,
-        quantite:     parseInt(newLigne.qte) || 1,
+        montantPrevu: prix * qte,
+        quantite:     qte,
         unite:        newLigne.unite || '',
       })
-      setNewLigne({ libelle: '', montant: '', qte: '1', unite: '' })
+      setNewLigne(EMPTY_LIGNE)
       setShowLigneForm(null)
       await charger()
     } catch (e) {
@@ -155,6 +149,11 @@ export default function LignesBudgetaires({ budgetId, readOnly = false, onTotalC
     if (e.key === 'Escape') { e.preventDefault(); onEsc?.() }
   }
 
+  /* ── Colonnes display ───────────────────────────────────────────────────── */
+  const COLS_RO   = '1fr 110px 55px 80px 120px'
+  const COLS_EDIT = '1fr 110px 55px 80px 120px 28px'
+  const COLS_FORM = '1fr 100px 50px 75px 100px auto'
+
   /* ── Render ─────────────────────────────────────────────────────────────── */
   if (loading) return (
     <div className="p-[40px] text-center">
@@ -168,9 +167,7 @@ export default function LignesBudgetaires({ budgetId, readOnly = false, onTotalC
 
       {/* ── En-tête ── */}
       <div className="flex justify-between items-center px-[16px] py-[11px] border-b border-b-gray-200 bg-gray-50">
-        <span className="font-bold text-[13px] text-gray-800">
-          Lignes budgétaires
-        </span>
+        <span className="font-bold text-[13px] text-gray-800">Lignes budgétaires</span>
         {!readOnly && (
           <button
             onClick={() => { fermerFormulaies(); setShowNewCat(true) }}
@@ -204,9 +201,7 @@ export default function LignesBudgetaires({ budgetId, readOnly = false, onTotalC
                   ? <ChevronDown  size={14} strokeWidth={2.5} className="text-gray-400 shrink-0" />
                   : <ChevronRight size={14} strokeWidth={2.5} className="text-gray-400 shrink-0" />
                 }
-                <span className="font-bold text-[13px] text-gray-800">
-                  {cat.code}&ensp;{cat.libelle}
-                </span>
+                <span className="font-bold text-[13px] text-gray-800">{cat.code}&ensp;{cat.libelle}</span>
               </span>
               <span className="font-mono font-bold text-[13px] text-gray-700 shrink-0">
                 {fmt(cat.total)} FCFA
@@ -288,61 +283,73 @@ export default function LignesBudgetaires({ budgetId, readOnly = false, onTotalC
                   )}
                 </div>
 
-                {/* Lignes budgétaires */}
+                {/* En-tête colonnes lignes */}
                 {(sc.lignes || []).length > 0 && (
                   <div
                     className="px-[14px] pl-[50px] py-[3px] text-[10px] font-semibold uppercase tracking-[.4px] text-gray-400 grid gap-[8px]"
                     style={{
-                      gridTemplateColumns: readOnly ? '1fr 130px 55px 75px' : '1fr 130px 55px 75px 28px',
+                      gridTemplateColumns: readOnly ? COLS_RO : COLS_EDIT,
                       borderBottom: '0.5px solid var(--af-line)',
                       background: '#FAFAFA',
                     }}
                   >
                     <span>Désignation</span>
-                    <span className="text-right">Montant alloué</span>
+                    <span className="text-right">Prix unit.</span>
                     <span className="text-right">Qté</span>
                     <span>Unité</span>
+                    <span className="text-right">Total</span>
                     {!readOnly && <span />}
                   </div>
                 )}
-                {(sc.lignes || []).map(ligne => (
-                  <div
-                    key={ligne.id}
-                    className="px-[14px] pl-[50px] py-[5px] text-[12px] grid items-center gap-[8px]"
-                    style={{
-                      gridTemplateColumns: readOnly ? '1fr 130px 55px 75px' : '1fr 130px 55px 75px 28px',
-                      borderBottom: '0.5px solid var(--af-steel)',
-                    }}
-                  >
-                    <span className="text-gray-700 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap" title={ligne.libelle}>
-                      {ligne.libelle}
-                    </span>
-                    <span className="font-mono font-bold text-[12px] text-gray-800 text-right">
-                      {fmt(ligne.montant_alloue)}
-                    </span>
-                    <span className="text-gray-400 text-right">
-                      {ligne.quantite != null ? parseFloat(ligne.quantite) : '—'}
-                    </span>
-                    <span className="text-gray-400 overflow-hidden text-ellipsis whitespace-nowrap">
-                      {ligne.unite || '—'}
-                    </span>
-                    {!readOnly && (
-                      <button
-                        onClick={() => supprimerLigne(ligne.id)}
-                        className="bg-none border-none cursor-pointer px-[4px] py-[2px] rounded-[4px] leading-none text-danger-300"
-                      >
-                        <Trash2 size={12} strokeWidth={2} />
-                      </button>
-                    )}
-                  </div>
-                ))}
+
+                {/* Lignes budgétaires */}
+                {(sc.lignes || []).map(ligne => {
+                  const prixUnit = parseFloat(ligne.prix_unitaire ?? (
+                    ligne.quantite ? ligne.montant_alloue / ligne.quantite : ligne.montant_alloue
+                  ))
+                  const total = parseFloat(ligne.montant_alloue ?? 0)
+                  return (
+                    <div
+                      key={ligne.id}
+                      className="px-[14px] pl-[50px] py-[5px] text-[12px] grid items-center gap-[8px]"
+                      style={{
+                        gridTemplateColumns: readOnly ? COLS_RO : COLS_EDIT,
+                        borderBottom: '0.5px solid var(--af-steel)',
+                      }}
+                    >
+                      <span className="text-gray-700 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap" title={ligne.libelle}>
+                        {ligne.libelle}
+                      </span>
+                      <span className="font-mono text-[12px] text-gray-600 text-right">
+                        {fmt(prixUnit)}
+                      </span>
+                      <span className="text-gray-400 text-right">
+                        {ligne.quantite != null ? parseFloat(ligne.quantite) : '—'}
+                      </span>
+                      <span className="text-gray-400 overflow-hidden text-ellipsis whitespace-nowrap">
+                        {ligne.unite || '—'}
+                      </span>
+                      <span className="font-mono font-bold text-[12px] text-gray-800 text-right">
+                        {fmt(total)}
+                      </span>
+                      {!readOnly && (
+                        <button
+                          onClick={() => supprimerLigne(ligne.id)}
+                          className="bg-none border-none cursor-pointer px-[4px] py-[2px] rounded-[4px] leading-none text-danger-300"
+                        >
+                          <Trash2 size={12} strokeWidth={2} />
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
 
                 {/* Form : nouvelle ligne */}
                 {!readOnly && showLigneForm === sc.id && (
                   <div
                     className="px-[14px] pl-[50px] py-[6px] grid items-center gap-[5px] bg-primary-50"
                     style={{
-                      gridTemplateColumns: '1fr 110px 50px 70px auto',
+                      gridTemplateColumns: COLS_FORM,
                       borderBottom: '0.5px solid var(--af-line)',
                     }}
                   >
@@ -350,17 +357,17 @@ export default function LignesBudgetaires({ budgetId, readOnly = false, onTotalC
                       ref={ligneRef}
                       value={newLigne.libelle}
                       onChange={e => setNewLigne(p => ({ ...p, libelle: e.target.value }))}
-                      onKeyDown={e => keyDown(e, () => ajouterLigne(sc.id), () => { setShowLigneForm(null); setNewLigne({ libelle: '', montant: '', qte: '1', unite: '' }) })}
+                      onKeyDown={e => keyDown(e, () => ajouterLigne(sc.id), () => { setShowLigneForm(null); setNewLigne(EMPTY_LIGNE) })}
                       placeholder="Libellé…"
                       className="w-full text-[12px] px-[8px] py-[4px] h-[28px] rounded-[6px] border border-gray-200 outline-none"
                     />
                     <input
-                      type="number" min="0"
-                      value={newLigne.montant}
-                      onChange={e => setNewLigne(p => ({ ...p, montant: e.target.value }))}
+                      type="number" min="0" step="any"
+                      value={newLigne.prix}
+                      onChange={e => setNewLigne(p => ({ ...p, prix: e.target.value }))}
                       onKeyDown={e => keyDown(e, () => ajouterLigne(sc.id))}
-                      placeholder="Montant"
-                      className="w-full text-[12px] px-[8px] py-[4px] h-[28px] rounded-[6px] border border-gray-200 outline-none font-mono font-bold"
+                      placeholder="Prix unit."
+                      className="w-full text-[12px] px-[8px] py-[4px] h-[28px] rounded-[6px] border border-gray-200 outline-none font-mono"
                     />
                     <input
                       type="number" min="1"
@@ -377,6 +384,13 @@ export default function LignesBudgetaires({ budgetId, readOnly = false, onTotalC
                       placeholder="Unité"
                       className="w-full text-[12px] px-[8px] py-[4px] h-[28px] rounded-[6px] border border-gray-200 outline-none"
                     />
+                    {/* Total calculé */}
+                    <div className="text-right font-mono font-bold text-[12px] text-gray-700 px-[4px]">
+                      {newLigne.prix && newLigne.qte
+                        ? fmt((parseFloat(newLigne.prix) || 0) * (parseInt(newLigne.qte) || 1))
+                        : <span className="text-gray-300">—</span>
+                      }
+                    </div>
                     <div className="flex gap-[4px]">
                       <button
                         onClick={() => ajouterLigne(sc.id)}
@@ -387,7 +401,7 @@ export default function LignesBudgetaires({ budgetId, readOnly = false, onTotalC
                         <Check size={12} strokeWidth={2.5} />
                       </button>
                       <button
-                        onClick={() => { setShowLigneForm(null); setNewLigne({ libelle: '', montant: '', qte: '1', unite: '' }) }}
+                        onClick={() => { setShowLigneForm(null); setNewLigne(EMPTY_LIGNE) }}
                         className="btn btn-secondary btn-sm px-[8px] py-[3px]"
                         title="Annuler (Échap)"
                       >
