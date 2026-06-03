@@ -267,8 +267,10 @@ SIMPLE_JWT = {
 }
 
 
-# CORS - autorise le frontend React (Vite port 5173) + Railway
-_cors_extra = os.getenv('CORS_ALLOWED_ORIGINS', '')
+# CORS - autorise le frontend React (Vite port 5173) + Railway + Netlify
+_cors_extra    = os.getenv('CORS_ALLOWED_ORIGINS', '')
+_netlify_url   = os.getenv('NETLIFY_URL', '')       # ex: https://atlas-finance.netlify.app
+_netlify_site  = os.getenv('NETLIFY_SITE_URL', '')  # alias Netlify
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:5173',
     'http://127.0.0.1:5173',
@@ -277,6 +279,10 @@ CORS_ALLOWED_ORIGINS = [
 ] + [o.strip() for o in _cors_extra.split(',') if o.strip()]
 if _railway_domain:
     CORS_ALLOWED_ORIGINS.append(f'https://{_railway_domain}')
+if _netlify_url:
+    CORS_ALLOWED_ORIGINS.append(_netlify_url.rstrip('/'))
+if _netlify_site:
+    CORS_ALLOWED_ORIGINS.append(_netlify_site.rstrip('/'))
 CORS_ALLOW_CREDENTIALS = True
 
 # ── Logging ───────────────────────────────────────────────────────────────────

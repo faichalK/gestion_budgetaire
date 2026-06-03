@@ -2,12 +2,14 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
-// https://vite.dev/config/
-export default defineConfig(({ command }) => ({
+// Netlify injecte NETLIFY=true automatiquement dans l'environnement de build
+const isNetlify = process.env.NETLIFY === 'true'
+
+export default defineConfig({
   plugins: [react(), tailwindcss()],
-  base: command === 'build' ? '/static/' : '/',
+  base: isNetlify ? '/' : '/static/',
   build: {
-    outDir: '../backend/frontend_dist',
+    outDir:     isNetlify ? 'dist' : '../backend/frontend_dist',
     emptyOutDir: true,
   },
   server: {
@@ -18,4 +20,4 @@ export default defineConfig(({ command }) => ({
       },
     },
   },
-}))
+})
