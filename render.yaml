@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: atlas-finance-backend
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /api/accounts/health/
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: atlas-finance-db
+          property: connectionString
+      - key: ALLOWED_HOSTS
+        value: ""
+      - key: CORS_ALLOWED_ORIGINS
+        value: ""
+      - key: NETLIFY_URL
+        value: ""
+
+databases:
+  - name: atlas-finance-db
+    plan: free
+    databaseName: atlas_finance
+    user: atlas_finance

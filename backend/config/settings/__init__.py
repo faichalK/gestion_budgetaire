@@ -21,15 +21,19 @@ SECRET_KEY = os.getenv('SECRET_KEY', '')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
 
-_extra_hosts = os.getenv('ALLOWED_HOSTS', '')
+_extra_hosts    = os.getenv('ALLOWED_HOSTS', '')
 _railway_domain = os.getenv('RAILWAY_PUBLIC_DOMAIN', '')
+_render_domain  = os.getenv('RENDER_EXTERNAL_HOSTNAME', '')  # injecté automatiquement par Render
 ALLOWED_HOSTS = [
     'localhost', '127.0.0.1',
-    '.railway.app',          # wildcard Railway (tous les sous-domaines)
+    '.railway.app',
     '.up.railway.app',
+    '.onrender.com',          # wildcard Render
 ] + [h.strip() for h in _extra_hosts.split(',') if h.strip()]
 if _railway_domain:
     ALLOWED_HOSTS.append(_railway_domain)
+if _render_domain:
+    ALLOWED_HOSTS.append(_render_domain)
 
 
 # Application definition
@@ -267,10 +271,10 @@ SIMPLE_JWT = {
 }
 
 
-# CORS - autorise le frontend React (Vite port 5173) + Railway + Netlify
-_cors_extra    = os.getenv('CORS_ALLOWED_ORIGINS', '')
-_netlify_url   = os.getenv('NETLIFY_URL', '')       # ex: https://atlas-finance.netlify.app
-_netlify_site  = os.getenv('NETLIFY_SITE_URL', '')  # alias Netlify
+# CORS - autorise le frontend React (Vite) + Railway + Render + Netlify
+_cors_extra   = os.getenv('CORS_ALLOWED_ORIGINS', '')
+_netlify_url  = os.getenv('NETLIFY_URL', '')
+_netlify_site = os.getenv('NETLIFY_SITE_URL', '')
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:5173',
     'http://127.0.0.1:5173',
@@ -279,6 +283,8 @@ CORS_ALLOWED_ORIGINS = [
 ] + [o.strip() for o in _cors_extra.split(',') if o.strip()]
 if _railway_domain:
     CORS_ALLOWED_ORIGINS.append(f'https://{_railway_domain}')
+if _render_domain:
+    CORS_ALLOWED_ORIGINS.append(f'https://{_render_domain}')
 if _netlify_url:
     CORS_ALLOWED_ORIGINS.append(_netlify_url.rstrip('/'))
 if _netlify_site:
