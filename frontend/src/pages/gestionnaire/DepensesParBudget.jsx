@@ -2,12 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { getDepenses, validerDepense, rejeterDepense } from '../../api/depenses'
-import { getBudget, getBudgetArbre, exportDepensesExcel, exportDepensesPdf } from '../../api/budget'
-import { ArrowLeft, ExternalLink, Download, ChevronDown, ChevronRight, CheckCircle2, XCircle, AlertTriangle, Eye } from '../../components/AtlasIcons'
+import { getBudget, exportDepensesExcel, exportDepensesPdf } from '../../api/budget'
+import { ArrowLeft, ExternalLink, Download, ChevronDown, CheckCircle2, XCircle, AlertTriangle, Eye } from '../../components/AtlasIcons'
 import { formaterNombre } from '../../utils/formatters'
 
-const fmt    = (n) => formaterNombre(n, { maximumFractionDigits: 0 })
-const fmtM   = (n) => formaterNombre(parseFloat(n || 0) / 1_000_000, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const fmt     = (n) => formaterNombre(n, { maximumFractionDigits: 0 })
+const fmtM    = (n) => formaterNombre(parseFloat(n || 0) / 1_000_000, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const fmtDate = (iso) => iso ? new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
 
 const DELTA = { up: 'text-[#15803D]', down: 'text-[#B91C1C]', flat: 'text-[#5A6B7E]' }
@@ -24,10 +24,8 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
   const { isAdmin, isComptable } = useAuth()
 
   const [budget,    setBudget]    = useState(null)
-  const [arbre,     setArbre]     = useState([])
   const [depenses,  setDepenses]  = useState([])
   const [loading,   setLoading]   = useState(true)
-  const [openCats,  setOpenCats]  = useState({})
   const [exportOpen, setExportOpen] = useState(false)
   const [exporting,  setExporting]  = useState('')
   const exportRef = useRef(null)
@@ -41,16 +39,10 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
     setLoading(true)
     Promise.all([
       getBudget(budgetId),
-      getBudgetArbre(budgetId),
       getDepenses({ budget: budgetId }),
     ])
-      .then(([bRes, aRes, dRes]) => {
+      .then(([bRes, dRes]) => {
         setBudget(bRes.data)
-        const cats = aRes.data?.data ?? []
-        setArbre(cats)
-        const open = {}
-        cats.forEach(c => { open[c.id] = true })
-        setOpenCats(open)
         setDepenses(dRes.data?.data ?? [])
       })
       .catch(() => navigate(basePath))
@@ -59,8 +51,8 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
   loadRef.current = load
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => loadRef.current(), 0)
-    return () => window.clearTimeout(timeoutId)
+    const t = window.setTimeout(() => loadRef.current(), 0)
+    return () => window.clearTimeout(t)
   }, [budgetId])
 
   useEffect(() => {
@@ -70,26 +62,6 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
   }, [])
 
   if (loading) return <div className="af-loader"><div className="af-spinner" /></div>
-
-  const depByLigne = {}
-  depenses.forEach(dep => {
-    ;(dep.lignes || []).forEach(cl => {
-      if (!cl.ligne_id) return
-      if (!depByLigne[cl.ligne_id]) depByLigne[cl.ligne_id] = []
-      depByLigne[cl.ligne_id].push({
-        id:           dep.id,
-        reference:    dep.reference,
-        montant:      cl.montant,
-        statut:       dep.statut,
-        date_depense: cl.date,
-        note:         cl.note || dep.note,
-        fournisseur:  dep.fournisseur,
-        pieces:       dep.pieces || [],
-        nombre_pieces: dep.nombre_pieces,
-        motif_rejet:  dep.motif_rejet,
-      })
-    })
-  })
 
   const total        = depenses.reduce((s, d) => s + parseFloat(d.montant_total || 0), 0)
   const budgetGlobal = parseFloat(budget?.montant_global || 0)
@@ -136,6 +108,11 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
     finally { setExporting('') }
   }
 
+  const openPiece = (dep) => {
+    const pieces = dep.pieces || []
+    setPieceModal({ open: true, pieces, selected: pieces[0] || null, depRef: dep.reference || String(dep.id).slice(0, 8).toUpperCase() })
+  }
+
   return (
     <>
       <div>
@@ -153,7 +130,7 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
                       Exercice {budget.annee}
                     </span>
                   )}
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 6, background: '#FEF3C7', color: '#92400E' }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 6, background: '#FEF3C7', color: '#92400E' }}>
                     {depenses.length} dépense{depenses.length !== 1 ? 's' : ''}
                   </span>
                 </div>
@@ -183,8 +160,8 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
                     <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 50, background: '#fff', border: '1px solid var(--af-line)', borderRadius: 10, boxShadow: '0 8px 24px rgba(15,23,42,.12)', minWidth: 190, overflow: 'hidden' }}>
                       <div style={{ padding: '6px 0' }}>
                         {[
-                          { fn: exportDepensesPdf,   key: 'pdf',  label: 'Exporter en PDF',   sub: 'Document imprimable',      emoji: '📄' },
-                          { fn: exportDepensesExcel, key: 'xlsx', label: 'Exporter en Excel',  sub: '.xlsx — compatible Excel', emoji: '📊' },
+                          { fn: exportDepensesPdf,   key: 'pdf',  label: 'Exporter en PDF',  sub: 'Document imprimable',      emoji: '📄' },
+                          { fn: exportDepensesExcel, key: 'xlsx', label: 'Exporter en Excel', sub: '.xlsx — compatible Excel', emoji: '📊' },
                         ].map(item => (
                           <button key={item.key} onClick={() => handleExport(item.fn, item.key)}
                             style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '9px 16px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--af-cream)', textAlign: 'left' }}
@@ -210,10 +187,10 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
         {/* ── 4 KPI cards ───────────────────────────────────────────────────── */}
         <div className="grid grid-cols-4 gap-[14px] mb-[14px]">
           {[
-            { label: 'Budget global',  value: fmtM(budgetGlobal), unit: ' M FCFA', sub: `${fmt(budgetGlobal)} FCFA`,                                       delta: 'flat' },
-            { label: 'Total dépensé',  value: fmtM(total),        unit: ' M FCFA', sub: `${depenses.length} dépense${depenses.length !== 1 ? 's' : ''}`,    delta: total > budgetGlobal * 0.8 ? 'down' : 'flat' },
-            { label: 'Disponible',     value: fmtM(Math.max(0, disponible)), unit: ' M FCFA', sub: `${fmt(Math.max(0, disponible))} FCFA`,                   delta: disponible <= 0 ? 'down' : 'up' },
-            { label: "Taux d'exéc.",   value: taux,               unit: '%',       sub: `${totalPieces} pièce${totalPieces !== 1 ? 's' : ''} jointe${totalPieces !== 1 ? 's' : ''}`, delta: taux >= 95 ? 'down' : taux >= 80 ? 'flat' : 'up', valueColor: tauxColor },
+            { label: 'Budget global',  value: fmtM(budgetGlobal), unit: ' M FCFA', sub: `${fmt(budgetGlobal)} FCFA`,                                                          delta: 'flat' },
+            { label: 'Total dépensé',  value: fmtM(total),        unit: ' M FCFA', sub: `${depenses.length} dépense${depenses.length !== 1 ? 's' : ''}`,                      delta: total > budgetGlobal * 0.8 ? 'down' : 'flat' },
+            { label: 'Disponible',     value: fmtM(Math.max(0, disponible)), unit: ' M FCFA', sub: `${fmt(Math.max(0, disponible))} FCFA`,                                    delta: disponible <= 0 ? 'down' : 'up' },
+            { label: "Taux d'exéc.",   value: taux, unit: '%', sub: `${totalPieces} pièce${totalPieces !== 1 ? 's' : ''} jointe${totalPieces !== 1 ? 's' : ''}`,             delta: taux >= 95 ? 'down' : taux >= 80 ? 'flat' : 'up', valueColor: tauxColor },
           ].map(k => (
             <div key={k.label} className="bg-white border border-[rgba(14,42,71,0.08)] rounded-[10px] py-[18px] px-5 shadow-[0_1px_0_rgba(14,42,71,0.02)]">
               <div className="text-[10px] tracking-[0.20em] uppercase text-[rgba(90,107,126,0.7)] mb-3">{k.label}</div>
@@ -227,7 +204,6 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
 
         {/* ── Synthèse + Informations ───────────────────────────────────────── */}
         <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: 14, marginBottom: 14 }}>
-          {/* Synthèse */}
           <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)]">
             <div style={{ padding: '12px 20px', borderBottom: '1px solid rgba(14,42,71,0.08)', fontSize: 13, fontWeight: 600, color: 'var(--af-ink)' }}>
               Synthèse financière
@@ -260,19 +236,18 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
             </div>
           </div>
 
-          {/* Informations */}
           <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)]">
             <div style={{ padding: '12px 20px', borderBottom: '1px solid rgba(14,42,71,0.08)', fontSize: 13, fontWeight: 600, color: 'var(--af-ink)' }}>
               Informations
             </div>
             <div style={{ padding: '16px 20px' }}>
               {[
-                { label: 'Code budget',   val: budget?.code },
-                { label: 'Exercice',      val: budget?.annee ? `${budget.annee}` : null },
-                { label: 'Département',   val: budget?.departement_nom },
-                { label: 'Gestionnaire',  val: budget?.gestionnaire_nom },
-                { label: 'Dépenses',      val: `${depenses.length} enregistrée${depenses.length !== 1 ? 's' : ''}` },
-                { label: 'Pièces',        val: `${totalPieces} jointe${totalPieces !== 1 ? 's' : ''}` },
+                { label: 'Code budget',  val: budget?.code },
+                { label: 'Exercice',     val: budget?.annee ? `${budget.annee}` : null },
+                { label: 'Département',  val: budget?.departement_nom },
+                { label: 'Gestionnaire', val: budget?.gestionnaire_nom },
+                { label: 'Dépenses',     val: `${depenses.length} enregistrée${depenses.length !== 1 ? 's' : ''}` },
+                { label: 'Pièces',       val: `${totalPieces} jointe${totalPieces !== 1 ? 's' : ''}` },
               ].filter(r => r.val).map(row => (
                 <div key={row.label} style={{ padding: '6px 0', borderBottom: '1px solid rgba(14,42,71,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
                   <span style={{ fontSize: 11, color: 'var(--af-mute)', flexShrink: 0 }}>{row.label}</span>
@@ -283,204 +258,159 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
           </div>
         </div>
 
-        {/* ── Dépenses par ligne budgétaire ─────────────────────────────────── */}
+        {/* ── Liste des dépenses ────────────────────────────────────────────── */}
         <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)] overflow-hidden">
           <div style={{ padding: '12px 24px', borderBottom: '1px solid rgba(14,42,71,0.08)', display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--af-ink)' }}>Dépenses par ligne budgétaire</span>
+            <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--af-ink)' }}>Dépenses</span>
             <span style={{ fontSize: 11, color: 'var(--af-mute)' }}>
               {depenses.length} dépense{depenses.length !== 1 ? 's' : ''} enregistrée{depenses.length !== 1 ? 's' : ''}
             </span>
           </div>
 
-          {arbre.length === 0 ? (
-            <div style={{ padding: '36px 24px', textAlign: 'center', color: 'var(--af-mute)', fontSize: 13 }}>
-              Aucune structure budgétaire trouvée.
+          {depenses.length === 0 ? (
+            <div style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--af-mute)', fontSize: 13 }}>
+              Aucune dépense enregistrée pour ce budget.
             </div>
-          ) : arbre.map(cat => {
-            const catDeps  = cat.sous_categories.flatMap(sc => sc.lignes.flatMap(l => depByLigne[l.id] || []))
-            const catTotal = catDeps.reduce((s, d) => s + parseFloat(d.montant || 0), 0)
-            const isOpen   = openCats[cat.id] !== false
+          ) : (
+            <>
+              {/* En-tête colonnes */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 160px 90px 110px auto', padding: '8px 24px', gap: 12, borderBottom: '1px solid rgba(14,42,71,0.08)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.4px', color: 'var(--af-mute)', background: 'rgba(14,42,71,0.02)' }}>
+                <span>Dépense</span>
+                <span style={{ textAlign: 'right' }}>Montant total</span>
+                <span style={{ textAlign: 'center' }}>Date</span>
+                <span style={{ textAlign: 'center' }}>Statut</span>
+                <span style={{ textAlign: 'right' }}>Actions</span>
+              </div>
 
-            return (
-              <div key={cat.id}>
-                {/* Catégorie */}
-                <div
-                  onClick={() => setOpenCats(o => ({ ...o, [cat.id]: !isOpen }))}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 24px', cursor: 'pointer', background: catDeps.length === 0 ? 'rgba(14,42,71,0.03)' : 'rgba(184,134,74,0.08)', borderBottom: '1px solid rgba(14,42,71,0.06)', userSelect: 'none' }}
-                  onMouseEnter={e => e.currentTarget.style.background = catDeps.length === 0 ? 'rgba(14,42,71,0.05)' : 'rgba(184,134,74,0.13)'}
-                  onMouseLeave={e => e.currentTarget.style.background = catDeps.length === 0 ? 'rgba(14,42,71,0.03)' : 'rgba(184,134,74,0.08)'}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    {isOpen
-                      ? <ChevronDown  size={14} strokeWidth={2.5} style={{ color: '#B8864A', flexShrink: 0 }} />
-                      : <ChevronRight size={14} strokeWidth={2.5} style={{ color: '#B8864A', flexShrink: 0 }} />
-                    }
-                    {cat.code && <span style={{ fontFamily: 'var(--af-mono)', fontWeight: 800, fontSize: 13, color: 'var(--af-ink)' }}>{cat.code}</span>}
-                    <span style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--af-ink)' }}>{cat.libelle}</span>
-                  </div>
-                  {catDeps.length === 0
-                    ? <span style={{ fontSize: 11, color: 'var(--af-mute)', fontStyle: 'italic' }}>Aucune dépense</span>
-                    : <span style={{ fontFamily: 'var(--af-mono)', fontWeight: 800, fontSize: 13, color: 'var(--af-ink)' }}>{fmt(catTotal)} FCFA</span>
-                  }
-                </div>
-
-                {isOpen && cat.sous_categories.map(sc => {
-                  const scDeps = sc.lignes.flatMap(l => depByLigne[l.id] || [])
-                  if (scDeps.length === 0) return null
-                  const scTotal = scDeps.reduce((s, d) => s + parseFloat(d.montant || 0), 0)
-
-                  return (
-                    <div key={sc.id}>
-                      {/* Sous-catégorie */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 24px 8px 48px', background: 'rgba(14,42,71,0.025)', borderBottom: '1px solid rgba(14,42,71,0.06)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          {sc.code && <span style={{ fontFamily: 'var(--af-mono)', fontWeight: 700, fontSize: 12, color: 'var(--af-cream)' }}>{sc.code}</span>}
-                          <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--af-cream)' }}>{sc.libelle}</span>
-                        </div>
-                        <span style={{ fontFamily: 'var(--af-mono)', fontWeight: 700, fontSize: 12, color: 'var(--af-cream)' }}>{fmt(scTotal)} FCFA</span>
-                      </div>
-
-                      {sc.lignes.map(ligne => {
-                        const lignesDeps = depByLigne[ligne.id] || []
-                        if (lignesDeps.length === 0) return null
-
-                        return (
-                          <div key={ligne.id}>
-                            {/* En-tête ligne budgétaire */}
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px 80px 100px auto', padding: '6px 24px 6px 68px', gap: 12, background: 'rgba(14,42,71,0.02)', borderBottom: '1px solid rgba(14,42,71,0.05)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.4px', color: 'var(--af-mute)' }}>
-                              <span style={{ color: 'var(--af-cream)', fontSize: 11, textTransform: 'none', fontWeight: 600, letterSpacing: 0 }}>
-                                {ligne.code && <span style={{ fontFamily: 'var(--af-mono)', marginRight: 8, color: 'var(--af-mute)' }}>{ligne.code}</span>}
-                                {ligne.libelle}
-                              </span>
-                              <span style={{ textAlign: 'right' }}>Montant</span>
-                              <span style={{ textAlign: 'center' }}>Date</span>
-                              <span style={{ textAlign: 'center' }}>Statut</span>
-                              <span style={{ textAlign: 'right' }}>Actions</span>
-                            </div>
-
-                            {/* Dépenses de cette ligne */}
-                            {lignesDeps.map((d, idx) => (
-                              <div key={`${d.id}-${idx}`} style={{ display: 'grid', gridTemplateColumns: '1fr 140px 80px 100px auto', padding: '10px 24px 10px 68px', gap: 12, borderBottom: '1px solid rgba(14,42,71,0.05)', alignItems: 'center' }}>
-                                {/* Désignation */}
-                                <div style={{ minWidth: 0 }}>
-                                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--af-ink)', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                    {d.reference || d.note || d.fournisseur || String(d.id).slice(0, 8).toUpperCase()}
-                                  </div>
-                                  {d.fournisseur && (
-                                    <div style={{ fontSize: 11, color: 'var(--af-mute)' }}>{d.fournisseur}</div>
-                                  )}
-                                </div>
-                                {/* Montant */}
-                                <div style={{ textAlign: 'right' }}>
-                                  <span style={{ fontFamily: 'var(--af-mono)', fontWeight: 700, fontSize: 13, color: 'var(--af-ink)' }}>{fmt(d.montant)}</span>
-                                  <div style={{ fontSize: 10, color: 'var(--af-mute)' }}>FCFA</div>
-                                </div>
-                                {/* Date */}
-                                <div style={{ fontSize: 11, color: 'var(--af-mute)', fontFamily: 'var(--af-mono)', textAlign: 'center' }}>
-                                  {fmtDate(d.date_depense)}
-                                </div>
-                                {/* Statut */}
-                                <div style={{ textAlign: 'center' }}>
-                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600, background: DEP_STATUT[d.statut]?.bg || '#F3F4F6', color: DEP_STATUT[d.statut]?.color || '#374151' }}>
-                                    {DEP_STATUT[d.statut]?.label || d.statut}
-                                  </span>
-                                </div>
-                                {/* Actions */}
-                                <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
-                                  {d.pieces.length > 0 && (
-                                    <button
-                                      onClick={() => setPieceModal({ open: true, pieces: d.pieces, selected: d.pieces[0], depRef: d.reference || String(d.id).slice(0, 8).toUpperCase() })}
-                                      title="Voir les pièces justificatives"
-                                      style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 6, border: '1px solid rgba(184,134,74,0.3)', background: 'rgba(184,134,74,0.08)', cursor: 'pointer', color: '#B8864A' }}
-                                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(184,134,74,0.2)'; e.currentTarget.style.borderColor = '#B8864A' }}
-                                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(184,134,74,0.08)'; e.currentTarget.style.borderColor = 'rgba(184,134,74,0.3)' }}
-                                    >
-                                      <Eye size={13} strokeWidth={2} />
-                                    </button>
-                                  )}
-                                  <button
-                                    onClick={() => navigate(`${depenseBasePath}/${d.id}`)}
-                                    title="Voir le détail de la dépense"
-                                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 6, border: '1px solid rgba(14,42,71,0.12)', background: 'rgba(14,42,71,0.04)', cursor: 'pointer', color: 'var(--af-cream)' }}
-                                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(14,42,71,0.08)'}
-                                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(14,42,71,0.04)'}
-                                  >
-                                    <ExternalLink size={13} strokeWidth={2} />
-                                  </button>
-                                  {isComptable && !isAdmin && d.statut === 'SAISIE' && (
-                                    <>
-                                      <button
-                                        onClick={async () => { setValidating(d.id); try { await validerDepense(d.id); load() } catch {} finally { setValidating('') } }}
-                                        disabled={!!validating}
-                                        title="Valider cette dépense"
-                                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 6, border: '1px solid rgba(22,163,74,0.3)', background: 'rgba(22,163,74,0.1)', cursor: 'pointer', color: '#16A34A' }}
-                                        onMouseEnter={e => { if (!validating) { e.currentTarget.style.background = '#16A34A'; e.currentTarget.style.color = '#fff' } }}
-                                        onMouseLeave={e => { if (!validating) { e.currentTarget.style.background = 'rgba(22,163,74,0.1)'; e.currentTarget.style.color = '#16A34A' } }}
-                                      >
-                                        {validating === d.id ? <span className="spinner-sm" /> : <CheckCircle2 size={13} strokeWidth={2.5} />}
-                                      </button>
-                                      <button
-                                        onClick={() => openRejet(d)}
-                                        disabled={!!validating}
-                                        title="Rejeter cette dépense"
-                                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 6, border: '1px solid rgba(220,38,38,0.3)', background: 'rgba(220,38,38,0.1)', cursor: 'pointer', color: '#DC2626' }}
-                                        onMouseEnter={e => { if (!validating) { e.currentTarget.style.background = '#DC2626'; e.currentTarget.style.color = '#fff' } }}
-                                        onMouseLeave={e => { if (!validating) { e.currentTarget.style.background = 'rgba(220,38,38,0.1)'; e.currentTarget.style.color = '#DC2626' } }}
-                                      >
-                                        <XCircle size={13} strokeWidth={2.5} />
-                                      </button>
-                                    </>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )
-                      })}
+              {depenses.map(dep => (
+                <div key={dep.id} style={{ display: 'grid', gridTemplateColumns: '1fr 160px 90px 110px auto', padding: '13px 24px', gap: 12, borderBottom: '1px solid rgba(14,42,71,0.05)', alignItems: 'center', background: dep.statut === 'SAISIE' ? 'rgba(254,243,199,0.25)' : 'transparent' }}>
+                  {/* Désignation */}
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontFamily: 'var(--af-mono)', fontSize: 13, fontWeight: 700, color: 'var(--af-ink)', marginBottom: 2 }}>
+                      {dep.reference || String(dep.id).slice(0, 8).toUpperCase()}
                     </div>
-                  )
-                })}
-              </div>
-            )
-          })}
+                    {(dep.note || dep.fournisseur) && (
+                      <div style={{ fontSize: 11, color: 'var(--af-mute)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {dep.note || dep.fournisseur}
+                      </div>
+                    )}
+                    {dep.lignes?.length > 0 && (
+                      <div style={{ fontSize: 10, color: 'var(--af-mute)', marginTop: 1 }}>
+                        {dep.lignes.length} ligne{dep.lignes.length !== 1 ? 's' : ''} budgétaire{dep.lignes.length !== 1 ? 's' : ''}
+                      </div>
+                    )}
+                  </div>
 
-          {/* Footer total + actions globales */}
-          {depenses.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 24px', background: 'var(--af-ink)', gap: 12, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,.65)', textTransform: 'uppercase', letterSpacing: '.5px' }}>Total général</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                {isComptable && !isAdmin && enAttente.length > 0 && (
-                  <>
+                  {/* Montant total */}
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{ fontFamily: 'var(--af-mono)', fontWeight: 800, fontSize: 14, color: 'var(--af-ink)' }}>{fmt(dep.montant_total)}</span>
+                    <div style={{ fontSize: 10, color: 'var(--af-mute)' }}>FCFA</div>
+                  </div>
+
+                  {/* Date */}
+                  <div style={{ fontSize: 11, color: 'var(--af-mute)', fontFamily: 'var(--af-mono)', textAlign: 'center' }}>
+                    {fmtDate(dep.date)}
+                  </div>
+
+                  {/* Statut */}
+                  <div style={{ textAlign: 'center' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600, background: DEP_STATUT[dep.statut]?.bg || '#F3F4F6', color: DEP_STATUT[dep.statut]?.color || '#374151' }}>
+                      {DEP_STATUT[dep.statut]?.label || dep.statut}
+                    </span>
+                    {dep.statut === 'REJETEE' && dep.motif_rejet && (
+                      <div style={{ fontSize: 10, color: '#991B1B', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 100 }} title={dep.motif_rejet}>
+                        {dep.motif_rejet.slice(0, 30)}…
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+                    {(dep.pieces?.length > 0 || dep.nombre_pieces > 0) && (
+                      <button
+                        onClick={() => openPiece(dep)}
+                        title={`Voir ${dep.nombre_pieces || dep.pieces?.length} pièce${(dep.nombre_pieces || dep.pieces?.length) > 1 ? 's' : ''} justificative${(dep.nombre_pieces || dep.pieces?.length) > 1 ? 's' : ''}`}
+                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 6, border: '1px solid rgba(184,134,74,0.3)', background: 'rgba(184,134,74,0.08)', cursor: 'pointer', color: '#B8864A' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(184,134,74,0.2)'; e.currentTarget.style.borderColor = '#B8864A' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(184,134,74,0.08)'; e.currentTarget.style.borderColor = 'rgba(184,134,74,0.3)' }}
+                      >
+                        <Eye size={14} strokeWidth={2} />
+                      </button>
+                    )}
                     <button
-                      onClick={async () => {
-                        setValidating('__all__')
-                        for (const d of enAttente) {
-                          try { await validerDepense(d.id) } catch { /* continue */ }
-                        }
-                        setValidating('')
-                        load()
-                      }}
-                      disabled={!!validating}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 18px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', border: '1px solid rgba(255,255,255,.3)', background: validating === '__all__' ? '#16A34A' : 'rgba(22,163,74,.2)', color: '#86EFAC', transition: 'all .15s' }}
-                      onMouseEnter={e => { if (!validating) { e.currentTarget.style.background = '#16A34A'; e.currentTarget.style.color = '#fff' } }}
-                      onMouseLeave={e => { if (!validating) { e.currentTarget.style.background = 'rgba(22,163,74,.2)'; e.currentTarget.style.color = '#86EFAC' } }}
+                      onClick={() => navigate(`${depenseBasePath}/${dep.id}`)}
+                      title="Voir le détail de la dépense"
+                      style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 6, border: '1px solid rgba(14,42,71,0.12)', background: 'rgba(14,42,71,0.04)', cursor: 'pointer', color: 'var(--af-cream)' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(14,42,71,0.08)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'rgba(14,42,71,0.04)'}
                     >
-                      {validating === '__all__' ? <><span className="spinner-sm" /> Validation…</> : <><CheckCircle2 size={14} strokeWidth={2.5} /> Valider tout ({enAttente.length})</>}
+                      <ExternalLink size={14} strokeWidth={2} />
                     </button>
-                    <button
-                      onClick={() => openRejet({ id: '__all__', note: `${enAttente.length} dépenses en attente`, montant_total: totalAttente })}
-                      disabled={!!validating}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 18px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', border: '1px solid rgba(255,255,255,.3)', background: 'rgba(220,38,38,.2)', color: '#FCA5A5', transition: 'all .15s' }}
-                      onMouseEnter={e => { e.currentTarget.style.background = '#DC2626'; e.currentTarget.style.color = '#fff' }}
-                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(220,38,38,.2)'; e.currentTarget.style.color = '#FCA5A5' }}
-                    >
-                      <XCircle size={14} strokeWidth={2.5} /> Rejeter tout
-                    </button>
-                  </>
-                )}
-                <span style={{ fontFamily: 'var(--af-mono)', fontWeight: 900, fontSize: 16, color: '#fff' }}>{fmt(total)} FCFA</span>
+                    {isComptable && !isAdmin && dep.statut === 'SAISIE' && (
+                      <>
+                        <button
+                          onClick={async () => { setValidating(dep.id); try { await validerDepense(dep.id); load() } catch {} finally { setValidating('') } }}
+                          disabled={!!validating}
+                          title="Valider cette dépense"
+                          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 6, border: '1px solid rgba(22,163,74,0.3)', background: 'rgba(22,163,74,0.1)', cursor: 'pointer', color: '#16A34A' }}
+                          onMouseEnter={e => { if (!validating) { e.currentTarget.style.background = '#16A34A'; e.currentTarget.style.color = '#fff' } }}
+                          onMouseLeave={e => { if (!validating) { e.currentTarget.style.background = 'rgba(22,163,74,0.1)'; e.currentTarget.style.color = '#16A34A' } }}
+                        >
+                          {validating === dep.id ? <span className="spinner-sm" /> : <CheckCircle2 size={14} strokeWidth={2.5} />}
+                        </button>
+                        <button
+                          onClick={() => openRejet(dep)}
+                          disabled={!!validating}
+                          title="Rejeter cette dépense"
+                          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 6, border: '1px solid rgba(220,38,38,0.3)', background: 'rgba(220,38,38,0.1)', cursor: 'pointer', color: '#DC2626' }}
+                          onMouseEnter={e => { if (!validating) { e.currentTarget.style.background = '#DC2626'; e.currentTarget.style.color = '#fff' } }}
+                          onMouseLeave={e => { if (!validating) { e.currentTarget.style.background = 'rgba(220,38,38,0.1)'; e.currentTarget.style.color = '#DC2626' } }}
+                        >
+                          <XCircle size={14} strokeWidth={2.5} />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {/* Footer total + actions globales */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 24px', background: 'var(--af-ink)', gap: 12, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,.65)', textTransform: 'uppercase', letterSpacing: '.5px' }}>Total général</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                  {isComptable && !isAdmin && enAttente.length > 0 && (
+                    <>
+                      <button
+                        onClick={async () => {
+                          setValidating('__all__')
+                          for (const d of enAttente) {
+                            try { await validerDepense(d.id) } catch { /* continue */ }
+                          }
+                          setValidating('')
+                          load()
+                        }}
+                        disabled={!!validating}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 18px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', border: '1px solid rgba(255,255,255,.3)', background: validating === '__all__' ? '#16A34A' : 'rgba(22,163,74,.2)', color: '#86EFAC', transition: 'all .15s' }}
+                        onMouseEnter={e => { if (!validating) { e.currentTarget.style.background = '#16A34A'; e.currentTarget.style.color = '#fff' } }}
+                        onMouseLeave={e => { if (!validating) { e.currentTarget.style.background = 'rgba(22,163,74,.2)'; e.currentTarget.style.color = '#86EFAC' } }}
+                      >
+                        {validating === '__all__' ? <><span className="spinner-sm" /> Validation…</> : <><CheckCircle2 size={14} strokeWidth={2.5} /> Valider tout ({enAttente.length})</>}
+                      </button>
+                      <button
+                        onClick={() => openRejet({ id: '__all__', reference: `${enAttente.length} dépenses en attente`, montant_total: totalAttente })}
+                        disabled={!!validating}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 18px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', border: '1px solid rgba(255,255,255,.3)', background: 'rgba(220,38,38,.2)', color: '#FCA5A5', transition: 'all .15s' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = '#DC2626'; e.currentTarget.style.color = '#fff' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(220,38,38,.2)'; e.currentTarget.style.color = '#FCA5A5' }}
+                      >
+                        <XCircle size={14} strokeWidth={2.5} /> Rejeter tout
+                      </button>
+                    </>
+                  )}
+                  <span style={{ fontFamily: 'var(--af-mono)', fontWeight: 900, fontSize: 16, color: '#fff' }}>{fmt(total)} FCFA</span>
+                </div>
               </div>
-            </div>
+            </>
           )}
         </div>
       </div>
@@ -494,8 +424,8 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
               <button onClick={() => setPieceModal(m => ({ ...m, open: false }))} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: 'var(--af-mute)', lineHeight: 1 }}>×</button>
             </div>
             <div style={{ padding: 0 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: pieceModal.pieces.length > 1 ? '220px 1fr' : '1fr', minHeight: 400 }}>
-                {/* Liste des pièces (si plusieurs) */}
+              <div style={{ display: 'grid', gridTemplateColumns: pieceModal.pieces.length > 1 ? '220px 1fr' : '1fr', minHeight: 420 }}>
+                {/* Liste (si plusieurs pièces) */}
                 {pieceModal.pieces.length > 1 && (
                   <div style={{ borderRight: '1px solid rgba(14,42,71,0.08)', padding: '8px 0', background: '#FAFAFA' }}>
                     {pieceModal.pieces.map(p => {
@@ -519,9 +449,9 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
                   </div>
                 )}
                 {/* Prévisualisation */}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#F1F5F9', padding: 24, minHeight: 400 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#F1F5F9', padding: 24, minHeight: 420 }}>
                   {pieceModal.selected ? (() => {
-                    const p    = pieceModal.selected
+                    const p     = pieceModal.selected
                     const isImg = p.type_mime?.startsWith('image/')
                     const isPdf = p.type_mime === 'application/pdf'
                     if (isImg) return (
@@ -543,7 +473,6 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
                   })() : (
                     <div style={{ color: 'var(--af-mute)', fontSize: 13 }}>Aucune pièce sélectionnée</div>
                   )}
-                  {/* Bouton download en bas (pour image/pdf) */}
                   {pieceModal.selected && (pieceModal.selected.type_mime?.startsWith('image/') || pieceModal.selected.type_mime === 'application/pdf') && (
                     <div style={{ marginTop: 14 }}>
                       <a href={pieceModal.selected.url_download} download target="_blank" rel="noreferrer"
@@ -562,7 +491,7 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
         </div>
       )}
 
-      {/* ── Modal rejet dépense ───────────────────────────────────────────────── */}
+      {/* ── Modal rejet ───────────────────────────────────────────────────────── */}
       {rejectModal.open && (
         <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setRejectModal(m => ({ ...m, open: false })) }}>
           <div className="modal-panel" onClick={e => e.stopPropagation()} style={{ maxWidth: 460 }}>
@@ -575,11 +504,11 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
             <form onSubmit={handleRejeter}>
               <div className="modal-body">
                 <div style={{ padding: '10px 14px', borderRadius: 8, background: 'var(--af-steel)', border: '1px solid var(--af-line)', marginBottom: 14 }}>
-                  <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--af-ink)' }}>
-                    {rejectModal.depense?.reference || rejectModal.depense?.note || rejectModal.depense?.fournisseur || '—'}
+                  <div style={{ fontFamily: 'var(--af-mono)', fontWeight: 700, fontSize: 13, color: 'var(--af-ink)' }}>
+                    {rejectModal.depense?.reference || rejectModal.depense?.note || '—'}
                   </div>
                   <div style={{ fontFamily: 'var(--af-mono)', fontWeight: 700, fontSize: 13, color: 'var(--af-ink)', marginTop: 4 }}>
-                    {fmt(rejectModal.depense?.montant_total || rejectModal.depense?.montant)} FCFA
+                    {fmt(rejectModal.depense?.montant_total)} FCFA
                   </div>
                 </div>
                 <div>
