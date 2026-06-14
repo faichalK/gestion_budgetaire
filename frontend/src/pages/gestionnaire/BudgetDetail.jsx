@@ -80,22 +80,19 @@ export default function BudgetDetail({ basePath = '/mes-budgets' }) {
     getDepenses({ budget: id })
       .then(r => {
         const rawDeps = r.data?.data ?? []
-        // Flatten Depense.lignes into ConsommationLigne-like records for the existing UI
-        setDepenses(rawDeps.flatMap(dep =>
-          (dep.lignes?.length ? dep.lignes : [{}]).map(cl => ({
-            id:                    dep.id,
-            groupe_ref:            dep.id,
-            reference:             dep.reference || dep.fournisseur || dep.note || String(dep.id).slice(0, 8).toUpperCase(),
-            ligne_designation:     cl.ligne_libelle,
-            ligne_code:            cl.ligne_code,
-            montant:               cl.montant || dep.montant_total,
-            statut:                dep.statut,
-            date_depense:          cl.date || dep.date,
-            pieces:                dep.pieces || [],
-            nombre_pieces:         dep.nombre_pieces ?? (dep.pieces?.length || 0),
-            motif_rejet:           dep.motif_rejet,
-          }))
-        ))
+        setDepenses(rawDeps.map(dep => ({
+          id:           dep.id,
+          reference:    dep.reference || String(dep.id).slice(0, 8).toUpperCase(),
+          montant:      dep.montant_total,
+          statut:       dep.statut,
+          date:         dep.date,
+          nb_lignes:    dep.lignes?.length || 0,
+          pieces:       dep.pieces || [],
+          nombre_pieces: dep.nombre_pieces ?? (dep.pieces?.length || 0),
+          motif_rejet:  dep.motif_rejet,
+          fournisseur:  dep.fournisseur,
+          note:         dep.note,
+        })))
       })
       .catch(() => {})
       .finally(() => setDepensesLoaded(true))
@@ -474,7 +471,12 @@ export default function BudgetDetail({ basePath = '/mes-budgets' }) {
           )}
 
           {activeTab === 'depenses' && (
-            <DepensesGroupees depenses={depenses} loaded={depensesLoaded} fmt={fmt} />
+            <DepensesGroupees
+              depenses={depenses}
+              loaded={depensesLoaded}
+              fmt={fmt}
+              depenseBasePath={basePath === '/mes-budgets' ? '/mes-depenses' : '/depenses'}
+            />
           )}
         </div>
 
@@ -640,101 +642,65 @@ export default function BudgetDetail({ basePath = '/mes-budgets' }) {
 }
 
 /* ── DepensesGroupees ─────────────────────────────────────────────────────── */
-function groupByGroupeRef(depenses) {
-  const map = new Map()
-  for (const d of depenses) {
-    const key = d.groupe_ref || d.id
-    if (!map.has(key)) map.set(key, [])
-    map.get(key).push(d)
-  }
-  return [...map.values()]
-}
-
-const SMAP = {
+const DEP_STATUT = {
   SAISIE:  { cls: 'af-badge submit',  lbl: 'En attente' },
   VALIDEE: { cls: 'af-badge approve', lbl: 'Validée'    },
   REJETEE: { cls: 'af-badge reject',  lbl: 'Rejetée'    },
 }
+const fmtDateShort = iso => iso ? new Date(iso).toLocaleDateString('fr-FR') : '—'
 
-function groupStatut(lines) {
-  if (lines.every(l => l.statut === 'VALIDEE')) return 'VALIDEE'
-  if (lines.some(l => l.statut === 'REJETEE'))  return 'REJETEE'
-  return 'SAISIE'
-}
+function DepensesGroupees({ depenses, loaded, fmt, depenseBasePath = '/mes-depenses' }) {
+  const navigate = useNavigate()
 
-function DepenseGroupe({ lines, fmt }) {
-  const [open, setOpen] = useState(false)
-  const first   = lines[0]
-  const statut  = groupStatut(lines)
-  const total   = lines.reduce((s, l) => s + parseFloat(l.montant || 0), 0)
-  const s       = SMAP[statut] || { cls: 'af-badge', lbl: statut }
-  const multi   = lines.length > 1
-
-  return (
-    <>
-      <tr
-        style={{ cursor: multi ? 'pointer' : 'default', background: open ? 'var(--af-steel)' : undefined }}
-        onClick={() => multi && setOpen(o => !o)}
-      >
-        <td className="ref">{first.reference}</td>
-        <td>{multi ? <span style={{ color: 'var(--af-mute)', fontStyle: 'italic', fontSize: 11 }}>{lines.length} lignes</span> : (first.ligne_designation || '—')}</td>
-        <td className="muted">{first.date_depense ? new Date(first.date_depense).toLocaleDateString('fr-FR') : '—'}</td>
-        <td>
-          {first.pieces?.length > 0 ? (
-            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-              {first.pieces.map((p, i) => (
-                <a key={p.id || i} href={p.url_download} target="_blank" rel="noopener noreferrer"
-                   title={p.nom_original}
-                   style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 6px', borderRadius: 4, background: 'var(--af-steel)', color: 'var(--af-cream)', fontSize: 11, textDecoration: 'none' }}>
-                  <Paperclip size={10} /> {i + 1}
-                </a>
-              ))}
-            </div>
-          ) : <span className="muted">—</span>}
-        </td>
-        <td className="num">{fmt(total)} FCFA</td>
-        <td><span className={s.cls}>{s.lbl}</span></td>
-        <td style={{ paddingRight: 12, textAlign: 'right' }}>
-          {multi && (
-            <span style={{
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              width: 20, height: 20, borderRadius: 5, background: 'var(--af-steel)',
-              color: 'var(--af-cream)', fontSize: 10, transition: 'transform .2s',
-              transform: open ? 'rotate(180deg)' : 'none',
-            }}>▾</span>
-          )}
-        </td>
-      </tr>
-      {open && multi && lines.map(l => (
-        <tr key={l.id} style={{ background: 'rgba(14,42,71,0.04)' }}>
-          <td style={{ paddingLeft: 28 }}><span style={{ fontSize: 10, color: 'var(--af-mute)', fontFamily: 'var(--af-mono)' }}>{l.ligne_code}</span></td>
-          <td style={{ fontSize: 12, color: 'var(--af-cream)' }}>{l.ligne_designation}</td>
-          <td />
-          <td />
-          <td className="num" style={{ fontSize: 12 }}>{fmt(l.montant)} FCFA</td>
-          <td><span className={SMAP[l.statut]?.cls || 'af-badge'}>{SMAP[l.statut]?.lbl || l.statut}</span></td>
-          <td />
-        </tr>
-      ))}
-    </>
+  if (!loaded) return (
+    <div style={{ padding: 28, textAlign: 'center' }}>
+      <div className="af-spinner" style={{ margin: '0 auto' }} />
+    </div>
   )
-}
-
-function DepensesGroupees({ depenses, loaded, fmt }) {
-  if (!loaded) return <div style={{ padding: 28, textAlign: 'center' }}><div className="af-spinner" style={{ margin: '0 auto' }} /></div>
   if (depenses.length === 0) return (
     <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--af-mute)', fontSize: 13 }}>
       Aucune dépense enregistrée sur ce budget.
     </div>
   )
-  const groups = groupByGroupeRef(depenses)
+
   return (
     <table className="af-table">
       <thead>
-        <tr><th>Réf.</th><th>Libellé</th><th>Date</th><th>PJ</th><th>Montant</th><th>Statut</th><th /></tr>
+        <tr>
+          <th>Référence</th>
+          <th>Lignes</th>
+          <th>Date</th>
+          <th>PJ</th>
+          <th>Montant</th>
+          <th>Statut</th>
+        </tr>
       </thead>
       <tbody>
-        {groups.map((lines, i) => <DepenseGroupe key={i} lines={lines} fmt={fmt} />)}
+        {depenses.map(d => {
+          const s = DEP_STATUT[d.statut] || { cls: 'af-badge', lbl: d.statut }
+          return (
+            <tr key={d.id} style={{ cursor: 'pointer' }}
+                onClick={() => navigate(`${depenseBasePath}/${d.id}`)}>
+              <td className="ref">{d.reference}</td>
+              <td className="muted" style={{ fontSize: 11 }}>
+                {d.fournisseur || d.note
+                  ? <span>{d.fournisseur || d.note}</span>
+                  : <span style={{ fontStyle: 'italic' }}>{d.nb_lignes} ligne{d.nb_lignes !== 1 ? 's' : ''}</span>}
+              </td>
+              <td className="muted">{fmtDateShort(d.date)}</td>
+              <td>
+                {d.pieces?.length > 0
+                  ? <span style={{ fontSize: 11, color: '#B8864A', fontWeight: 600 }}>
+                      <Paperclip size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }} />
+                      {d.pieces.length}
+                    </span>
+                  : <span className="muted">—</span>}
+              </td>
+              <td className="num">{fmt(d.montant)} FCFA</td>
+              <td><span className={s.cls}>{s.lbl}</span></td>
+            </tr>
+          )
+        })}
       </tbody>
     </table>
   )

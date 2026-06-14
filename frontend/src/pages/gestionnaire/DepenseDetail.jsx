@@ -15,9 +15,16 @@ import {
 import { formaterNombre } from '../../utils/formatters'
 
 const fmt     = (n)   => formaterNombre(parseFloat(n) || 0, { maximumFractionDigits: 0 })
+const fmtM    = (n)   => formaterNombre(Number(n) / 1e6, { maximumFractionDigits: 2 })
 const fmtDate = (iso) => iso
   ? new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
   : '—'
+
+const STATUT_CFG = {
+  SAISIE:  { label: 'En attente',  color: '#D97706', bg: 'rgba(217,119,6,0.08)',   border: 'rgba(217,119,6,0.3)'  },
+  VALIDEE: { label: 'Validée',     color: '#15803D', bg: 'rgba(21,128,61,0.06)',   border: 'rgba(21,128,61,0.25)' },
+  REJETEE: { label: 'Rejetée',     color: '#B91C1C', bg: 'rgba(185,28,28,0.05)',   border: 'rgba(185,28,28,0.2)'  },
+}
 
 export default function DepenseDetail({ basePath = '/mes-depenses' }) {
   const { id }   = useParams()
@@ -56,22 +63,17 @@ export default function DepenseDetail({ basePath = '/mes-depenses' }) {
     return () => window.clearTimeout(t)
   }, [id])
 
-  /* ── Upload pièces ────────────────────────────────────────────────── */
   const handleUpload = async (incoming) => {
     const files = Array.from(incoming).filter(f =>
       /\.(pdf|jpg|jpeg|png|doc|docx|xls|xlsx)$/i.test(f.name)
     )
     if (!files.length) return
     setPieceError(''); setUploading(true)
-    try {
-      await uploadPieces(depense.id, files)
-      await load()
-    } catch (err) {
-      setPieceError(err.response?.data?.detail || 'Erreur lors du téléversement.')
-    } finally { setUploading(false) }
+    try { await uploadPieces(depense.id, files); await load() }
+    catch (err) { setPieceError(err.response?.data?.detail || 'Erreur lors du téléversement.') }
+    finally { setUploading(false) }
   }
 
-  /* ── Supprimer pièce ──────────────────────────────────────────────── */
   const handleDeletePiece = (piece) => {
     setConfirmModal({
       title: 'Supprimer la pièce',
@@ -79,17 +81,12 @@ export default function DepenseDetail({ basePath = '/mes-depenses' }) {
       confirmLabel: 'Supprimer',
       variant: 'danger',
       onConfirm: async () => {
-        try {
-          await deletePiece(depense.id, piece.id)
-          await load()
-        } catch (err) {
-          setPieceError(err.response?.data?.detail || 'Erreur lors de la suppression.')
-        }
+        try { await deletePiece(depense.id, piece.id); await load() }
+        catch (err) { setPieceError(err.response?.data?.detail || 'Erreur.') }
       },
     })
   }
 
-  /* ── Valider ──────────────────────────────────────────────────────── */
   const handleValider = () => {
     setConfirmModal({
       title: 'Valider la dépense',
@@ -98,28 +95,21 @@ export default function DepenseDetail({ basePath = '/mes-depenses' }) {
       variant: 'success',
       onConfirm: async () => {
         setValidating(true)
-        try {
-          await validerDepense(depense.id)
-          notifRefresh()
-          await load()
-        } finally { setValidating(false) }
+        try { await validerDepense(depense.id); notifRefresh(); await load() }
+        finally { setValidating(false) }
       },
     })
   }
 
-  /* ── Rejeter ──────────────────────────────────────────────────────── */
   const handleRejeter = async (e) => {
     e.preventDefault()
     if (motif.trim().length < 10) { setMotifError('Motif trop court (min. 10 caractères).'); return }
     setRejecting(true); setMotifError('')
     try {
       await rejeterDepense(depense.id, { motif: motif.trim() })
-      notifRefresh()
-      setShowRejeter(false)
-      await load()
-    } catch (err) {
-      setMotifError(err.response?.data?.detail || 'Erreur lors du rejet.')
-    } finally { setRejecting(false) }
+      notifRefresh(); setShowRejeter(false); await load()
+    } catch (err) { setMotifError(err.response?.data?.detail || 'Erreur lors du rejet.') }
+    finally { setRejecting(false) }
   }
 
   if (loading || !depense) return <div className="af-loader"><div className="af-spinner" /></div>
@@ -130,10 +120,12 @@ export default function DepenseDetail({ basePath = '/mes-depenses' }) {
   const rejetee   = statut === 'REJETEE'
   const lignes    = depense.lignes || []
   const pieces    = depense.pieces || []
+  const cfg       = STATUT_CFG[statut] || STATUT_CFG.SAISIE
 
-  const titrePrincipal = depense.note || depense.fournisseur || `Dépense ${String(depense.id).slice(0, 8).toUpperCase()}`
+  const titre = depense.reference || `DEP-${String(depense.id).slice(0, 6).toUpperCase()}`
+  const sousTitre = depense.fournisseur || depense.note || '—'
 
-  const peutGererPieces = enAttente && (isAdmin || (!isComptable))
+  const peutGererPieces   = enAttente && (isAdmin || !isComptable)
   const peutModifierPieces = peutGererPieces || (validee && isAdmin)
 
   const budgetPath = isAdmin
@@ -144,152 +136,256 @@ export default function DepenseDetail({ basePath = '/mes-depenses' }) {
 
   return (
     <div>
-      <div style={{ marginBottom: 16 }}>
-        <button onClick={() => navigate(-1)} className="btn btn-secondary btn-sm btn-sm" style={{ gap: 6 }}>
-          <ArrowLeft size={14} strokeWidth={2} /> Retour
-        </button>
-      </div>
-
-      <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)] overflow-hidden mb-5">
-
-        {/* ── Header ── */}
-        <div style={{ background: 'var(--af-steel)', padding: '20px 28px', borderBottom: '1px solid var(--af-line)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
+      {/* ── Header ────────────────────────────────────────────────────────── */}
+      <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)] mb-[14px]">
+        <div style={{ padding: '20px 24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
             <div style={{ minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
-                <DepenseBadge statut={statut} />
-                {lignes.length > 1 && (
-                  <span style={{ fontSize: '11px', color: 'var(--af-mute)', background: 'var(--af-line)', padding: '2px 8px', borderRadius: 6 }}>
-                    {lignes.length} lignes budgétaires
+              <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                <span style={{ fontFamily: 'var(--af-mono)', fontSize: 11, fontWeight: 700, background: 'var(--af-steel)', color: 'var(--af-ink)', padding: '3px 10px', borderRadius: 6 }}>
+                  {titre}
+                </span>
+                {depense.budget_code && (
+                  <span style={{ fontFamily: 'var(--af-mono)', fontSize: 11, fontWeight: 600, background: 'rgba(184,134,74,0.12)', color: '#B8864A', padding: '3px 10px', borderRadius: 6 }}>
+                    {depense.budget_code}
                   </span>
                 )}
+                <DepenseBadge statut={statut} />
               </div>
-              <div style={{ fontWeight: 700, fontSize: '1.05rem', lineHeight: 1.3, color: 'var(--af-ink)', marginBottom: 2 }}>
-                {titrePrincipal}
+              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--af-ivory)', lineHeight: 1.25, marginBottom: 6 }}>
+                {sousTitre}
               </div>
-              {depense.fournisseur && depense.note && (
-                <div style={{ fontSize: '12px', color: 'var(--af-mute)' }}>{depense.fournisseur}</div>
-              )}
-              {depense.enregistre_par && (
-                <div style={{ fontSize: '11px', color: 'var(--af-mute)', marginTop: 4 }}>
-                  Soumis par {depense.enregistre_par} · {fmtDate(depense.date)}
-                </div>
-              )}
+              <div style={{ display: 'flex', gap: 14, fontSize: 12, color: 'var(--af-mute)', flexWrap: 'wrap' }}>
+                {depense.date && <span>Soumis le {fmtDate(depense.date)}</span>}
+                {depense.enregistre_par && <span>Par {depense.enregistre_par}</span>}
+                {validee && depense.validateur_nom && <span style={{ color: '#15803D' }}>Validé par {depense.validateur_nom}</span>}
+              </div>
             </div>
-            <div style={{ textAlign: 'right', flexShrink: 0 }}>
-              <div style={{ fontSize: '10px', color: 'var(--af-mute)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 3 }}>
-                Total dépense
-              </div>
-              <div style={{ fontFamily: 'var(--af-mono)', fontWeight: 900, fontSize: '1.5rem', lineHeight: 1, color: 'var(--af-ink)' }}>
-                {fmt(depense.montant_total)}
-              </div>
-              <div style={{ fontSize: '11px', color: 'var(--af-mute)', marginTop: 2 }}>FCFA</div>
+
+            <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap' }}>
+              <button onClick={() => navigate(-1)} className="btn btn-secondary btn-sm" style={{ gap: 6 }}>
+                <ArrowLeft size={13} strokeWidth={2} /> Retour
+              </button>
+              {isComptable && enAttente && (
+                <>
+                  <button
+                    onClick={() => { setMotif(''); setMotifError(''); setShowRejeter(true) }}
+                    className="btn btn-sm"
+                    style={{ gap: 6, background: 'rgba(185,28,28,0.08)', color: '#B91C1C', border: '1px solid rgba(185,28,28,0.25)' }}
+                  >
+                    <XCircle size={13} strokeWidth={2} /> Rejeter
+                  </button>
+                  <button onClick={handleValider} disabled={validating} className="btn btn-primary btn-sm" style={{ gap: 6 }}>
+                    {validating
+                      ? <><span className="spinner-sm" /> Validation…</>
+                      : <><CheckCircle2 size={13} strokeWidth={2} /> Valider</>}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
+      </div>
 
-        {/* ── Bande budget ── */}
-        {depense.budget_id && (
-          <div style={{ padding: '10px 24px', borderBottom: '1px solid var(--af-line)', background: 'var(--af-steel)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--af-mute)', textTransform: 'uppercase', letterSpacing: '.4px' }}>Budget</span>
-            <span style={{ fontFamily: 'var(--af-mono)', fontSize: '11px', fontWeight: 700, background: 'rgba(184,134,74,0.15)', color: 'var(--color-gold-dark)', padding: '2px 8px', borderRadius: 6 }}>
-              {depense.budget_code}
-            </span>
-            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--af-cream)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {depense.budget_nom}
-            </span>
-            <Link to={budgetPath} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '12px', fontWeight: 600, color: 'var(--color-gold)', textDecoration: 'none', flexShrink: 0 }}>
-              <ExternalLink size={12} strokeWidth={2} /> Voir le budget
-            </Link>
+      {/* ── KPI cards ──────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-4 gap-[14px] mb-[14px]">
+        <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-[10px] py-[18px] px-5 shadow-[0_1px_0_rgba(14,42,71,0.02)]">
+          <div className="text-[10px] tracking-[0.20em] uppercase text-[rgba(90,107,126,0.7)] mb-3">Montant total</div>
+          <div className="text-[28px] leading-none tracking-[-0.02em] text-[#0E2A47] mb-1.5 tabular-nums">
+            {fmtM(depense.montant_total)}<span className="text-[#B8864A] text-[16px] ml-0.5"> M FCFA</span>
           </div>
-        )}
+          <div className="text-[11px] text-[#5A6B7E]">{fmt(depense.montant_total)} FCFA</div>
+        </div>
+        <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-[10px] py-[18px] px-5 shadow-[0_1px_0_rgba(14,42,71,0.02)]">
+          <div className="text-[10px] tracking-[0.20em] uppercase text-[rgba(90,107,126,0.7)] mb-3">Lignes budgétaires</div>
+          <div className="text-[28px] leading-none tracking-[-0.02em] text-[#0E2A47] mb-1.5 tabular-nums">{lignes.length}</div>
+          <div className="text-[11px] text-[#5A6B7E]">ligne{lignes.length !== 1 ? 's' : ''} de consommation</div>
+        </div>
+        <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-[10px] py-[18px] px-5 shadow-[0_1px_0_rgba(14,42,71,0.02)]">
+          <div className="text-[10px] tracking-[0.20em] uppercase text-[rgba(90,107,126,0.7)] mb-3">Pièces jointes</div>
+          <div className="text-[28px] leading-none tracking-[-0.02em] text-[#0E2A47] mb-1.5 tabular-nums">{pieces.length}</div>
+          <div className="text-[11px] text-[#5A6B7E]">pièce{pieces.length !== 1 ? 's' : ''} justificative{pieces.length !== 1 ? 's' : ''}</div>
+        </div>
+        <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-[10px] py-[18px] px-5 shadow-[0_1px_0_rgba(14,42,71,0.02)]">
+          <div className="text-[10px] tracking-[0.20em] uppercase text-[rgba(90,107,126,0.7)] mb-3">Statut</div>
+          <div className="text-[20px] leading-none tracking-[-0.02em] mb-1.5 font-bold" style={{ color: cfg.color }}>{cfg.label}</div>
+          <div className="text-[11px] text-[#5A6B7E]">
+            {validee && depense.validateur_nom ? `par ${depense.validateur_nom}` : enAttente ? 'En cours de traitement' : 'Voir motif ci-dessous'}
+          </div>
+        </div>
+      </div>
 
-        {/* ── En-têtes colonnes lignes ── */}
-        <div style={{
-          display: 'grid', gridTemplateColumns: '1fr 160px 130px',
-          padding: '7px 24px', gap: 12,
-          background: 'var(--af-steel)', borderBottom: '1px solid var(--af-line)',
-          fontSize: '10px', fontWeight: 700, textTransform: 'uppercase',
-          letterSpacing: '.4px', color: 'var(--af-mute)',
-        }}>
-          <span>Ligne budgétaire</span>
-          <span style={{ textAlign: 'right' }}>Montant</span>
-          <span>Date</span>
+      {/* ── Synthèse + Infos ───────────────────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: 14, marginBottom: 14 }}>
+
+        {/* Synthèse */}
+        <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)]">
+          <div className="flex items-center px-5 py-3 border-b border-[rgba(14,42,71,0.08)]">
+            <div className="text-[13px] font-semibold text-[#0E2A47]">Synthèse</div>
+          </div>
+          <div style={{ padding: '14px 20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 20px' }}>
+            {[
+              { label: 'Référence',     val: titre },
+              { label: 'Fournisseur',   val: depense.fournisseur || '—' },
+              { label: 'Description',   val: depense.note || '—' },
+              { label: 'Date soumis',   val: fmtDate(depense.date) },
+              { label: 'Soumis par',    val: depense.enregistre_par || '—' },
+              ...(depense.validateur_nom ? [{ label: validee ? 'Validé par' : 'Traité par', val: depense.validateur_nom }] : []),
+            ].map(r => (
+              <div key={r.label} style={{ display: 'flex', flexDirection: 'column', padding: '6px 0', borderBottom: '1px solid var(--af-line)' }}>
+                <span style={{ fontSize: 11, color: 'var(--af-mute)', marginBottom: 2 }}>{r.label}</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--af-ivory)', wordBreak: 'break-word' }}>{r.val}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* ── Lignes de la dépense ── */}
-        {lignes.map((cl, idx) => (
-          <div key={cl.id} style={{
-            display: 'grid', gridTemplateColumns: '1fr 160px 130px',
-            padding: '14px 24px', gap: 12, alignItems: 'start',
-            borderBottom: idx < lignes.length - 1 ? '1px solid var(--af-line)' : 'none',
-          }}>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--af-ink)', marginBottom: 2 }}>
-                {cl.ligne_libelle || '—'}
-              </div>
-              <div style={{ fontSize: '11px', color: 'var(--af-mute)' }}>
-                {[cl.cat_libelle, cl.sous_cat_libelle].filter(l => l && l !== '—').join(' › ')}
-              </div>
-              {cl.note && (
-                <div style={{ fontSize: '11px', color: 'var(--af-cream)', marginTop: 2, fontStyle: 'italic' }}>
-                  {cl.note}
-                </div>
-              )}
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontFamily: 'var(--af-mono)', fontWeight: 700, fontSize: '14px', color: 'var(--af-ink)' }}>
-                {fmt(cl.montant)}
-              </div>
-              <div style={{ fontSize: '10px', color: 'var(--af-mute)', marginTop: 1 }}>FCFA</div>
-            </div>
-            <div style={{ fontSize: '12px', color: 'var(--af-cream)', fontFamily: 'var(--af-mono)' }}>
-              {fmtDate(cl.date)}
-            </div>
-          </div>
-        ))}
-
-        {/* ── Pièces justificatives ── */}
-        <div style={{ padding: '16px 24px', borderTop: '1px solid var(--af-line)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--af-mute)', textTransform: 'uppercase', letterSpacing: '.4px' }}>
-              Pièces justificatives
-              {pieces.length > 0 && (
-                <span style={{ marginLeft: 6, background: 'rgba(184,134,74,0.15)', color: 'var(--color-gold-dark)', padding: '1px 7px', borderRadius: 9999, fontWeight: 700 }}>
-                  {pieces.length}
-                </span>
-              )}
-            </span>
-            {peutModifierPieces && (
-              <>
-                <input
-                  ref={fileRef} type="file" multiple
-                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
-                  style={{ display: 'none' }}
-                  onChange={e => { handleUpload(e.target.files); e.target.value = '' }}
-                />
-                <button
-                  type="button"
-                  disabled={uploading}
-                  onClick={() => fileRef.current?.click()}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 6,
-                    padding: '5px 12px', borderRadius: 6, fontSize: '12px', fontWeight: 600,
-                    cursor: 'pointer', border: '1px solid rgba(184,134,74,0.35)',
-                    background: 'rgba(184,134,74,0.08)', color: 'var(--color-gold-dark)',
-                    transition: 'all .15s',
-                  }}
-                >
-                  {uploading
-                    ? <><span className="af-spinner" style={{ width: 12, height: 12 }} /> Téléversement…</>
-                    : <><Paperclip size={12} strokeWidth={2} /> Ajouter des pièces</>
-                  }
-                </button>
-              </>
+        {/* Budget lié */}
+        <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)]">
+          <div className="flex items-center justify-between px-5 py-3 border-b border-[rgba(14,42,71,0.08)]">
+            <div className="text-[13px] font-semibold text-[#0E2A47]">Budget associé</div>
+            {depense.budget_id && (
+              <Link to={budgetPath} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: '#B8864A', textDecoration: 'none' }}>
+                <ExternalLink size={12} strokeWidth={2} /> Voir le budget
+              </Link>
             )}
           </div>
+          <div style={{ padding: '14px 20px' }}>
+            {depense.budget_id ? (
+              <>
+                <div style={{ fontFamily: 'var(--af-mono)', fontSize: 13, fontWeight: 700, color: '#B8864A', background: 'rgba(184,134,74,0.10)', padding: '4px 10px', borderRadius: 6, display: 'inline-block', marginBottom: 10 }}>
+                  {depense.budget_code}
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--af-ivory)', lineHeight: 1.4 }}>
+                  {depense.budget_nom}
+                </div>
+                <div style={{ marginTop: 12, padding: '10px 14px', background: cfg.bg, border: `1px solid ${cfg.border}`, borderRadius: 8, fontSize: 12, color: cfg.color, fontWeight: 600 }}>
+                  {cfg.label} — {fmt(depense.montant_total)} FCFA
+                </div>
+              </>
+            ) : (
+              <div style={{ fontSize: 13, color: 'var(--af-mute)', fontStyle: 'italic' }}>Dépense hors budget</div>
+            )}
+            {rejetee && depense.motif_rejet && (
+              <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(185,28,28,0.05)', border: '1px solid rgba(185,28,28,0.2)', borderLeft: '3px solid #B91C1C', borderRadius: 8 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#B91C1C', marginBottom: 4 }}>Motif de rejet</div>
+                <div style={{ fontSize: 12, color: 'var(--af-ivory)', lineHeight: 1.5 }}>{depense.motif_rejet}</div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
 
-          {/* Zone drag & drop si aucune pièce et upload autorisé */}
+      {/* ── Lignes budgétaires ─────────────────────────────────────────────── */}
+      <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)] mb-[14px]">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-[rgba(14,42,71,0.08)]">
+          <div className="text-[13px] font-semibold text-[#0E2A47]">Lignes budgétaires</div>
+          <span style={{ fontSize: 12, color: 'var(--af-mute)' }}>{lignes.length} ligne{lignes.length !== 1 ? 's' : ''}</span>
+        </div>
+        {lignes.length === 0 ? (
+          <div style={{ padding: '28px 20px', textAlign: 'center', color: 'var(--af-mute)', fontSize: 13 }}>
+            Aucune ligne budgétaire associée.
+          </div>
+        ) : (() => {
+          const grouped = {}
+          lignes.forEach(cl => {
+            const ck = cl.cat_code || cl.cat_libelle || '—'
+            const sk = cl.sous_cat_code || cl.sous_cat_libelle || '—'
+            if (!grouped[ck]) grouped[ck] = { code: cl.cat_code, libelle: cl.cat_libelle || ck, sous_cats: {} }
+            if (!grouped[ck].sous_cats[sk]) grouped[ck].sous_cats[sk] = { code: cl.sous_cat_code, libelle: cl.sous_cat_libelle || sk, lignes: [] }
+            grouped[ck].sous_cats[sk].lignes.push(cl)
+          })
+          return (
+            <table className="af-table" style={{ tableLayout: 'fixed', width: '100%' }}>
+              <colgroup>
+                <col style={{ width: '38%' }} />
+                <col style={{ width: '18%' }} />
+                <col style={{ width: '18%' }} />
+                <col style={{ width: '26%' }} />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>Intitulé</th>
+                  <th style={{ textAlign: 'right' }}>Montant</th>
+                  <th>Date</th>
+                  <th>Note</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(grouped).flatMap(([ck, cat]) => [
+                  <tr key={`cat-${ck}`} style={{ background: 'rgba(14,42,71,0.055)' }}>
+                    <td colSpan={4} style={{ padding: '8px 16px' }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#0E2A47', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                        {cat.code && `${cat.code} — `}{cat.libelle}
+                      </span>
+                    </td>
+                  </tr>,
+                  ...Object.entries(cat.sous_cats).flatMap(([sk, sc]) => [
+                    <tr key={`sc-${sk}`} style={{ background: 'rgba(14,42,71,0.025)' }}>
+                      <td colSpan={4} style={{ padding: '6px 28px' }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: '#5A6B7E' }}>
+                          {sc.code && `${sc.code} — `}{sc.libelle}
+                        </span>
+                      </td>
+                    </tr>,
+                    ...sc.lignes.map(cl => (
+                      <tr key={cl.id}>
+                        <td style={{ paddingLeft: 40, fontWeight: 600, fontSize: 12, color: '#0E2A47' }}>
+                          {cl.ligne_libelle || '—'}
+                          {cl.ligne_code && <span style={{ marginLeft: 8, fontSize: 10, fontFamily: 'var(--af-mono)', background: 'rgba(14,42,71,0.06)', color: '#5A6B7E', padding: '1px 6px', borderRadius: 3 }}>{cl.ligne_code}</span>}
+                        </td>
+                        <td className="num" style={{ fontWeight: 700, color: 'var(--af-ink)' }}>{fmt(cl.montant)} FCFA</td>
+                        <td className="muted">{fmtDate(cl.date)}</td>
+                        <td className="muted" style={{ fontStyle: cl.note ? 'normal' : 'italic' }}>{cl.note || '—'}</td>
+                      </tr>
+                    )),
+                  ]),
+                ])}
+              </tbody>
+              <tfoot>
+                <tr style={{ background: 'var(--af-steel)' }}>
+                  <td style={{ padding: '10px 16px', fontSize: 12, fontWeight: 700, color: 'var(--af-ink)' }}>Total</td>
+                  <td className="num" style={{ padding: '10px 16px', fontWeight: 800, color: 'var(--af-ink)', fontFamily: 'var(--af-mono)' }}>
+                    {fmt(depense.montant_total)} FCFA
+                  </td>
+                  <td colSpan={2} />
+                </tr>
+              </tfoot>
+            </table>
+          )
+        })()}
+      </div>
+
+      {/* ── Pièces justificatives ──────────────────────────────────────────── */}
+      <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)]">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-[rgba(14,42,71,0.08)]">
+          <div className="flex items-center gap-2">
+            <div className="text-[13px] font-semibold text-[#0E2A47]">Pièces justificatives</div>
+            {pieces.length > 0 && (
+              <span style={{ background: 'rgba(184,134,74,0.15)', color: '#B8864A', padding: '1px 8px', borderRadius: 999, fontSize: 11, fontWeight: 700 }}>
+                {pieces.length}
+              </span>
+            )}
+          </div>
+          {peutModifierPieces && (
+            <>
+              <input ref={fileRef} type="file" multiple
+                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
+                style={{ display: 'none' }}
+                onChange={e => { handleUpload(e.target.files); e.target.value = '' }}
+              />
+              <button type="button" disabled={uploading} onClick={() => fileRef.current?.click()}
+                className="btn btn-secondary btn-sm" style={{ gap: 6 }}>
+                {uploading
+                  ? <><span className="spinner-sm" /> Téléversement…</>
+                  : <><Paperclip size={12} strokeWidth={2} /> Ajouter</>}
+              </button>
+            </>
+          )}
+        </div>
+
+        <div style={{ padding: '16px 20px' }}>
+          {/* Zone drag & drop vide */}
           {pieces.length === 0 && peutModifierPieces && (
             <div
               onDragOver={e => { e.preventDefault(); setDragOver(true) }}
@@ -297,63 +393,64 @@ export default function DepenseDetail({ basePath = '/mes-depenses' }) {
               onDrop={e => { e.preventDefault(); setDragOver(false); handleUpload(e.dataTransfer.files) }}
               onClick={() => fileRef.current?.click()}
               style={{
-                border: `1.5px dashed ${dragOver ? 'var(--color-gold)' : 'var(--af-line-2)'}`,
-                borderRadius: 8, padding: '20px',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-                background: dragOver ? 'var(--color-gold-soft)' : 'var(--af-steel)',
+                border: `1.5px dashed ${dragOver ? '#B8864A' : 'var(--af-line)'}`,
+                borderRadius: 10, padding: '32px 20px',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+                background: dragOver ? 'rgba(184,134,74,0.06)' : 'var(--af-steel)',
                 cursor: 'pointer', textAlign: 'center', transition: 'all .15s',
               }}
             >
-              <Paperclip size={20} strokeWidth={1.5} style={{ color: dragOver ? 'var(--color-gold)' : 'var(--af-mute)' }} />
-              <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--af-cream)' }}>
-                Aucune pièce jointe — déposez des fichiers ici
+              <Paperclip size={22} strokeWidth={1.5} style={{ color: dragOver ? '#B8864A' : 'var(--af-mute)' }} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--af-cream)' }}>
+                Aucune pièce — déposez des fichiers ici
               </span>
-              <span style={{ fontSize: '11px', color: 'var(--af-mute)' }}>
-                PDF, image, Word, Excel · max 5 Mo/fichier · 20 Mo total
+              <span style={{ fontSize: 11, color: 'var(--af-mute)' }}>
+                PDF, image, Word, Excel · max 5 Mo/fichier
               </span>
+            </div>
+          )}
+
+          {/* Sans pièces et lecture seule */}
+          {pieces.length === 0 && !peutModifierPieces && (
+            <div style={{ padding: '20px', textAlign: 'center', color: 'var(--af-mute)', fontSize: 13 }}>
+              Aucune pièce justificative.
+              {enAttente && <span style={{ display: 'block', marginTop: 4, color: '#B91C1C', fontWeight: 600, fontSize: 12 }}>⚠ Au moins une pièce est requise avant la validation.</span>}
             </div>
           )}
 
           {/* Liste des pièces */}
           {pieces.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {pieces.map(p => (
                 <div key={p.id} style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '8px 12px', borderRadius: 8,
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '10px 14px', borderRadius: 10,
                   background: '#fff', border: '1px solid var(--af-line)',
                 }}>
-                  <Paperclip size={13} strokeWidth={2} style={{ color: 'var(--af-mute)', flexShrink: 0 }} />
+                  <Paperclip size={14} strokeWidth={2} style={{ color: '#B8864A', flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--af-ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--af-ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {p.nom_original}
                     </div>
-                    <div style={{ fontSize: '10.5px', color: 'var(--af-mute)' }}>
-                      {p.taille_lisible} · {p.type_mime}
-                    </div>
+                    {(p.taille_lisible || p.type_mime) && (
+                      <div style={{ fontSize: 11, color: 'var(--af-mute)' }}>
+                        {[p.taille_lisible, p.type_mime].filter(Boolean).join(' · ')}
+                      </div>
+                    )}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => downloadPiece(p.id, p.nom_original)}
-                    title="Télécharger"
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: 'var(--color-gold)', display: 'flex', alignItems: 'center' }}
-                  >
-                    <Download size={14} strokeWidth={2} />
+                  <button type="button" onClick={() => downloadPiece(p.id, p.nom_original)} title="Télécharger"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#B8864A', display: 'flex', alignItems: 'center' }}>
+                    <Download size={15} strokeWidth={2} />
                   </button>
                   {peutModifierPieces && (
-                    <button
-                      type="button"
-                      onClick={() => handleDeletePiece(p)}
-                      title="Supprimer"
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: 'var(--color-danger-500)', display: 'flex', alignItems: 'center' }}
-                    >
-                      <Trash2 size={14} strokeWidth={2} />
+                    <button type="button" onClick={() => handleDeletePiece(p)} title="Supprimer"
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#B91C1C', display: 'flex', alignItems: 'center' }}>
+                      <Trash2 size={15} strokeWidth={2} />
                     </button>
                   )}
                 </div>
               ))}
 
-              {/* Ajouter pièce supplémentaire par drag & drop */}
               {peutModifierPieces && (
                 <div
                   onDragOver={e => { e.preventDefault(); setDragOver(true) }}
@@ -361,16 +458,15 @@ export default function DepenseDetail({ basePath = '/mes-depenses' }) {
                   onDrop={e => { e.preventDefault(); setDragOver(false); handleUpload(e.dataTransfer.files) }}
                   onClick={() => fileRef.current?.click()}
                   style={{
-                    border: `1px dashed ${dragOver ? 'var(--color-gold)' : 'var(--af-line)'}`,
-                    borderRadius: 8, padding: '8px 12px',
+                    border: `1px dashed ${dragOver ? '#B8864A' : 'var(--af-line)'}`,
+                    borderRadius: 8, padding: '8px 14px',
                     display: 'flex', alignItems: 'center', gap: 8,
-                    background: dragOver ? 'var(--color-gold-soft)' : 'transparent',
                     cursor: 'pointer', transition: 'all .15s',
                   }}
                 >
                   <Paperclip size={12} strokeWidth={2} style={{ color: 'var(--af-mute)' }} />
-                  <span style={{ fontSize: '11.5px', color: 'var(--af-mute)' }}>
-                    Déposer d'autres fichiers ou <span style={{ color: 'var(--color-gold)', fontWeight: 600 }}>parcourir</span>
+                  <span style={{ fontSize: 12, color: 'var(--af-mute)' }}>
+                    Déposer d'autres fichiers ou <span style={{ color: '#B8864A', fontWeight: 600 }}>parcourir</span>
                   </span>
                 </div>
               )}
@@ -378,124 +474,51 @@ export default function DepenseDetail({ basePath = '/mes-depenses' }) {
           )}
 
           {pieceError && (
-            <div style={{ display: 'flex', gap: 8, padding: '8px 12px', borderRadius: 8, marginTop: 8, background: 'rgba(220,38,38,0.05)', border: '1px solid rgba(220,38,38,0.2)' }}>
-              <AlertTriangle size={13} style={{ color: 'var(--color-danger-500)', flexShrink: 0, marginTop: 1 }} />
-              <span style={{ color: 'var(--color-danger-700)', fontSize: '12px' }}>{pieceError}</span>
-            </div>
-          )}
-
-          {enAttente && pieces.length === 0 && (
-            <p style={{ fontSize: '11px', color: 'var(--color-danger-500)', marginTop: 6, fontWeight: 600 }}>
-              ⚠ Au moins une pièce justificative est requise avant la validation.
-            </p>
-          )}
-        </div>
-
-        {/* ── Motif de rejet ── */}
-        {rejetee && depense.motif_rejet && (
-          <div style={{ margin: '12px 24px', padding: '10px 14px', background: 'rgba(220,38,38,0.05)', border: '1px solid rgba(220,38,38,0.2)', borderLeft: '4px solid var(--color-danger-500)', borderRadius: 8, display: 'flex', gap: 10 }}>
-            <AlertTriangle size={14} style={{ color: 'var(--color-danger-600)', flexShrink: 0, marginTop: 1 }} />
-            <div>
-              <div style={{ fontWeight: 700, fontSize: '12px', color: 'var(--color-danger-700)', marginBottom: 3 }}>
-                Motif de rejet
-                {depense.validateur_nom && <span style={{ fontWeight: 400 }}> — {depense.validateur_nom}</span>}
-              </div>
-              <div style={{ fontSize: '13px', color: 'var(--color-danger-800)' }}>{depense.motif_rejet}</div>
-            </div>
-          </div>
-        )}
-
-        {/* ── Footer total + actions ── */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '14px 24px', borderTop: '1px solid var(--af-line)',
-          background: 'var(--af-ink)', gap: 16,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-            <span style={{ fontSize: '12px', fontWeight: 700, color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', letterSpacing: '.5px' }}>
-              Total
-            </span>
-            <span style={{ fontFamily: 'var(--af-mono)', fontWeight: 900, fontSize: '18px', color: '#fff' }}>
-              {fmt(depense.montant_total)} FCFA
-            </span>
-            {validee && depense.validateur_nom && (
-              <span style={{ fontSize: '11px', color: '#86EFAC', fontWeight: 500 }}>
-                Validée par {depense.validateur_nom}
-              </span>
-            )}
-          </div>
-
-          {isComptable && !isAdmin && enAttente && (
-            <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-              <button
-                onClick={() => { setMotif(''); setMotifError(''); setShowRejeter(true) }}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 16px', borderRadius: 8, fontSize: '13px', fontWeight: 700, cursor: 'pointer', border: '1px solid rgba(255,255,255,.3)', background: 'rgba(220,38,38,.2)', color: '#FCA5A5', transition: 'all .15s' }}
-                onMouseEnter={e => { e.currentTarget.style.background = '#DC2626'; e.currentTarget.style.color = '#fff' }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(220,38,38,.2)'; e.currentTarget.style.color = '#FCA5A5' }}
-              >
-                <XCircle size={14} strokeWidth={2} /> Rejeter
-              </button>
-              <button
-                onClick={handleValider}
-                disabled={validating}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 16px', borderRadius: 8, fontSize: '13px', fontWeight: 700, cursor: 'pointer', border: '1px solid rgba(255,255,255,.3)', background: validating ? '#16A34A' : 'rgba(22,163,74,.2)', color: '#86EFAC', transition: 'all .15s' }}
-                onMouseEnter={e => { if (!validating) { e.currentTarget.style.background = '#16A34A'; e.currentTarget.style.color = '#fff' } }}
-                onMouseLeave={e => { if (!validating) { e.currentTarget.style.background = 'rgba(22,163,74,.2)'; e.currentTarget.style.color = '#86EFAC' } }}
-              >
-                {validating
-                  ? <><span className="af-spinner" style={{ width: 14, height: 14 }} /> Validation…</>
-                  : <><CheckCircle2 size={14} strokeWidth={2} /> Valider</>
-                }
-              </button>
+            <div style={{ display: 'flex', gap: 8, padding: '8px 12px', borderRadius: 8, marginTop: 10, background: 'rgba(185,28,28,0.05)', border: '1px solid rgba(185,28,28,0.2)' }}>
+              <AlertTriangle size={13} style={{ color: '#B91C1C', flexShrink: 0, marginTop: 1 }} />
+              <span style={{ color: '#B91C1C', fontSize: 12 }}>{pieceError}</span>
             </div>
           )}
         </div>
       </div>
 
-      {/* ── Modal rejet ── */}
+      {/* ── Modal rejet ──────────────────────────────────────────────────────── */}
       {showRejeter && (
         <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setShowRejeter(false) }}>
           <div className="modal-panel" onClick={e => e.stopPropagation()} style={{ maxWidth: 460 }}>
             <div className="modal-header">
-              <h2 style={{ fontWeight: 700, fontSize: '15px', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h2 style={{ fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <XCircle size={15} strokeWidth={2} /> Rejeter la dépense
               </h2>
             </div>
             <form onSubmit={handleRejeter}>
               <div className="modal-body">
                 <div style={{ padding: '10px 14px', borderRadius: 8, background: 'var(--af-steel)', border: '1px solid var(--af-line)', marginBottom: 14 }}>
-                  <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--af-ink)', marginBottom: 4 }}>
-                    {titrePrincipal}
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--af-cream)' }}>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--af-ink)', marginBottom: 4 }}>{sousTitre}</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--af-cream)' }}>
                     <span>{lignes.length} ligne{lignes.length !== 1 ? 's' : ''}</span>
                     <span style={{ fontFamily: 'var(--af-mono)', fontWeight: 700 }}>{fmt(depense.montant_total)} FCFA</span>
                   </div>
                 </div>
-
-                <div style={{ display: 'flex', gap: 8, padding: '8px 12px', borderRadius: 8, background: 'rgba(220,38,38,0.05)', border: '1px solid rgba(220,38,38,0.2)', marginBottom: 14 }}>
-                  <AlertTriangle size={14} style={{ color: 'var(--color-danger-600)', flexShrink: 0, marginTop: 1 }} />
-                  <p style={{ fontSize: '12px', color: 'var(--color-danger-700)', margin: 0 }}>
-                    Le gestionnaire sera notifié du rejet. Toutes les lignes seront rejetées.
+                <div style={{ display: 'flex', gap: 8, padding: '8px 12px', borderRadius: 8, background: 'rgba(185,28,28,0.05)', border: '1px solid rgba(185,28,28,0.2)', marginBottom: 14 }}>
+                  <AlertTriangle size={14} style={{ color: '#B91C1C', flexShrink: 0, marginTop: 1 }} />
+                  <p style={{ fontSize: 12, color: '#B91C1C', margin: 0 }}>
+                    Le gestionnaire sera notifié du rejet.
                   </p>
                 </div>
-
-                <label className="form-label">Motif de rejet <span style={{ color: 'var(--color-danger-600)' }}>*</span></label>
-                <textarea
-                  required rows={4} className="form-input"
+                <label className="form-label">Motif de rejet <span style={{ color: '#B91C1C' }}>*</span></label>
+                <textarea required rows={4} className="form-input"
                   placeholder="Expliquer la raison du rejet (min. 10 caractères)…"
-                  value={motif}
-                  onChange={e => setMotif(e.target.value)}
+                  value={motif} onChange={e => setMotif(e.target.value)}
                   style={{ resize: 'vertical', minHeight: 90 }}
                 />
-                <div style={{ fontSize: '11px', color: motif.length < 10 ? 'var(--color-danger-500)' : 'var(--color-success-600)', marginTop: 4 }}>
+                <div style={{ fontSize: 11, color: motif.length < 10 ? '#B91C1C' : '#15803D', marginTop: 4 }}>
                   {motif.length} / min 10 caractères
                 </div>
-
                 {motifError && (
-                  <div style={{ display: 'flex', gap: 8, padding: '8px 12px', borderRadius: 8, background: 'rgba(220,38,38,0.05)', border: '1px solid rgba(220,38,38,0.2)', marginTop: 10 }}>
-                    <AlertTriangle size={13} style={{ color: 'var(--color-danger-500)', flexShrink: 0 }} />
-                    <span style={{ color: 'var(--color-danger-700)', fontSize: '12px' }}>{motifError}</span>
+                  <div style={{ display: 'flex', gap: 8, padding: '8px 12px', borderRadius: 8, background: 'rgba(185,28,28,0.05)', border: '1px solid rgba(185,28,28,0.2)', marginTop: 10 }}>
+                    <AlertTriangle size={13} style={{ color: '#B91C1C', flexShrink: 0 }} />
+                    <span style={{ color: '#B91C1C', fontSize: 12 }}>{motifError}</span>
                   </div>
                 )}
               </div>
@@ -503,9 +526,8 @@ export default function DepenseDetail({ basePath = '/mes-depenses' }) {
                 <button type="button" onClick={() => setShowRejeter(false)} className="btn btn-secondary btn-sm">Annuler</button>
                 <button type="submit" disabled={rejecting} className="btn btn-danger btn-sm" style={{ gap: 6 }}>
                   {rejecting
-                    ? <><span className="af-spinner" style={{ width: 14, height: 14 }} /> Rejet…</>
-                    : <><XCircle size={14} strokeWidth={2} /> Confirmer le rejet</>
-                  }
+                    ? <><span className="spinner-sm" /> Rejet…</>
+                    : <><XCircle size={14} strokeWidth={2} /> Confirmer le rejet</>}
                 </button>
               </div>
             </form>

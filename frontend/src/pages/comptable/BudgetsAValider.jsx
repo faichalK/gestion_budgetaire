@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { getBudgets, getBudget, getLignes, approuverBudget, rejeterBudget, cloturerBudget } from '../../api/budget'
+import { useAuth } from '../../context/AuthContext'
+import { getBudgets, getBudget, getLignes, getBudgetArbre, approuverBudget, rejeterBudget, cloturerBudget } from '../../api/budget'
 import { getDepenses } from '../../api/depenses'
 import { cn } from '../../lib/cn'
 import { Icon, StatusBadge } from '../../components/AtlasIcons'
@@ -173,12 +174,191 @@ export function BudgetsAValiderList() {
 
 
 /* ══════════════════════════════════════════════════════════════════════════════
+   Vue intégrée : Lignes budgétaires + Dépenses par ligne
+══════════════════════════════════════════════════════════════════════════════ */
+function LignesAvecDepenses({ categories, depensesItems, lignes, fmt }) {
+  const byLigne = {}
+  depensesItems.forEach(dep => {
+    ;(dep.lignes_cl || []).forEach(cl => {
+      const lid = String(cl.ligne_id)
+      if (!byLigne[lid]) byLigne[lid] = []
+      byLigne[lid].push({
+        dep_id:  dep.id,
+        ref:     dep.reference,
+        statut:  dep.statut,
+        montant: parseFloat(cl.montant || 0),
+        date:    cl.date,
+      })
+    })
+  })
+
+  const DEP_STATUT = {
+    SAISIE:  { label: 'En attente', color: '#B8864A' },
+    VALIDEE: { label: 'Validée',    color: '#15803D' },
+    REJETEE: { label: 'Rejetée',    color: '#DC2626' },
+  }
+
+  const revenusLignes  = lignes.filter(l => l.section === 'REVENU')
+  const depensesLignes = lignes.filter(l => l.section !== 'REVENU')
+  const totRev  = revenusLignes.reduce((s, l)  => s + parseFloat(l.montant_alloue || 0), 0)
+  const totDep  = depensesLignes.reduce((s, l) => s + parseFloat(l.montant_alloue || 0), 0)
+  const solde   = totRev - totDep
+
+  if (categories.length === 0) {
+    return (
+      <Card.Table>
+        <div className="flex items-center px-5 py-4 border-b border-[rgba(14,42,71,0.08)]">
+          <h3 className="text-base font-semibold text-[#0E2A47] tracking-tight">Lignes budgétaires</h3>
+          <span className="ml-2 text-[11px] text-[rgba(90,107,126,0.7)]">{lignes.length} ligne{lignes.length !== 1 ? 's' : ''}</span>
+        </div>
+        <table className="af-table">
+          <thead><tr><th>Intitulé</th><th>Type</th><th>Alloué</th><th>Consommé</th><th>Écart</th></tr></thead>
+          <tbody>
+            {lignes.map(l => {
+              const a = parseFloat(l.montant_alloue || 0)
+              const c = parseFloat(l.montant_consomme || 0)
+              const e = a - c
+              return (
+                <tr key={l.id}>
+                  <td>{l.libelle}</td>
+                  <td><span className="text-[10px] font-semibold px-2 py-0.5 rounded border" style={{ background: l.section === 'REVENU' ? 'rgba(45,106,79,0.12)' : 'rgba(14,42,71,0.06)', color: l.section === 'REVENU' ? '#15803D' : '#5A6B7E', borderColor: l.section === 'REVENU' ? 'rgba(45,106,79,0.4)' : 'rgba(14,42,71,0.15)' }}>{l.section === 'REVENU' ? 'Revenu' : 'Budget'}</span></td>
+                  <td className="num">{fmt(a)} FCFA</td>
+                  <td className="num muted">{fmt(c)} FCFA</td>
+                  <td className="num" style={{ color: e >= 0 ? '#15803D' : '#DC2626' }}>{e >= 0 ? '+' : ''}{fmt(e)} FCFA</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+        <div className="grid grid-cols-3 gap-[14px] px-5 py-3.5 border-t border-[rgba(14,42,71,0.08)]">
+          {[
+            { label: 'Total recettes',    value: fmt(totRev),  color: '#7DCFA0' },
+            { label: 'Total dépenses',    value: fmt(totDep),  color: '#F5A0A0' },
+            { label: 'Solde prévisionnel',value: fmt(solde),   color: '#B8864A' },
+          ].map(s => (
+            <div key={s.label}>
+              <div className="text-[10px] tracking-[0.18em] uppercase text-[rgba(90,107,126,0.7)] mb-1">{s.label}</div>
+              <div className="tabular-nums font-mono text-[18px]" style={{ color: s.color }}>{s.value} FCFA</div>
+            </div>
+          ))}
+        </div>
+      </Card.Table>
+    )
+  }
+
+  return (
+    <Card.Table>
+      <div className="flex items-center px-5 py-4 border-b border-[rgba(14,42,71,0.08)]">
+        <h3 className="text-base font-semibold text-[#0E2A47] tracking-tight">Lignes budgétaires & Dépenses</h3>
+        <span className="ml-2 text-[11px] text-[rgba(90,107,126,0.7)]">{lignes.length} ligne{lignes.length !== 1 ? 's' : ''}</span>
+      </div>
+      <table className="af-table" style={{ tableLayout: 'fixed', width: '100%' }}>
+        <colgroup>
+          <col style={{ width: '40%' }} />
+          <col style={{ width: '18%' }} />
+          <col style={{ width: '18%' }} />
+          <col style={{ width: '14%' }} />
+          <col style={{ width: '10%' }} />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Intitulé</th>
+            <th className="text-right">Alloué</th>
+            <th className="text-right">Consommé</th>
+            <th className="text-right">Écart</th>
+            <th>Statut</th>
+          </tr>
+        </thead>
+        <tbody>
+          {categories.map(cat => (
+            <React.Fragment key={cat.id}>
+              <tr style={{ background: 'rgba(14,42,71,0.055)' }}>
+                <td colSpan={5} style={{ padding: '8px 16px' }}>
+                  <span className="text-[11px] font-bold text-[#0E2A47] tracking-[0.08em] uppercase">{cat.code} — {cat.libelle}</span>
+                  <span className="ml-3 text-[11px] text-[#B8864A] font-mono font-bold">{fmt(cat.total)} FCFA</span>
+                </td>
+              </tr>
+              {cat.sous_categories.map(sc => (
+                <React.Fragment key={sc.id}>
+                  <tr style={{ background: 'rgba(14,42,71,0.025)' }}>
+                    <td colSpan={5} style={{ padding: '6px 28px' }}>
+                      <span className="text-[11px] font-semibold text-[#5A6B7E]">{sc.code} — {sc.libelle}</span>
+                      <span className="ml-3 text-[10px] text-[rgba(90,107,126,0.6)] font-mono">{fmt(sc.total)} FCFA</span>
+                    </td>
+                  </tr>
+                  {sc.lignes.map(ligne => {
+                    const a    = parseFloat(ligne.montant_alloue    || 0)
+                    const c    = parseFloat(ligne.montant_consomme  || 0)
+                    const e    = a - c
+                    const deps = byLigne[String(ligne.id)] || []
+                    return (
+                      <React.Fragment key={ligne.id}>
+                        <tr>
+                          <td style={{ paddingLeft: 40 }}>
+                            <span className="text-[12px] font-semibold text-[#0E2A47]">{ligne.libelle}</span>
+                            {ligne.code && (
+                              <span className="ml-2 text-[10px] font-mono bg-[rgba(14,42,71,0.06)] text-[#5A6B7E] px-1.5 py-[2px] rounded">{ligne.code}</span>
+                            )}
+                          </td>
+                          <td className="num">{fmt(a)} FCFA</td>
+                          <td className="num muted">{fmt(c)} FCFA</td>
+                          <td className="num" style={{ color: e >= 0 ? '#15803D' : '#DC2626' }}>{e >= 0 ? '+' : ''}{fmt(e)} FCFA</td>
+                          <td/>
+                        </tr>
+                        {deps.map((d, i) => {
+                          const cfg = DEP_STATUT[d.statut] || { label: d.statut, color: '#5A6B7E' }
+                          return (
+                            <tr key={`${d.dep_id}-${i}`} style={{ background: 'rgba(184,134,74,0.04)' }}>
+                              <td style={{ paddingLeft: 56 }}>
+                                <span className="text-[11px] font-mono font-semibold text-[#B8864A]">{d.ref}</span>
+                                {d.date && <span className="ml-2 text-[11px] text-[rgba(90,107,126,0.6)]">{fmtDate(d.date)}</span>}
+                              </td>
+                              <td/>
+                              <td className="num">
+                                <span className="text-[12px] font-mono text-[#0E2A47]">{fmt(d.montant)} FCFA</span>
+                              </td>
+                              <td/>
+                              <td>
+                                <span className="text-[10px] font-semibold px-2 py-[2px] rounded" style={{ background: cfg.color + '22', color: cfg.color }}>{cfg.label}</span>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </React.Fragment>
+                    )
+                  })}
+                </React.Fragment>
+              ))}
+            </React.Fragment>
+          ))}
+        </tbody>
+      </table>
+      <div className="grid grid-cols-3 gap-[14px] px-5 py-3.5 border-t border-[rgba(14,42,71,0.08)]">
+        {[
+          { label: 'Total recettes',     value: fmt(totRev), color: '#7DCFA0' },
+          { label: 'Total dépenses',     value: fmt(totDep), color: '#F5A0A0' },
+          { label: 'Solde prévisionnel', value: fmt(solde),  color: '#B8864A' },
+        ].map(s => (
+          <div key={s.label}>
+            <div className="text-[10px] tracking-[0.18em] uppercase text-[rgba(90,107,126,0.7)] mb-1">{s.label}</div>
+            <div className="tabular-nums font-mono text-[18px]" style={{ color: s.color }}>{s.value} FCFA</div>
+          </div>
+        ))}
+      </div>
+    </Card.Table>
+  )
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
    Détail budget — vue comptable (Budget vs Réel)
 ══════════════════════════════════════════════════════════════════════════════ */
 export function BudgetValidationDetail({ basePath = '/validation' }) {
   const { id }   = useParams()
   const navigate = useNavigate()
+  const { isComptable } = useAuth()
   const [budget,        setBudget]        = useState(null)
+  const [categories,    setCategories]    = useState([])
   const [lignes,        setLignes]        = useState([])
   const [depensesItems, setDepensesItems] = useState([])
   const [loading,       setLoading]       = useState(true)
@@ -191,33 +371,27 @@ export function BudgetValidationDetail({ basePath = '/validation' }) {
   const loadRef = useRef(() => {})
 
   const load = () => {
-    Promise.all([getBudget(id), getLignes(id), getDepenses({ budget: id })])
-      .then(([b, l, d]) => {
+    Promise.all([getBudget(id), getLignes(id), getDepenses({ budget: id }), getBudgetArbre(id)])
+      .then(([b, l, d, arbre]) => {
         setBudget(b.data)
         setLignes(l.data.results ?? l.data)
-        // Flatten Depense.lignes into per-ligne records for the table
+        setCategories(arbre.data?.data ?? [])
         const rawDeps = d.data?.data ?? d.data?.results ?? d.data ?? []
-        setDepensesItems(rawDeps.flatMap(dep =>
-          (dep.lignes?.length ? dep.lignes : [{}]).map(cl => ({
-            id:                  dep.id,
-            ligne_id:            cl.ligne_id,
-            ligne_designation:   cl.ligne_libelle,
-            montant:             cl.montant || dep.montant_total,
-            montant_total:       dep.montant_total,
-            statut:              dep.statut,
-            date:                cl.date || dep.date,
-            date_depense:        cl.date || dep.date,
-            note:                cl.note || dep.note,
-            fournisseur:         dep.fournisseur,
-            reference:           dep.reference || dep.fournisseur || dep.note || String(dep.id).slice(0, 8).toUpperCase(),
-            pieces:              dep.pieces || [],
-            nombre_pieces:       dep.nombre_pieces ?? (dep.pieces?.length || 0),
-            motif_rejet:         dep.motif_rejet,
-            budget_id:           dep.budget_id,
-            budget_code:         dep.budget_code,
-            budget_nom:          dep.budget_nom,
-          }))
-        ))
+        // 1 item par Depense (pas par ConsommationLigne)
+        setDepensesItems(rawDeps.map(dep => ({
+          id:           dep.id,
+          reference:    dep.reference || String(dep.id).slice(0, 8).toUpperCase(),
+          montant:      dep.montant_total,
+          statut:       dep.statut,
+          date:         dep.date,
+          nb_lignes:    dep.lignes?.length || 0,
+          pieces:       dep.pieces || [],
+          nombre_pieces: dep.nombre_pieces ?? (dep.pieces?.length || 0),
+          motif_rejet:  dep.motif_rejet,
+          fournisseur:  dep.fournisseur,
+          note:         dep.note,
+          lignes_cl:    dep.lignes || [],
+        })))
       })
       .finally(() => setLoading(false))
   }
@@ -280,8 +454,6 @@ export function BudgetValidationDetail({ basePath = '/validation' }) {
     <div className="af-loader"><div className="af-spinner"/><span>Chargement…</span></div>
   )
 
-  const depensesLignes = lignes.filter(l => l.section !== 'REVENU')
-  const revenusLignes  = lignes.filter(l => l.section === 'REVENU')
   const totalBudget    = lignes.reduce((s, l) => s + parseFloat(l.montant_alloue   || 0), 0)
   const totalReel      = lignes.reduce((s, l) => s + parseFloat(l.montant_consomme || 0), 0)
   const ecartGlobal    = totalBudget - totalReel
@@ -348,7 +520,7 @@ export function BudgetValidationDetail({ basePath = '/validation' }) {
 
   return (
     <div>
-      <Card className="p-0 overflow-hidden mb-[14px]">
+      <Card className="p-0 mb-[14px]">
         <div className="px-6 py-5">
           <div className="flex justify-between items-start gap-4 flex-wrap">
             <div className="min-w-0">
@@ -410,7 +582,7 @@ export function BudgetValidationDetail({ basePath = '/validation' }) {
                 )}
               </div>
 
-              {budget.statut === 'SOUMIS' && (
+              {isComptable && budget.statut === 'SOUMIS' && (
                 <>
                   <button className="btn btn-danger btn-sm" onClick={() => handleAction('rejeter')} disabled={saving}>
                     {Icon.reject} Rejeter
@@ -420,7 +592,7 @@ export function BudgetValidationDetail({ basePath = '/validation' }) {
                   </button>
                 </>
               )}
-              {budget.statut === 'APPROUVE' && (
+              {isComptable && budget.statut === 'APPROUVE' && (
                 <button className="btn btn-secondary btn-sm" onClick={handleCloturer} disabled={saving}>
                   Clôturer
                 </button>
@@ -464,107 +636,12 @@ export function BudgetValidationDetail({ basePath = '/validation' }) {
 
       <div className="grid gap-[14px]" style={{ gridTemplateColumns: '1.5fr 1fr' }}>
         <div className="flex flex-col gap-[14px]">
-          <Card.Table>
-            <div className="flex items-center px-5 py-4 border-b border-[rgba(14,42,71,0.08)]">
-              <h3 className="text-base font-semibold text-[#0E2A47] tracking-tight">Lignes budgétaires</h3>
-              <div className="ml-auto"><span className="af-tag-method">{budget.methode_budgetisation || 'ANALOGIE'}</span></div>
-            </div>
-            {lignes.length === 0 ? (
-              <div className="py-5 text-center text-[13px] text-[rgba(90,107,126,0.7)]">Aucune ligne budgétaire</div>
-            ) : (
-              <table className="af-table">
-                <thead>
-                  <tr><th>Type</th><th>Intitulé</th><th>Budget alloué</th><th>Réel</th><th>Écart</th></tr>
-                </thead>
-                <tbody>
-                  {lignes.map(l => {
-                    const a = parseFloat(l.montant_alloue || 0)
-                    const c = parseFloat(l.montant_consomme || 0)
-                    const e = a - c
-                    return (
-                      <tr key={l.id}>
-                        <td>
-                          <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.10em] px-[9px] py-1 rounded-[4px] border" style={{
-                            background:   l.section === 'REVENU' ? 'rgba(45,106,79,0.18)'  : 'rgba(14,42,71,0.08)',
-                            color:        l.section === 'REVENU' ? '#7DCFA0'                : '#5A6B7E',
-                            borderColor:  l.section === 'REVENU' ? 'rgba(45,106,79,0.5)'   : 'rgba(14,42,71,0.2)',
-                          }}>
-                            {l.section === 'REVENU' ? 'Revenu' : 'Budget'}
-                          </span>
-                        </td>
-                        <td>{l.libelle}</td>
-                        <td className="num">{fmt(a)} FCFA</td>
-                        <td className="num muted">{fmt(c)} FCFA</td>
-                        <td className="num" style={{ color: e >= 0 ? '#15803D' : '#DC2626' }}>
-                          {e >= 0 ? '+' : ''}{fmt(e)} FCFA
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            )}
-            <div className="grid grid-cols-3 gap-[14px] px-5 py-3.5 border-t border-[rgba(14,42,71,0.08)]">
-              {[
-                { label: 'Total recettes', value: fmt(revenusLignes.reduce((s, l) => s + parseFloat(l.montant_alloue || 0), 0)), color: '#7DCFA0' },
-                { label: 'Total dépenses', value: fmt(depensesLignes.reduce((s, l) => s + parseFloat(l.montant_alloue || 0), 0)), color: '#F5A0A0' },
-                { label: 'Solde prévisionnel', value: fmt(revenusLignes.reduce((s, l) => s + parseFloat(l.montant_alloue || 0), 0) - depensesLignes.reduce((s, l) => s + parseFloat(l.montant_alloue || 0), 0)), color: '#B8864A' },
-              ].map(s => (
-                <div key={s.label}>
-                  <div className="text-[10px] tracking-[0.18em] uppercase text-[rgba(90,107,126,0.7)] mb-1">{s.label}</div>
-                  <div className="tabular-nums font-mono text-[18px]" style={{ color: s.color }}>{s.value} FCFA</div>
-                </div>
-              ))}
-            </div>
-          </Card.Table>
-
-          {depensesItems.length > 0 && (
-            <Card.Table>
-              <div className="flex items-center px-5 py-4 border-b border-[rgba(14,42,71,0.08)]">
-                <h3 className="text-base font-semibold text-[#0E2A47] tracking-tight">Dépenses enregistrées</h3>
-                <span className="text-[11px] text-[rgba(90,107,126,0.7)] ml-2">{depensesItems.length} dépense{depensesItems.length !== 1 ? 's' : ''}</span>
-              </div>
-              <table className="af-table">
-                <thead>
-                  <tr><th>Réf.</th><th>Libellé</th><th>Ligne budgétaire</th><th>Montant</th><th>Statut</th><th>Pièces</th></tr>
-                </thead>
-                <tbody>
-                  {depensesItems.map(d => {
-                    const ligne = lignes.find(l => String(l.id) === String(d.ligne ?? d.ligne_id))
-                    return (
-                      <tr key={d.id}>
-                        <td className="ref">{d.reference || d.code || `DP-${d.id}`}</td>
-                        <td>{d.libelle || d.description || '—'}</td>
-                        <td className="muted">{ligne?.libelle || d.ligne_designation || '—'}</td>
-                        <td className="num">{fmt(d.montant)} FCFA</td>
-                        <td><StatusBadge status={d.statut}/></td>
-                        <td>
-                          {d.pieces?.length > 0 ? (
-                            <div className="flex flex-wrap gap-1">
-                              {d.pieces.map((p, i) => (
-                                <a
-                                  key={p.id || i}
-                                  href={p.url_download}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  title={p.nom_original}
-                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[rgba(14,42,71,0.06)] text-[#0E2A47] border border-[rgba(14,42,71,0.12)] hover:bg-[rgba(184,134,74,0.12)] hover:text-[#B8864A] hover:border-[#B8864A] transition-colors"
-                                >
-                                  📎 {i + 1}
-                                </a>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-[11px] text-[rgba(90,107,126,0.5)]">—</span>
-                          )}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </Card.Table>
-          )}
+          <LignesAvecDepenses
+            categories={categories}
+            depensesItems={depensesItems}
+            lignes={lignes}
+            fmt={fmt}
+          />
         </div>
 
         <div className="flex flex-col gap-[14px]">
