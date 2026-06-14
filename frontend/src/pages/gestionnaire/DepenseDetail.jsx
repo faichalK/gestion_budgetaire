@@ -39,9 +39,10 @@ export default function DepenseDetail({ basePath = '/mes-depenses' }) {
   const [motifError,   setMotifError]   = useState('')
   const [rejecting,    setRejecting]    = useState(false)
   const [validating,   setValidating]   = useState(false)
-  const [uploading,    setUploading]    = useState(false)
-  const [dragOver,     setDragOver]     = useState(false)
-  const [pieceError,   setPieceError]   = useState('')
+  const [uploading,     setUploading]     = useState(false)
+  const [dragOver,      setDragOver]      = useState(false)
+  const [pieceError,    setPieceError]    = useState('')
+  const [selectedPiece, setSelectedPiece] = useState(null)
   const fileRef = useRef(null)
   const loadRef = useRef(() => {})
 
@@ -62,6 +63,15 @@ export default function DepenseDetail({ basePath = '/mes-depenses' }) {
     const t = window.setTimeout(() => loadRef.current(), 0)
     return () => window.clearTimeout(t)
   }, [id])
+
+  useEffect(() => {
+    if (!depense) return
+    const ps = depense.pieces || []
+    setSelectedPiece(prev => {
+      if (prev && ps.find(p => p.id === prev.id)) return prev
+      return ps[0] || null
+    })
+  }, [depense])
 
   const handleUpload = async (incoming) => {
     const files = Array.from(incoming).filter(f =>
@@ -122,10 +132,10 @@ export default function DepenseDetail({ basePath = '/mes-depenses' }) {
   const pieces    = depense.pieces || []
   const cfg       = STATUT_CFG[statut] || STATUT_CFG.SAISIE
 
-  const titre = depense.reference || `DEP-${String(depense.id).slice(0, 6).toUpperCase()}`
-  const sousTitre = depense.fournisseur || depense.note || '—'
+  const titre    = depense.reference || `DEP-${String(depense.id).slice(0, 6).toUpperCase()}`
+  const sousTitre = depense.fournisseur || depense.note || 'Dépense'
 
-  const peutGererPieces   = enAttente && (isAdmin || !isComptable)
+  const peutGererPieces    = enAttente && (isAdmin || !isComptable)
   const peutModifierPieces = peutGererPieces || (validee && isAdmin)
 
   const budgetPath = isAdmin
@@ -134,35 +144,41 @@ export default function DepenseDetail({ basePath = '/mes-depenses' }) {
       ? `/validation/${depense.budget_id}`
       : `/mes-budgets/${depense.budget_id}`
 
+  const DELTA = { up: 'text-[#15803D]', down: 'text-[#B91C1C]', flat: 'text-[#5A6B7E]' }
+
   return (
     <div>
-      {/* ── Header ────────────────────────────────────────────────────────── */}
+
+      {/* ── Header (même style que BudgetDetail) ──────────────────────────── */}
       <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)] mb-[14px]">
         <div style={{ padding: '20px 24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
+          <div className="flex justify-between items-start gap-4 flex-wrap">
             <div style={{ minWidth: 0 }}>
-              <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-                <span style={{ fontFamily: 'var(--af-mono)', fontSize: 11, fontWeight: 700, background: 'var(--af-steel)', color: 'var(--af-ink)', padding: '3px 10px', borderRadius: 6 }}>
+              <div className="flex gap-2 mb-2.5 flex-wrap items-center">
+                <span className="font-mono text-[11px] font-bold bg-[#EDE7DA] text-[#0E2A47] px-2.5 py-[3px] rounded-[6px]">
                   {titre}
                 </span>
                 {depense.budget_code && (
-                  <span style={{ fontFamily: 'var(--af-mono)', fontSize: 11, fontWeight: 600, background: 'rgba(184,134,74,0.12)', color: '#B8864A', padding: '3px 10px', borderRadius: 6 }}>
+                  <span className="font-mono text-[11px] font-semibold px-2.5 py-[3px] rounded-[6px]"
+                    style={{ background: 'rgba(184,134,74,0.12)', color: '#B8864A' }}>
                     {depense.budget_code}
                   </span>
                 )}
                 <DepenseBadge statut={statut} />
               </div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--af-ivory)', lineHeight: 1.25, marginBottom: 6 }}>
+              <div className="text-[18px] font-extrabold text-[#0E2A47] leading-[1.25] mb-1.5">
                 {sousTitre}
               </div>
-              <div style={{ display: 'flex', gap: 14, fontSize: 12, color: 'var(--af-mute)', flexWrap: 'wrap' }}>
+              <div className="flex gap-3 text-[12px] text-[rgba(90,107,126,0.7)] flex-wrap">
                 {depense.date && <span>Soumis le {fmtDate(depense.date)}</span>}
-                {depense.enregistre_par && <span>Par {depense.enregistre_par}</span>}
-                {validee && depense.validateur_nom && <span style={{ color: '#15803D' }}>Validé par {depense.validateur_nom}</span>}
+                {depense.enregistre_par && <span>· Par {depense.enregistre_par}</span>}
+                {validee && depense.validateur_nom && (
+                  <span className="text-[#15803D] font-medium">· Validé par {depense.validateur_nom}</span>
+                )}
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap' }}>
+            <div className="flex gap-2 shrink-0 flex-wrap">
               <button onClick={() => navigate(-1)} className="btn btn-secondary btn-sm" style={{ gap: 6 }}>
                 <ArrowLeft size={13} strokeWidth={2} /> Retour
               </button>
@@ -170,12 +186,11 @@ export default function DepenseDetail({ basePath = '/mes-depenses' }) {
                 <>
                   <button
                     onClick={() => { setMotif(''); setMotifError(''); setShowRejeter(true) }}
-                    className="btn btn-sm"
-                    style={{ gap: 6, background: 'rgba(185,28,28,0.08)', color: '#B91C1C', border: '1px solid rgba(185,28,28,0.25)' }}
+                    className="btn btn-danger btn-sm" style={{ gap: 6 }}
                   >
                     <XCircle size={13} strokeWidth={2} /> Rejeter
                   </button>
-                  <button onClick={handleValider} disabled={validating} className="btn btn-primary btn-sm" style={{ gap: 6 }}>
+                  <button onClick={handleValider} disabled={validating} className="btn btn-gold btn-sm" style={{ gap: 6 }}>
                     {validating
                       ? <><span className="spinner-sm" /> Validation…</>
                       : <><CheckCircle2 size={13} strokeWidth={2} /> Valider</>}
@@ -187,49 +202,38 @@ export default function DepenseDetail({ basePath = '/mes-depenses' }) {
         </div>
       </div>
 
-      {/* ── KPI cards ──────────────────────────────────────────────────────── */}
+      {/* ── 4 KPI cards ─────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-4 gap-[14px] mb-[14px]">
-        <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-[10px] py-[18px] px-5 shadow-[0_1px_0_rgba(14,42,71,0.02)]">
-          <div className="text-[10px] tracking-[0.20em] uppercase text-[rgba(90,107,126,0.7)] mb-3">Montant total</div>
-          <div className="text-[28px] leading-none tracking-[-0.02em] text-[#0E2A47] mb-1.5 tabular-nums">
-            {fmtM(depense.montant_total)}<span className="text-[#B8864A] text-[16px] ml-0.5"> M FCFA</span>
+        {[
+          { label: 'Montant total',      value: fmtM(depense.montant_total), unit: ' M FCFA', sub: `${fmt(depense.montant_total)} FCFA`, delta: 'flat' },
+          { label: 'Lignes budgétaires', value: lignes.length, unit: '',      sub: `ligne${lignes.length !== 1 ? 's' : ''} de consommation`, delta: 'flat' },
+          { label: 'Pièces jointes',     value: pieces.length, unit: '',      sub: `pièce${pieces.length !== 1 ? 's' : ''} justificative${pieces.length !== 1 ? 's' : ''}`, delta: pieces.length > 0 ? 'up' : 'flat' },
+          { label: 'Statut',             value: cfg.label,     unit: '',      sub: validee && depense.validateur_nom ? `par ${depense.validateur_nom}` : enAttente ? 'En cours de traitement' : 'Voir motif ci-dessous', delta: validee ? 'up' : rejetee ? 'down' : 'flat', valueColor: cfg.color },
+        ].map(k => (
+          <div key={k.label} className="bg-white border border-[rgba(14,42,71,0.08)] rounded-[10px] py-[18px] px-5 shadow-[0_1px_0_rgba(14,42,71,0.02)]">
+            <div className="text-[10px] tracking-[0.20em] uppercase text-[rgba(90,107,126,0.7)] mb-3">{k.label}</div>
+            <div className="text-[26px] leading-none tracking-[-0.02em] mb-1.5 tabular-nums font-bold" style={{ color: k.valueColor || '#0E2A47' }}>
+              {k.value}<span className="text-[#B8864A] text-[14px] ml-0.5">{k.unit}</span>
+            </div>
+            <div className={`text-[11px] ${DELTA[k.delta]}`}>{k.sub}</div>
           </div>
-          <div className="text-[11px] text-[#5A6B7E]">{fmt(depense.montant_total)} FCFA</div>
-        </div>
-        <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-[10px] py-[18px] px-5 shadow-[0_1px_0_rgba(14,42,71,0.02)]">
-          <div className="text-[10px] tracking-[0.20em] uppercase text-[rgba(90,107,126,0.7)] mb-3">Lignes budgétaires</div>
-          <div className="text-[28px] leading-none tracking-[-0.02em] text-[#0E2A47] mb-1.5 tabular-nums">{lignes.length}</div>
-          <div className="text-[11px] text-[#5A6B7E]">ligne{lignes.length !== 1 ? 's' : ''} de consommation</div>
-        </div>
-        <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-[10px] py-[18px] px-5 shadow-[0_1px_0_rgba(14,42,71,0.02)]">
-          <div className="text-[10px] tracking-[0.20em] uppercase text-[rgba(90,107,126,0.7)] mb-3">Pièces jointes</div>
-          <div className="text-[28px] leading-none tracking-[-0.02em] text-[#0E2A47] mb-1.5 tabular-nums">{pieces.length}</div>
-          <div className="text-[11px] text-[#5A6B7E]">pièce{pieces.length !== 1 ? 's' : ''} justificative{pieces.length !== 1 ? 's' : ''}</div>
-        </div>
-        <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-[10px] py-[18px] px-5 shadow-[0_1px_0_rgba(14,42,71,0.02)]">
-          <div className="text-[10px] tracking-[0.20em] uppercase text-[rgba(90,107,126,0.7)] mb-3">Statut</div>
-          <div className="text-[20px] leading-none tracking-[-0.02em] mb-1.5 font-bold" style={{ color: cfg.color }}>{cfg.label}</div>
-          <div className="text-[11px] text-[#5A6B7E]">
-            {validee && depense.validateur_nom ? `par ${depense.validateur_nom}` : enAttente ? 'En cours de traitement' : 'Voir motif ci-dessous'}
-          </div>
-        </div>
+        ))}
       </div>
 
-      {/* ── Synthèse + Infos ───────────────────────────────────────────────── */}
+      {/* ── Synthèse + Budget associé ──────────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: 14, marginBottom: 14 }}>
 
-        {/* Synthèse */}
         <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)]">
           <div className="flex items-center px-5 py-3 border-b border-[rgba(14,42,71,0.08)]">
             <div className="text-[13px] font-semibold text-[#0E2A47]">Synthèse</div>
           </div>
           <div style={{ padding: '14px 20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 20px' }}>
             {[
-              { label: 'Référence',     val: titre },
-              { label: 'Fournisseur',   val: depense.fournisseur || '—' },
-              { label: 'Description',   val: depense.note || '—' },
-              { label: 'Date soumis',   val: fmtDate(depense.date) },
-              { label: 'Soumis par',    val: depense.enregistre_par || '—' },
+              { label: 'Référence',   val: titre },
+              { label: 'Fournisseur', val: depense.fournisseur || '—' },
+              { label: 'Description', val: depense.note || '—' },
+              { label: 'Date soumis', val: fmtDate(depense.date) },
+              { label: 'Soumis par',  val: depense.enregistre_par || '—' },
               ...(depense.validateur_nom ? [{ label: validee ? 'Validé par' : 'Traité par', val: depense.validateur_nom }] : []),
             ].map(r => (
               <div key={r.label} style={{ display: 'flex', flexDirection: 'column', padding: '6px 0', borderBottom: '1px solid var(--af-line)' }}>
@@ -240,7 +244,6 @@ export default function DepenseDetail({ basePath = '/mes-depenses' }) {
           </div>
         </div>
 
-        {/* Budget lié */}
         <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)]">
           <div className="flex items-center justify-between px-5 py-3 border-b border-[rgba(14,42,71,0.08)]">
             <div className="text-[13px] font-semibold text-[#0E2A47]">Budget associé</div>
@@ -256,9 +259,7 @@ export default function DepenseDetail({ basePath = '/mes-depenses' }) {
                 <div style={{ fontFamily: 'var(--af-mono)', fontSize: 13, fontWeight: 700, color: '#B8864A', background: 'rgba(184,134,74,0.10)', padding: '4px 10px', borderRadius: 6, display: 'inline-block', marginBottom: 10 }}>
                   {depense.budget_code}
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--af-ivory)', lineHeight: 1.4 }}>
-                  {depense.budget_nom}
-                </div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--af-ivory)', lineHeight: 1.4 }}>{depense.budget_nom}</div>
                 <div style={{ marginTop: 12, padding: '10px 14px', background: cfg.bg, border: `1px solid ${cfg.border}`, borderRadius: 8, fontSize: 12, color: cfg.color, fontWeight: 600 }}>
                   {cfg.label} — {fmt(depense.montant_total)} FCFA
                 </div>
@@ -356,8 +357,8 @@ export default function DepenseDetail({ basePath = '/mes-depenses' }) {
         })()}
       </div>
 
-      {/* ── Pièces justificatives ──────────────────────────────────────────── */}
-      <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)]">
+      {/* ── Pièces justificatives + Visualiseur ───────────────────────────── */}
+      <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)] mt-[14px]">
         <div className="flex items-center justify-between px-5 py-3 border-b border-[rgba(14,42,71,0.08)]">
           <div className="flex items-center gap-2">
             <div className="text-[13px] font-semibold text-[#0E2A47]">Pièces justificatives</div>
@@ -384,72 +385,88 @@ export default function DepenseDetail({ basePath = '/mes-depenses' }) {
           )}
         </div>
 
-        <div style={{ padding: '16px 20px' }}>
-          {/* Zone drag & drop vide */}
-          {pieces.length === 0 && peutModifierPieces && (
-            <div
-              onDragOver={e => { e.preventDefault(); setDragOver(true) }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={e => { e.preventDefault(); setDragOver(false); handleUpload(e.dataTransfer.files) }}
-              onClick={() => fileRef.current?.click()}
-              style={{
-                border: `1.5px dashed ${dragOver ? '#B8864A' : 'var(--af-line)'}`,
-                borderRadius: 10, padding: '32px 20px',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-                background: dragOver ? 'rgba(184,134,74,0.06)' : 'var(--af-steel)',
-                cursor: 'pointer', textAlign: 'center', transition: 'all .15s',
-              }}
-            >
-              <Paperclip size={22} strokeWidth={1.5} style={{ color: dragOver ? '#B8864A' : 'var(--af-mute)' }} />
-              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--af-cream)' }}>
-                Aucune pièce — déposez des fichiers ici
-              </span>
-              <span style={{ fontSize: 11, color: 'var(--af-mute)' }}>
-                PDF, image, Word, Excel · max 5 Mo/fichier
-              </span>
-            </div>
-          )}
+        {/* Zone vide */}
+        {pieces.length === 0 && (
+          <div style={{ padding: '16px 20px' }}>
+            {peutModifierPieces ? (
+              <div
+                onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={e => { e.preventDefault(); setDragOver(false); handleUpload(e.dataTransfer.files) }}
+                onClick={() => fileRef.current?.click()}
+                style={{
+                  border: `1.5px dashed ${dragOver ? '#B8864A' : 'var(--af-line)'}`,
+                  borderRadius: 10, padding: '40px 20px',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+                  background: dragOver ? 'rgba(184,134,74,0.06)' : 'var(--af-steel)',
+                  cursor: 'pointer', textAlign: 'center', transition: 'all .15s',
+                }}
+              >
+                <Paperclip size={26} strokeWidth={1.5} style={{ color: dragOver ? '#B8864A' : 'var(--af-mute)' }} />
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--af-cream)' }}>
+                  Aucune pièce — déposez un fichier ici
+                </span>
+                <span style={{ fontSize: 11, color: 'var(--af-mute)' }}>PDF, image, Word, Excel · max 5 Mo/fichier</span>
+              </div>
+            ) : (
+              <div style={{ padding: '28px 20px', textAlign: 'center', color: 'var(--af-mute)', fontSize: 13 }}>
+                Aucune pièce justificative.
+                {enAttente && (
+                  <span style={{ display: 'block', marginTop: 4, color: '#B91C1C', fontWeight: 600, fontSize: 12 }}>
+                    ⚠ Au moins une pièce est requise avant la validation.
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
-          {/* Sans pièces et lecture seule */}
-          {pieces.length === 0 && !peutModifierPieces && (
-            <div style={{ padding: '20px', textAlign: 'center', color: 'var(--af-mute)', fontSize: 13 }}>
-              Aucune pièce justificative.
-              {enAttente && <span style={{ display: 'block', marginTop: 4, color: '#B91C1C', fontWeight: 600, fontSize: 12 }}>⚠ Au moins une pièce est requise avant la validation.</span>}
-            </div>
-          )}
+        {/* Liste + Visualiseur côte à côte */}
+        {pieces.length > 0 && (
+          <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', minHeight: 420 }}>
 
-          {/* Liste des pièces */}
-          {pieces.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {pieces.map(p => (
-                <div key={p.id} style={{
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  padding: '10px 14px', borderRadius: 10,
-                  background: '#fff', border: '1px solid var(--af-line)',
-                }}>
-                  <Paperclip size={14} strokeWidth={2} style={{ color: '#B8864A', flexShrink: 0 }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--af-ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {p.nom_original}
-                    </div>
-                    {(p.taille_lisible || p.type_mime) && (
-                      <div style={{ fontSize: 11, color: 'var(--af-mute)' }}>
-                        {[p.taille_lisible, p.type_mime].filter(Boolean).join(' · ')}
+            {/* ── Colonne gauche : liste ── */}
+            <div style={{ borderRight: '1px solid var(--af-line)', padding: '12px 0', display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {pieces.map(p => {
+                const isSelected = selectedPiece?.id === p.id
+                const isImg = p.type_mime?.startsWith('image/')
+                const isPdf = p.type_mime === 'application/pdf' || p.nom_original?.toLowerCase().endsWith('.pdf')
+                const typeIcon = isImg ? '🖼' : isPdf ? '📄' : '📎'
+                return (
+                  <div
+                    key={p.id}
+                    onClick={() => setSelectedPiece(p)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '9px 14px', cursor: 'pointer', transition: 'background .1s',
+                      background: isSelected ? 'rgba(184,134,74,0.10)' : 'transparent',
+                      borderLeft: isSelected ? '3px solid #B8864A' : '3px solid transparent',
+                    }}
+                  >
+                    <span style={{ fontSize: 16, flexShrink: 0 }}>{typeIcon}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: isSelected ? 700 : 500, color: isSelected ? '#B8864A' : 'var(--af-ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {p.nom_original}
                       </div>
-                    )}
+                      {p.taille_lisible && (
+                        <div style={{ fontSize: 10, color: 'var(--af-mute)' }}>{p.taille_lisible}</div>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+                      <button type="button" onClick={e => { e.stopPropagation(); downloadPiece(p.id, p.nom_original) }} title="Télécharger"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#B8864A', display: 'flex', alignItems: 'center' }}>
+                        <Download size={13} strokeWidth={2} />
+                      </button>
+                      {peutModifierPieces && (
+                        <button type="button" onClick={e => { e.stopPropagation(); handleDeletePiece(p) }} title="Supprimer"
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#B91C1C', display: 'flex', alignItems: 'center' }}>
+                          <Trash2 size={13} strokeWidth={2} />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <button type="button" onClick={() => downloadPiece(p.id, p.nom_original)} title="Télécharger"
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#B8864A', display: 'flex', alignItems: 'center' }}>
-                    <Download size={15} strokeWidth={2} />
-                  </button>
-                  {peutModifierPieces && (
-                    <button type="button" onClick={() => handleDeletePiece(p)} title="Supprimer"
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#B91C1C', display: 'flex', alignItems: 'center' }}>
-                      <Trash2 size={15} strokeWidth={2} />
-                    </button>
-                  )}
-                </div>
-              ))}
+                )
+              })}
 
               {peutModifierPieces && (
                 <div
@@ -458,28 +475,80 @@ export default function DepenseDetail({ basePath = '/mes-depenses' }) {
                   onDrop={e => { e.preventDefault(); setDragOver(false); handleUpload(e.dataTransfer.files) }}
                   onClick={() => fileRef.current?.click()}
                   style={{
-                    border: `1px dashed ${dragOver ? '#B8864A' : 'var(--af-line)'}`,
-                    borderRadius: 8, padding: '8px 14px',
+                    margin: '8px 10px 4px', border: `1px dashed ${dragOver ? '#B8864A' : 'var(--af-line)'}`,
+                    borderRadius: 8, padding: '7px 12px',
                     display: 'flex', alignItems: 'center', gap: 8,
                     cursor: 'pointer', transition: 'all .15s',
+                    background: dragOver ? 'rgba(184,134,74,0.06)' : 'transparent',
                   }}
                 >
-                  <Paperclip size={12} strokeWidth={2} style={{ color: 'var(--af-mute)' }} />
-                  <span style={{ fontSize: 12, color: 'var(--af-mute)' }}>
-                    Déposer d'autres fichiers ou <span style={{ color: '#B8864A', fontWeight: 600 }}>parcourir</span>
+                  <Paperclip size={11} strokeWidth={2} style={{ color: 'var(--af-mute)' }} />
+                  <span style={{ fontSize: 11, color: 'var(--af-mute)' }}>
+                    Ajouter une pièce
                   </span>
                 </div>
               )}
             </div>
-          )}
 
-          {pieceError && (
-            <div style={{ display: 'flex', gap: 8, padding: '8px 12px', borderRadius: 8, marginTop: 10, background: 'rgba(185,28,28,0.05)', border: '1px solid rgba(185,28,28,0.2)' }}>
-              <AlertTriangle size={13} style={{ color: '#B91C1C', flexShrink: 0, marginTop: 1 }} />
-              <span style={{ color: '#B91C1C', fontSize: 12 }}>{pieceError}</span>
+            {/* ── Colonne droite : aperçu ── */}
+            <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--af-steel)', minHeight: 420 }}>
+              {(() => {
+                const p = selectedPiece
+                if (!p) return (
+                  <div style={{ textAlign: 'center', color: 'var(--af-mute)', fontSize: 13 }}>
+                    Sélectionnez une pièce pour l'aperçu
+                  </div>
+                )
+                const isImg = p.type_mime?.startsWith('image/')
+                const isPdf = p.type_mime === 'application/pdf' || p.nom_original?.toLowerCase().endsWith('.pdf')
+
+                if (isImg) return (
+                  <div style={{ width: '100%', textAlign: 'center' }}>
+                    <img
+                      src={p.url_download}
+                      alt={p.nom_original}
+                      style={{ maxWidth: '100%', maxHeight: 480, objectFit: 'contain', borderRadius: 8, boxShadow: '0 4px 20px rgba(14,42,71,0.15)' }}
+                      onError={e => { e.currentTarget.style.display = 'none' }}
+                    />
+                    <div style={{ marginTop: 10, fontSize: 11, color: 'var(--af-mute)' }}>{p.nom_original}</div>
+                  </div>
+                )
+
+                if (isPdf) return (
+                  <div style={{ width: '100%', height: '100%', minHeight: 420 }}>
+                    <iframe
+                      src={p.url_download}
+                      title={p.nom_original}
+                      style={{ width: '100%', height: 480, border: 'none', borderRadius: 8 }}
+                    />
+                  </div>
+                )
+
+                return (
+                  <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+                    <div style={{ fontSize: 48 }}>📎</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--af-ink)' }}>{p.nom_original}</div>
+                    {p.taille_lisible && <div style={{ fontSize: 11, color: 'var(--af-mute)' }}>{p.taille_lisible}</div>}
+                    <div style={{ fontSize: 12, color: 'var(--af-mute)', marginBottom: 4 }}>
+                      Aperçu non disponible pour ce type de fichier.
+                    </div>
+                    <a href={p.url_download} download={p.nom_original}
+                      className="btn btn-secondary btn-sm" style={{ gap: 6, textDecoration: 'none' }}>
+                      <Download size={13} strokeWidth={2} /> Télécharger
+                    </a>
+                  </div>
+                )
+              })()}
             </div>
-          )}
-        </div>
+          </div>
+        )}
+
+        {pieceError && (
+          <div style={{ display: 'flex', gap: 8, padding: '8px 14px', borderTop: '1px solid var(--af-line)', background: 'rgba(185,28,28,0.04)' }}>
+            <AlertTriangle size={13} style={{ color: '#B91C1C', flexShrink: 0, marginTop: 1 }} />
+            <span style={{ color: '#B91C1C', fontSize: 12 }}>{pieceError}</span>
+          </div>
+        )}
       </div>
 
       {/* ── Modal rejet ──────────────────────────────────────────────────────── */}
