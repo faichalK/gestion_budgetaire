@@ -520,11 +520,11 @@ export function BudgetValidationDetail({ basePath = '/validation' }) {
 
   return (
     <div>
-      <Card className="p-0 mb-[14px]">
-        <div className="px-6 py-5">
-          <div className="flex justify-between items-start gap-4 flex-wrap">
-            <div className="min-w-0">
-              <div className="flex gap-2 mb-2.5 flex-wrap items-center">
+      <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)] mb-[14px]">
+        <div style={{ padding: '20px 24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap', alignItems: 'center' }}>
                 <span className="font-mono text-[11px] font-bold bg-[#EDE7DA] text-[#0E2A47] px-2.5 py-[3px] rounded-[6px]">
                   {budget.code}
                 </span>
@@ -542,16 +542,22 @@ export function BudgetValidationDetail({ basePath = '/validation' }) {
                 <StatusBadge status={budget.statut}/>
                 {budget.methode_budgetisation && <span className="af-tag-method">{budget.methode_budgetisation}</span>}
               </div>
-              <div className="text-[18px] font-extrabold text-[#0E2A47] leading-[1.25] mb-1.5">
+              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--af-ivory)', lineHeight: 1.25, marginBottom: 6 }}>
                 {budget.nom}
               </div>
-              <div className="text-[12px] text-[rgba(90,107,126,0.7)]">
-                Soumis par {budget.gestionnaire_nom || '—'} · {budget.departement_nom || '—'}
-                {budget.date_soumission ? ` · ${fmtDate(budget.date_soumission)}` : ''}
+              <div style={{ display: 'flex', gap: 14, fontSize: 12, color: 'var(--af-mute)', flexWrap: 'wrap' }}>
+                <span>Soumis par {budget.gestionnaire_nom || '—'}</span>
+                {budget.departement_nom && <span>· {budget.departement_nom}</span>}
+                {budget.date_soumission && <span>· {fmtDate(budget.date_soumission)}</span>}
+                {budget.comptable_nom && (
+                  <span style={{ color: budget.statut === 'APPROUVE' ? '#15803D' : budget.statut === 'REJETE' ? '#B91C1C' : 'var(--af-mute)' }}>
+                    {budget.statut === 'APPROUVE' ? '✓ Approuvé' : budget.statut === 'REJETE' ? '✗ Rejeté' : 'Comptable'} : {budget.comptable_nom}
+                  </span>
+                )}
               </div>
             </div>
 
-            <div className="flex gap-2 shrink-0 flex-wrap">
+            <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap' }}>
               <button className="btn btn-secondary btn-sm" onClick={() => navigate(basePath)}>
                 ← Retour
               </button>
@@ -600,7 +606,7 @@ export function BudgetValidationDetail({ basePath = '/validation' }) {
             </div>
           </div>
         </div>
-      </Card>
+      </div>
 
       <div className="grid grid-cols-4 gap-[14px] mb-6">
         {[
@@ -619,83 +625,83 @@ export function BudgetValidationDetail({ basePath = '/validation' }) {
         ))}
       </div>
 
-      <Card className="mb-[14px]">
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-[13px] font-semibold text-[#0E2A47]">Consommation globale</span>
-          <span className="text-[13px] font-bold font-mono" style={{ color: tauxGlobal > 85 ? '#DC2626' : '#B8864A' }}>{tauxGlobal}%</span>
-        </div>
-        <div className="af-bar" style={{ height: 10 }}>
-          <div className={`af-bar-fill ${tauxGlobal > 85 ? 'danger' : tauxGlobal > 70 ? 'warn' : ''}`} style={{ width: `${Math.min(tauxGlobal, 100)}%` }}/>
-        </div>
-        <div className="flex justify-between mt-1.5 text-[11px] text-[rgba(90,107,126,0.7)] font-mono">
-          <span>0</span>
-          <span>{fmt(totalReel)} / {fmt(totalBudget)} FCFA</span>
-          <span>{fmt(totalBudget)} FCFA</span>
-        </div>
-      </Card>
+      {/* ── Synthèse + Informations (même layout que BudgetDetail gestionnaire) ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: 14, marginBottom: 14 }}>
 
-      <div className="grid gap-[14px]" style={{ gridTemplateColumns: '1.5fr 1fr' }}>
-        <div className="flex flex-col gap-[14px]">
-          <LignesAvecDepenses
-            categories={categories}
-            depensesItems={depensesItems}
-            lignes={lignes}
-            fmt={fmt}
-          />
+        {/* Synthèse */}
+        <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)]">
+          <div className="flex items-center px-5 py-3 border-b border-[rgba(14,42,71,0.08)]">
+            <div className="text-[13px] font-semibold text-[#0E2A47]">Synthèse</div>
+          </div>
+          <div style={{ padding: '14px 20px' }}>
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: 12, color: 'var(--af-cream)' }}>Taux d'exécution</span>
+                <span style={{ fontFamily: 'var(--af-mono)', fontWeight: 700, fontSize: 13, color: tauxGlobal > 85 ? '#DC2626' : tauxGlobal > 70 ? '#E5A53D' : 'var(--af-ink)' }}>
+                  {tauxGlobal}%
+                </span>
+              </div>
+              <div className="af-bar">
+                <div className={`af-bar-fill ${tauxGlobal > 85 ? 'danger' : tauxGlobal > 70 ? 'warn' : ''}`} style={{ width: `${Math.min(100, tauxGlobal)}%` }} />
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 20px' }}>
+              {[
+                { label: 'Budget global', val: `${fmt(totalBudget)} FCFA` },
+                { label: 'Consommé',      val: `${fmt(totalReel)} FCFA` },
+                { label: 'Écart',         val: `${ecartGlobal >= 0 ? '+' : ''}${fmt(ecartGlobal)} FCFA`, color: ecartGlobal >= 0 ? '#15803D' : '#DC2626' },
+                ...(budget.date_debut ? [{ label: 'Période', val: `${budget.date_debut} → ${budget.date_fin}` }] : []),
+                ...(budget.gestionnaire_nom ? [{ label: 'Gestionnaire', val: budget.gestionnaire_nom }] : []),
+                ...(budget.comptable_nom    ? [{ label: 'Comptable',    val: budget.comptable_nom    }] : []),
+              ].map(r => (
+                <div key={r.label} style={{ display: 'flex', flexDirection: 'column', padding: '6px 0', borderBottom: '1px solid var(--af-line)' }}>
+                  <span style={{ fontSize: 11, color: 'var(--af-mute)', marginBottom: 2 }}>{r.label}</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: r.color || 'var(--af-ivory)', wordBreak: 'break-word' }}>{r.val}</span>
+                </div>
+              ))}
+            </div>
+            {budget.description && (
+              <div style={{ marginTop: 14, padding: '10px 14px', background: 'var(--af-steel)', borderRadius: 8 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--af-mute)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Justification</div>
+                <p style={{ fontSize: 12, color: 'var(--af-cream)', lineHeight: 1.6, margin: 0 }}>{budget.description}</p>
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="flex flex-col gap-[14px]">
-          <Card>
-            <Card.Header title="Synthèse" />
-            <Card.Body padded>
-              <div className="flex justify-between mb-3.5">
-                <span className="text-[#5A6B7E]">Total demandé</span>
-                <span className="tabular-nums font-mono text-[20px] text-[#B8864A]">{fmt(totalBudget)} FCFA</span>
+        {/* Informations */}
+        <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)]">
+          <div className="flex items-center justify-between px-5 py-3 border-b border-[rgba(14,42,71,0.08)]">
+            <div className="text-[13px] font-semibold text-[#0E2A47]">Informations</div>
+            {budget.methode_budgetisation && <span className="af-tag-method">{budget.methode_budgetisation}</span>}
+          </div>
+          <div style={{ padding: '14px 20px' }}>
+            {[
+              { label: 'Code',         val: budget.code },
+              { label: 'Gestionnaire', val: budget.gestionnaire_nom || '—' },
+              { label: 'Département',  val: budget.departement_nom  || '—' },
+              { label: 'Méthode',      val: budget.methode_budgetisation || '—' },
+              { label: 'Créé le',      val: fmtDate(budget.date_creation) },
+              { label: 'Soumis le',    val: fmtDate(budget.date_soumission) },
+              ...(budget.comptable_nom  ? [{ label: 'Comptable',    val: budget.comptable_nom  }] : []),
+              ...(budget.motif_rejet   ? [{ label: 'Motif rejet',  val: budget.motif_rejet, danger: true }] : []),
+            ].map(r => (
+              <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, padding: '7px 0', borderBottom: '1px solid var(--af-line)' }}>
+                <span style={{ fontSize: 11, color: 'var(--af-mute)', flexShrink: 0 }}>{r.label}</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: r.danger ? '#B91C1C' : 'var(--af-ivory)', textAlign: 'right', wordBreak: 'break-word' }}>{r.val}</span>
               </div>
-              <div className="flex justify-between mb-3.5">
-                <span className="text-[#5A6B7E]">Consommé</span>
-                <span className="tabular-nums">{fmt(totalReel)} FCFA</span>
-              </div>
-              <div className="flex justify-between mb-1.5">
-                <span className="text-[11px] text-[rgba(90,107,126,0.7)]">Taux de consommation</span>
-                <span className="tabular-nums" style={{ color: tauxGlobal > 85 ? '#DC2626' : '#15803D' }}>{tauxGlobal}%</span>
-              </div>
-              <div className="af-bar"><div className={`af-bar-fill ${tauxGlobal > 85 ? 'danger' : tauxGlobal > 70 ? 'warn' : 'ok'}`} style={{ width: `${Math.min(tauxGlobal, 100)}%` }}/></div>
-            </Card.Body>
-          </Card>
-
-          {budget.description && (
-            <Card>
-              <Card.Header title="Justification" />
-              <Card.Body padded>
-                <p className="text-[13px] text-[#5A6B7E] leading-[1.7]">{budget.description}</p>
-              </Card.Body>
-            </Card>
-          )}
-
-          <Card>
-            <Card.Header title="Informations" />
-            <Card.Body padded>
-              <div className="flex flex-col gap-2.5 text-[12px]">
-                {[
-                  { label: 'Code',         val: budget.code },
-                  { label: 'Gestionnaire', val: budget.gestionnaire_nom || '—' },
-                  { label: 'Département',  val: budget.departement_nom  || '—' },
-                  { label: 'Méthode',      val: budget.methode_budgetisation || '—' },
-                  { label: 'Créé le',      val: fmtDate(budget.date_creation) },
-                  { label: 'Soumis le',    val: fmtDate(budget.date_soumission) },
-                  budget.comptable_nom ? { label: 'Comptable', val: budget.comptable_nom } : null,
-                ].filter(Boolean).map(row => (
-                  <div key={row.label} className="flex justify-between">
-                    <span className="text-[rgba(90,107,126,0.7)]">{row.label}</span>
-                    <span className="text-[#0E2A47] font-semibold">{row.val}</span>
-                  </div>
-                ))}
-              </div>
-            </Card.Body>
-          </Card>
+            ))}
+          </div>
         </div>
       </div>
+
+      {/* ── Lignes budgétaires & Dépenses — pleine largeur ─────────────────── */}
+      <LignesAvecDepenses
+        categories={categories}
+        depensesItems={depensesItems}
+        lignes={lignes}
+        fmt={fmt}
+      />
 
       {showRejet && (
         <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setShowRejet(false) }}>
