@@ -99,7 +99,8 @@ export function AuthProvider({ children }) {
         if (active) setUser(data)
       })
       .catch(() => {
-        localStorage.clear()
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('refresh_token')
         if (active) setUser(null)
       })
       .finally(() => {
@@ -121,7 +122,8 @@ export function AuthProvider({ children }) {
   }
 
   const logout = () => {
-    localStorage.clear()
+    localStorage.removeItem('access_token')
+    localStorage.removeItem('refresh_token')
     setUser(null)
   }
 

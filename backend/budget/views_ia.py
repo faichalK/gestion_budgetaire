@@ -14,7 +14,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import permissions, status
 
-from .models import Budget, LigneBudgetaire, ConsommationLigne, StatutBudget
+from .models import Budget, LigneBudgetaire, ConsommationLigne, Depense, StatutBudget
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -503,7 +503,7 @@ def _reponse_chatbot_simulee(question, user=None):
             lignes = []
             for i, dep in enumerate(qs, 1):
                 label = dep.description or dep.ligne.libelle
-                date_str = dep.date_consommation.strftime('%d/%m/%Y') if dep.date_consommation else ''
+                date_str = dep.date.strftime('%d/%m/%Y') if dep.date else ''
                 lignes.append(
                     f"**{i}.** {label} - **{_fmt(dep.montant)} FCFA**\n"
                     f"   Budget : {dep.ligne.budget.nom} ({dep.ligne.budget.code}) | {date_str}"
@@ -1171,8 +1171,8 @@ class ScorerBudgetView(APIView):
             score_conformite = 55
 
         # Score documentation (pièces justificatives sur les dépenses)
-        nb_depenses = ConsommationLigne.objects.filter(ligne__budget=budget).count()
-        nb_avec_pj  = ConsommationLigne.objects.filter(ligne__budget=budget).exclude(piece_justificative='').exclude(piece_justificative__isnull=True).count()
+        nb_depenses = Depense.objects.filter(budget=budget).count()
+        nb_avec_pj  = Depense.objects.filter(budget=budget, pieces_justificatives__isnull=False).distinct().count()
         if nb_depenses == 0:
             score_documentation = 70  # neutre si pas de dépenses
         else:

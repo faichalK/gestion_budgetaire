@@ -73,6 +73,7 @@ def _serialiser_depense(depense, request=None):
     budget = depense.budget
     return {
         'id':             str(depense.id),
+        'reference':      depense.reference,
         'statut':         depense.statut,
         'fournisseur':    depense.fournisseur,
         'note':           depense.note,

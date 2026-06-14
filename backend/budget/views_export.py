@@ -343,7 +343,7 @@ class ExportDepensesExcelView(APIView):
         depenses = ConsommationLigne.objects.filter(
             ligne__budget=budget
         ).select_related(
-            'ligne__sous_categorie__categorie', 'enregistre_par'
+            'ligne__sous_categorie__categorie', 'enregistre_par', 'depense'
         ).order_by(
             'ligne__sous_categorie__categorie__ordre',
             'ligne__sous_categorie__categorie__code',
@@ -468,7 +468,7 @@ class ExportDepensesExcelView(APIView):
             _cell(ws, row, 3, d.ligne.libelle if d.ligne else "—", font=normal_9, bg=bg)
             _cell(ws, row, 4, d.reference or str(d.id)[:8].upper(),
                   font=normal_9, bg=bg, align='center')
-            _cell(ws, row, 5, d.fournisseur or "—", font=normal_9, bg=bg)
+            _cell(ws, row, 5, d.fournisseur or (d.depense.fournisseur if d.depense_id else '') or "—", font=normal_9, bg=bg)
             _cell(ws, row, 6, montant, font=Font(bold=True, size=9), bg=bg,
                   align='right', num_fmt='#,##0')
             _cell(ws, row, 7, d.date.strftime('%d/%m/%Y') if d.date else "—",
@@ -519,7 +519,7 @@ class ExportDepensesPdfView(APIView):
         depenses = ConsommationLigne.objects.filter(
             ligne__budget=budget
         ).select_related(
-            'ligne__sous_categorie__categorie', 'enregistre_par'
+            'ligne__sous_categorie__categorie', 'enregistre_par', 'depense'
         ).order_by(
             'ligne__sous_categorie__categorie__ordre',
             'ligne__sous_categorie__categorie__code',

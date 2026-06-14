@@ -618,27 +618,26 @@ class EnregistrerConsommationView(APIView):
         montant = request.data.get('montant')
         if montant is None:
             return Response({'detail': 'Le champ montant est requis.'}, status=status.HTTP_400_BAD_REQUEST)
+        from decimal import Decimal, InvalidOperation
         try:
-            montant = float(montant)
+            montant = Decimal(str(montant))
             if montant <= 0:
                 raise ValueError()
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, InvalidOperation):
             return Response({'detail': 'Montant invalide.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        piece_justificative = request.FILES.get('piece_justificative')
         note = request.data.get('note', '')
 
         try:
             ligne.enregistrer_consommation(
                 montant,
-                piece_justificative=piece_justificative,
                 note=note,
                 enregistre_par=request.user,
             )
         except ValidationError as e:
             msg = e.message if hasattr(e, 'message') else (e.messages[0] if e.messages else str(e))
             return Response({'detail': msg}, status=status.HTTP_400_BAD_REQUEST)
-        montant_avant = float(ligne.montant_consomme) - montant
+        montant_avant = float(ligne.montant_consomme) - float(montant)
         LogAudit.enregistrer(
             utilisateur=request.user, table='ligne_budgetaire',
             enregistrement_id=str(ligne.id), action=ActionAudit.UPDATE,

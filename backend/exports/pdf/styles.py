@@ -189,7 +189,7 @@ def get_para_styles() -> dict:
             textColor=GRAY_MED, alignment=TA_CENTER),
 
         'kpi_value': _ps('kpi_value',
-            fontName=f['bold'], fontSize=16, leading=20,
+            fontName=f['bold'], fontSize=12, leading=15,
             textColor=NAVY, alignment=TA_CENTER),
 
         'kpi_delta': _ps('kpi_delta',

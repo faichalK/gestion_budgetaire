@@ -85,14 +85,14 @@ export default function BudgetDetail({ basePath = '/mes-budgets' }) {
           (dep.lignes?.length ? dep.lignes : [{}]).map(cl => ({
             id:                    dep.id,
             groupe_ref:            dep.id,
-            reference:             dep.fournisseur || dep.note || String(dep.id).slice(0, 8).toUpperCase(),
+            reference:             dep.reference || dep.fournisseur || dep.note || String(dep.id).slice(0, 8).toUpperCase(),
             ligne_designation:     cl.ligne_libelle,
             ligne_code:            cl.ligne_code,
             montant:               cl.montant || dep.montant_total,
             statut:                dep.statut,
             date_depense:          cl.date || dep.date,
-            piece_justificative_url: dep.pieces?.[0]?.url_download || null,
-            nombre_pieces:         dep.nombre_pieces,
+            pieces:                dep.pieces || [],
+            nombre_pieces:         dep.nombre_pieces ?? (dep.pieces?.length || 0),
             motif_rejet:           dep.motif_rejet,
           }))
         ))
@@ -160,7 +160,7 @@ export default function BudgetDetail({ basePath = '/mes-budgets' }) {
   // ── KPI computations ────────────────────────────────────────────────────────
   const lignes        = budget.lignes || []
   const lignesRevenu  = lignes.filter(l => l.section === 'REVENU')
-  const lignesDepense = lignes.filter(l => l.section === 'DEPENSE')
+  const lignesDepense = lignes.filter(l => l.section !== 'REVENU')
   const totalRecettes = lignesRevenu.reduce((s, l) => s + parseFloat(l.montant_alloue || 0), 0)
   const totalDepPrevu = lignesDepense.reduce((s, l) => s + parseFloat(l.montant_alloue || 0), 0)
   const totalEngage   = parseFloat(budget.montant_consomme || 0)
@@ -323,115 +323,29 @@ export default function BudgetDetail({ basePath = '/mes-budgets' }) {
         </div>
       </div>
 
-      {/* ── 2-column layout ─────────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '5fr 3fr', gap: 14 }}>
+      {/* ── Synthèse + Enveloppe dépt. ─────────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: alloc ? '3fr 2fr' : '1fr', gap: 14, marginBottom: 14 }}>
 
-        {/* ── Colonne gauche ────────────────────────────────────────────────── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-
-          {/* Status banners */}
-          {(!isAdmin && brouillon && !hasLignes) && (
-            <StatusBanner type="info" icon={<FileText size={15} strokeWidth={2} />}>
-              Budget en brouillon — ajoutez au moins une ligne budgétaire pour pouvoir le soumettre.
-            </StatusBanner>
-          )}
-          {(!isAdmin && brouillon && hasLignes) && (
-            <StatusBanner type="primary" icon={<Info size={15} strokeWidth={2} />}>
-              Budget prêt — cliquez sur <strong>Soumettre</strong> pour l'envoyer en validation.
-            </StatusBanner>
-          )}
-          {budget.statut === 'SOUMIS' && (
-            <StatusBanner type="primary" icon={<Info size={15} strokeWidth={2} />}>
-              Budget soumis — en attente de validation par le comptable.
-            </StatusBanner>
-          )}
-          {(!isAdmin && approuve) && (
-            <StatusBanner type="success" icon={<CheckCircle2 size={15} strokeWidth={2} />}>
-              Budget approuvé — enregistrez les dépenses réelles avec leurs pièces justificatives.
-            </StatusBanner>
-          )}
-          {budget.statut === 'REJETE' && (
-            <div>
-              <StatusBanner type="danger" icon={<AlertTriangle size={15} strokeWidth={2} />}>
-                Budget rejeté — corrigez les lignes puis soumettez à nouveau.
-              </StatusBanner>
-              {budget.motif_rejet && (
-                <div style={{ marginTop: 8, padding: '12px 16px', background: 'rgba(220,38,38,0.05)', border: '1px solid rgba(220,38,38,0.2)', borderRadius: 10, borderLeft: '4px solid #DC2626' }}>
-                  <div style={{ fontWeight: 700, fontSize: 12, color: '#DC2626', marginBottom: 4 }}>Motif de rejet</div>
-                  <div style={{ fontSize: 13, color: 'var(--af-ivory)', lineHeight: 1.55 }}>{budget.motif_rejet}</div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Lignes card */}
-          <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)]">
-            <div className="flex items-center justify-between px-5 py-3 border-b border-[rgba(14,42,71,0.08)]">
-              <div className="text-[13px] font-semibold text-[#0E2A47]">Lignes budgétaires</div>
-              <div className="flex items-center gap-2">
-                {tabsDef.map(t => (
-                  <button key={t.id}
-                    onClick={() => setActiveTab(t.id)}
-                    className={cn(
-                      'inline-flex px-2.5 py-1 rounded-full text-[12px] border transition-all duration-150',
-                      activeTab === t.id
-                        ? 'text-[#B8864A] border-[#B8864A] bg-[rgba(184,134,74,0.12)]'
-                        : 'text-[#5A6B7E] border-[rgba(14,42,71,0.16)] bg-white hover:border-[#B8864A] hover:text-[#B8864A]'
-                    )}
-                  >{t.label}</button>
-                ))}
-              </div>
-            </div>
-
-            {activeTab === 'lignes' && (
-              <>
-                <LignesBudgetaires
-                  budgetId={budget.id}
-                  readOnly={!editable || isAdmin}
-                  onTotalChange={(total) => setHasLignes(total > 0)}
-                />
-                {isPERT && (totalO + totalM + totalP) > 0 && (
-                  <div style={{ padding: '10px 20px', borderTop: '1px solid var(--af-line)', background: 'var(--af-steel)', display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'center' }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--af-ink)', textTransform: 'uppercase', letterSpacing: '.5px' }}>Formule PERT</span>
-                    <span style={{ fontFamily: 'var(--af-mono)', fontSize: 12, color: 'var(--af-cream)' }}>
-                      E = (O + 4M + P) / 6 = <strong style={{ color: 'var(--af-gold)' }}>{fmt(pertEstimate)} FCFA</strong>
-                    </span>
-                    <span style={{ fontFamily: 'var(--af-mono)', fontSize: 11, color: 'var(--af-mute)' }}>
-                      O={fmtM(totalO)}M · M={fmtM(totalM)}M · P={fmtM(totalP)}M
-                    </span>
-                  </div>
-                )}
-              </>
-            )}
-
-            {activeTab === 'depenses' && (
-              <DepensesGroupees depenses={depenses} loaded={depensesLoaded} fmt={fmt} />
-            )}
+        {/* Synthèse */}
+        <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)]">
+          <div className="flex items-center px-5 py-3 border-b border-[rgba(14,42,71,0.08)]">
+            <div className="text-[13px] font-semibold text-[#0E2A47]">Synthèse</div>
           </div>
-        </div>
-
-        {/* ── Colonne droite ─────────────────────────────────────────────────── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-
-          {/* Synthèse */}
-          <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)]">
-            <div className="flex items-center px-5 py-3 border-b border-[rgba(14,42,71,0.08)]">
-              <div className="text-[13px] font-semibold text-[#0E2A47]">Synthèse</div>
-            </div>
-            <div style={{ padding: '14px 20px' }}>
-              {montantGlobal > 0 && (
-                <div style={{ marginBottom: 16 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <span style={{ fontSize: 12, color: 'var(--af-cream)' }}>Taux d'exécution</span>
-                    <span style={{ fontFamily: 'var(--af-mono)', fontWeight: 700, fontSize: 13, color: taux > 85 ? '#DC2626' : taux > 70 ? '#E5A53D' : 'var(--af-ink)' }}>
-                      {Math.round(taux)}%
-                    </span>
-                  </div>
-                  <div className="af-bar">
-                    <div className={`af-bar-fill ${taux > 85 ? 'danger' : taux > 70 ? 'warn' : ''}`} style={{ width: `${Math.min(100, taux)}%` }} />
-                  </div>
+          <div style={{ padding: '14px 20px' }}>
+            {montantGlobal > 0 && (
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <span style={{ fontSize: 12, color: 'var(--af-cream)' }}>Taux d'exécution</span>
+                  <span style={{ fontFamily: 'var(--af-mono)', fontWeight: 700, fontSize: 13, color: taux > 85 ? '#DC2626' : taux > 70 ? '#E5A53D' : 'var(--af-ink)' }}>
+                    {Math.round(taux)}%
+                  </span>
                 </div>
-              )}
+                <div className="af-bar">
+                  <div className={`af-bar-fill ${taux > 85 ? 'danger' : taux > 70 ? 'warn' : ''}`} style={{ width: `${Math.min(100, taux)}%` }} />
+                </div>
+              </div>
+            )}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 20px' }}>
               {[
                 { label: 'Budget global',  val: `${fmtM(montantGlobal)} M FCFA` },
                 { label: 'Consommé',       val: `${fmtM(totalEngage)} M FCFA` },
@@ -439,112 +353,203 @@ export default function BudgetDetail({ basePath = '/mes-budgets' }) {
                 ...(budget.date_debut ? [{ label: 'Période', val: `${budget.date_debut} → ${budget.date_fin}` }] : []),
                 ...(budget.gestionnaire_nom ? [{ label: 'Gestionnaire', val: budget.gestionnaire_nom }] : []),
                 ...(budget.comptable_nom ? [{ label: 'Comptable', val: budget.comptable_nom }] : []),
-              ].map((r, i, arr) => (
-                <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: i < arr.length - 1 ? '1px solid var(--af-line)' : 'none' }}>
-                  <span style={{ fontSize: 12, color: 'var(--af-cream)' }}>{r.label}</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--af-ivory)', textAlign: 'right', maxWidth: '56%', wordBreak: 'break-word' }}>{r.val}</span>
+              ].map((r) => (
+                <div key={r.label} style={{ display: 'flex', flexDirection: 'column', padding: '6px 0', borderBottom: '1px solid var(--af-line)' }}>
+                  <span style={{ fontSize: 11, color: 'var(--af-mute)', marginBottom: 2 }}>{r.label}</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--af-ivory)', wordBreak: 'break-word' }}>{r.val}</span>
                 </div>
               ))}
             </div>
           </div>
+        </div>
 
-          {/* PERT estimation */}
-          {isPERT && (
-            <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)]">
-              <div className="flex items-center justify-between px-5 py-3 border-b border-[rgba(14,42,71,0.08)]">
-                <div className="text-[13px] font-semibold text-[#0E2A47]">Estimation PERT</div>
-                <div className="text-[11px] text-[#5A6B7E]">3 points</div>
-              </div>
-              <div style={{ padding: '14px 20px' }}>
-                <div style={{ fontFamily: 'var(--af-mono)', fontSize: 12, textAlign: 'center', color: 'var(--af-cream)', marginBottom: 14, padding: '8px 12px', background: 'var(--af-steel)', borderRadius: 8 }}>
-                  E = (O + 4×M + P) / 6
-                </div>
-                {[
-                  { label: 'Optimiste (O)',  val: totalO,       color: '#15803D' },
-                  { label: 'Probable (M)',   val: totalM,       color: 'var(--af-gold)' },
-                  { label: 'Pessimiste (P)', val: totalP,       color: '#B91C1C' },
-                  { label: 'Estimation E',   val: pertEstimate, color: 'var(--af-ink)', bold: true },
-                ].map((r, i, arr) => (
-                  <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: i < arr.length - 1 ? '1px solid var(--af-line)' : 'none' }}>
-                    <span style={{ fontSize: 12, color: r.color, fontWeight: r.bold ? 700 : 500 }}>{r.label}</span>
-                    <span style={{ fontFamily: 'var(--af-mono)', fontSize: 12, fontWeight: r.bold ? 800 : 600, color: r.color }}>{fmtM(r.val)} M</span>
-                  </div>
-                ))}
-                {pertEstimate > 0 && montantGlobal > 0 && (
-                  <div style={{ marginTop: 12, padding: '8px 12px', background: Math.abs(pertEstimate - montantGlobal) / montantGlobal > 0.1 ? 'rgba(220,38,38,0.06)' : 'rgba(21,128,61,0.06)', borderRadius: 8, fontSize: 12, color: 'var(--af-cream)' }}>
-                    Écart vs budget :{' '}
-                    <strong style={{ color: Math.abs(pertEstimate - montantGlobal) / montantGlobal > 0.1 ? '#DC2626' : '#15803D' }}>
-                      {pertEstimate > montantGlobal ? '+' : ''}{fmtM(pertEstimate - montantGlobal)} M FCFA
-                    </strong>
-                  </div>
-                )}
-              </div>
+        {/* Enveloppe département */}
+        {alloc && (
+          <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)]">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-[rgba(14,42,71,0.08)]">
+              <div className="text-[13px] font-semibold text-[#0E2A47]">Enveloppe dépt.</div>
+              <div className="text-[11px] text-[#5A6B7E]">{budget.departement_nom?.replace(/^Ministère (de |du |des |de l')?/i, '').trim().slice(0, 18)}</div>
             </div>
-          )}
-
-          {/* IA Score */}
-          {iaScore && (
-            <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)]">
-              <div className="flex items-center justify-between px-5 py-3 border-b border-[rgba(14,42,71,0.08)]">
-                <div className="text-[13px] font-semibold text-[#0E2A47]">Avis IA Claude</div>
-                <span style={{ fontFamily: 'var(--af-mono)', fontWeight: 700, fontSize: 13, color: iaScore.score >= 80 ? '#15803D' : iaScore.score >= 60 ? '#E5A53D' : '#DC2626' }}>
-                  {iaScore.score}/100
+            <div style={{ padding: '14px 20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: 12, color: 'var(--af-cream)' }}>Utilisation enveloppe</span>
+                <span style={{ fontFamily: 'var(--af-mono)', fontWeight: 700, fontSize: 13, color: allocTaux >= 100 ? '#DC2626' : allocTaux > 85 ? '#E5A53D' : 'var(--af-ink)' }}>
+                  {allocTaux}%
                 </span>
               </div>
-              <div style={{ padding: '14px 20px' }}>
-                <div style={{ marginBottom: 12 }}>
-                  <div className="af-bar">
-                    <div className={`af-bar-fill ${iaScore.score < 60 ? 'danger' : iaScore.score < 80 ? 'warn' : ''}`} style={{ width: `${iaScore.score}%` }} />
-                  </div>
-                </div>
-                {iaScore.commentaire && (
-                  <div style={{ fontSize: 12, color: 'var(--af-cream)', lineHeight: 1.6 }}>
-                    {iaScore.commentaire}
-                  </div>
-                )}
-                {iaScore.recommandations?.length > 0 && (
-                  <div style={{ marginTop: 12 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--af-mute)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 8 }}>Recommandations</div>
-                    {iaScore.recommandations.map((r, i) => (
-                      <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 6, fontSize: 12, color: 'var(--af-cream)' }}>
-                        <span style={{ color: 'var(--af-gold)', flexShrink: 0 }}>›</span>
-                        <span>{r}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
+              <div className="af-bar" style={{ marginBottom: 14 }}>
+                <div className={`af-bar-fill ${allocTaux > 85 ? 'danger' : allocTaux > 70 ? 'warn' : ''}`} style={{ width: `${allocTaux}%` }} />
               </div>
+              {[
+                { label: 'Alloué',     val: `${fmtM(allocAlloue)} M FCFA`     },
+                { label: 'Consommé',   val: `${fmtM(allocConsomme)} M FCFA`   },
+                { label: 'Disponible', val: `${fmtM(allocDisponible)} M FCFA` },
+              ].map((r, i, arr) => (
+                <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: i < arr.length - 1 ? '1px solid var(--af-line)' : 'none' }}>
+                  <span style={{ fontSize: 12, color: 'var(--af-cream)' }}>{r.label}</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, fontFamily: 'var(--af-mono)', color: 'var(--af-ivory)' }}>{r.val}</span>
+                </div>
+              ))}
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Banners + Lignes budgétaires (pleine largeur) ───────────────────── */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+        {/* Status banners */}
+        {(!isAdmin && brouillon && !hasLignes) && (
+          <StatusBanner type="info" icon={<FileText size={15} strokeWidth={2} />}>
+            Budget en brouillon — ajoutez au moins une ligne budgétaire pour pouvoir le soumettre.
+          </StatusBanner>
+        )}
+        {(!isAdmin && brouillon && hasLignes) && (
+          <StatusBanner type="primary" icon={<Info size={15} strokeWidth={2} />}>
+            Budget prêt — cliquez sur <strong>Soumettre</strong> pour l'envoyer en validation.
+          </StatusBanner>
+        )}
+        {budget.statut === 'SOUMIS' && (
+          <StatusBanner type="primary" icon={<Info size={15} strokeWidth={2} />}>
+            Budget soumis — en attente de validation par le comptable.
+          </StatusBanner>
+        )}
+        {(!isAdmin && approuve) && (
+          <StatusBanner type="success" icon={<CheckCircle2 size={15} strokeWidth={2} />}>
+            Budget approuvé — enregistrez les dépenses réelles avec leurs pièces justificatives.
+          </StatusBanner>
+        )}
+        {budget.statut === 'REJETE' && (
+          <div>
+            <StatusBanner type="danger" icon={<AlertTriangle size={15} strokeWidth={2} />}>
+              Budget rejeté — corrigez les lignes puis soumettez à nouveau.
+            </StatusBanner>
+            {budget.motif_rejet && (
+              <div style={{ marginTop: 8, padding: '12px 16px', background: 'rgba(220,38,38,0.05)', border: '1px solid rgba(220,38,38,0.2)', borderRadius: 10, borderLeft: '4px solid #DC2626' }}>
+                <div style={{ fontWeight: 700, fontSize: 12, color: '#DC2626', marginBottom: 4 }}>Motif de rejet</div>
+                <div style={{ fontSize: 13, color: 'var(--af-ivory)', lineHeight: 1.55 }}>{budget.motif_rejet}</div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Lignes card — pleine largeur */}
+        <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)]">
+          <div className="flex items-center justify-between px-5 py-3 border-b border-[rgba(14,42,71,0.08)]">
+            <div className="text-[13px] font-semibold text-[#0E2A47]">Lignes budgétaires</div>
+            <div className="flex items-center gap-2">
+              {tabsDef.map(t => (
+                <button key={t.id}
+                  onClick={() => setActiveTab(t.id)}
+                  className={cn(
+                    'inline-flex px-2.5 py-1 rounded-full text-[12px] border transition-all duration-150',
+                    activeTab === t.id
+                      ? 'text-[#B8864A] border-[#B8864A] bg-[rgba(184,134,74,0.12)]'
+                      : 'text-[#5A6B7E] border-[rgba(14,42,71,0.16)] bg-white hover:border-[#B8864A] hover:text-[#B8864A]'
+                  )}
+                >{t.label}</button>
+              ))}
+            </div>
+          </div>
+
+          {activeTab === 'lignes' && (
+            <>
+              <LignesBudgetaires
+                budgetId={budget.id}
+                readOnly={!editable || isAdmin}
+                onTotalChange={(total) => setHasLignes(total > 0)}
+              />
+              {isPERT && (totalO + totalM + totalP) > 0 && (
+                <div style={{ padding: '10px 20px', borderTop: '1px solid var(--af-line)', background: 'var(--af-steel)', display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--af-ink)', textTransform: 'uppercase', letterSpacing: '.5px' }}>Formule PERT</span>
+                  <span style={{ fontFamily: 'var(--af-mono)', fontSize: 12, color: 'var(--af-cream)' }}>
+                    E = (O + 4M + P) / 6 = <strong style={{ color: 'var(--af-gold)' }}>{fmt(pertEstimate)} FCFA</strong>
+                  </span>
+                  <span style={{ fontFamily: 'var(--af-mono)', fontSize: 11, color: 'var(--af-mute)' }}>
+                    O={fmtM(totalO)}M · M={fmtM(totalM)}M · P={fmtM(totalP)}M
+                  </span>
+                </div>
+              )}
+            </>
           )}
 
-          {/* Enveloppe département */}
-          {alloc && (
-            <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)]">
-              <div className="flex items-center justify-between px-5 py-3 border-b border-[rgba(14,42,71,0.08)]">
-                <div className="text-[13px] font-semibold text-[#0E2A47]">Enveloppe dépt.</div>
-                <div className="text-[11px] text-[#5A6B7E]">{budget.departement_nom?.replace(/^Ministère (de |du |des |de l')?/i, '').trim().slice(0, 18)}</div>
-              </div>
-              <div style={{ padding: '14px 20px' }}>
-                <div className="af-bar" style={{ marginBottom: 10 }}>
-                  <div className={`af-bar-fill ${allocTaux > 85 ? 'danger' : allocTaux > 70 ? 'warn' : ''}`} style={{ width: `${allocTaux}%` }} />
-                </div>
-                {[
-                  { label: 'Alloué',     val: `${fmtM(allocAlloue)} M FCFA`     },
-                  { label: 'Consommé',   val: `${fmtM(allocConsomme)} M FCFA`   },
-                  { label: 'Disponible', val: `${fmtM(allocDisponible)} M FCFA` },
-                ].map((r, i, arr) => (
-                  <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: i < arr.length - 1 ? '1px solid var(--af-line)' : 'none' }}>
-                    <span style={{ fontSize: 12, color: 'var(--af-cream)' }}>{r.label}</span>
-                    <span style={{ fontSize: 12, fontWeight: 600, fontFamily: 'var(--af-mono)', color: 'var(--af-ivory)' }}>{r.val}</span>
-                  </div>
-                ))}
-                <div style={{ marginTop: 8, textAlign: 'right', fontSize: 11, fontWeight: 700, color: allocTaux >= 100 ? '#DC2626' : 'var(--af-mute)' }}>
-                  {allocTaux}% utilisé
-                </div>
-              </div>
-            </div>
+          {activeTab === 'depenses' && (
+            <DepensesGroupees depenses={depenses} loaded={depensesLoaded} fmt={fmt} />
           )}
         </div>
+
+        {/* PERT + IA Score en bas, côte à côte */}
+        {(isPERT || iaScore) && (
+          <div style={{ display: 'grid', gridTemplateColumns: isPERT && iaScore ? '1fr 1fr' : '1fr', gap: 14 }}>
+
+            {isPERT && (
+              <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)]">
+                <div className="flex items-center justify-between px-5 py-3 border-b border-[rgba(14,42,71,0.08)]">
+                  <div className="text-[13px] font-semibold text-[#0E2A47]">Estimation PERT</div>
+                  <div className="text-[11px] text-[#5A6B7E]">3 points</div>
+                </div>
+                <div style={{ padding: '14px 20px' }}>
+                  <div style={{ fontFamily: 'var(--af-mono)', fontSize: 12, textAlign: 'center', color: 'var(--af-cream)', marginBottom: 14, padding: '8px 12px', background: 'var(--af-steel)', borderRadius: 8 }}>
+                    E = (O + 4×M + P) / 6
+                  </div>
+                  {[
+                    { label: 'Optimiste (O)',  val: totalO,       color: '#15803D' },
+                    { label: 'Probable (M)',   val: totalM,       color: 'var(--af-gold)' },
+                    { label: 'Pessimiste (P)', val: totalP,       color: '#B91C1C' },
+                    { label: 'Estimation E',   val: pertEstimate, color: 'var(--af-ink)', bold: true },
+                  ].map((r, i, arr) => (
+                    <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: i < arr.length - 1 ? '1px solid var(--af-line)' : 'none' }}>
+                      <span style={{ fontSize: 12, color: r.color, fontWeight: r.bold ? 700 : 500 }}>{r.label}</span>
+                      <span style={{ fontFamily: 'var(--af-mono)', fontSize: 12, fontWeight: r.bold ? 800 : 600, color: r.color }}>{fmtM(r.val)} M</span>
+                    </div>
+                  ))}
+                  {pertEstimate > 0 && montantGlobal > 0 && (
+                    <div style={{ marginTop: 12, padding: '8px 12px', background: Math.abs(pertEstimate - montantGlobal) / montantGlobal > 0.1 ? 'rgba(220,38,38,0.06)' : 'rgba(21,128,61,0.06)', borderRadius: 8, fontSize: 12, color: 'var(--af-cream)' }}>
+                      Écart vs budget :{' '}
+                      <strong style={{ color: Math.abs(pertEstimate - montantGlobal) / montantGlobal > 0.1 ? '#DC2626' : '#15803D' }}>
+                        {pertEstimate > montantGlobal ? '+' : ''}{fmtM(pertEstimate - montantGlobal)} M FCFA
+                      </strong>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {iaScore && (
+              <div className="bg-white border border-[rgba(14,42,71,0.08)] rounded-xl shadow-[0_1px_4px_rgba(14,42,71,0.06)]">
+                <div className="flex items-center justify-between px-5 py-3 border-b border-[rgba(14,42,71,0.08)]">
+                  <div className="text-[13px] font-semibold text-[#0E2A47]">Avis IA Claude</div>
+                  <span style={{ fontFamily: 'var(--af-mono)', fontWeight: 700, fontSize: 13, color: iaScore.score >= 80 ? '#15803D' : iaScore.score >= 60 ? '#E5A53D' : '#DC2626' }}>
+                    {iaScore.score}/100
+                  </span>
+                </div>
+                <div style={{ padding: '14px 20px' }}>
+                  <div style={{ marginBottom: 12 }}>
+                    <div className="af-bar">
+                      <div className={`af-bar-fill ${iaScore.score < 60 ? 'danger' : iaScore.score < 80 ? 'warn' : ''}`} style={{ width: `${iaScore.score}%` }} />
+                    </div>
+                  </div>
+                  {iaScore.commentaire && (
+                    <div style={{ fontSize: 12, color: 'var(--af-cream)', lineHeight: 1.6 }}>
+                      {iaScore.commentaire}
+                    </div>
+                  )}
+                  {iaScore.recommandations?.length > 0 && (
+                    <div style={{ marginTop: 12 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--af-mute)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 8 }}>Recommandations</div>
+                      {iaScore.recommandations.map((r, i) => (
+                        <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 6, fontSize: 12, color: 'var(--af-cream)' }}>
+                          <span style={{ color: 'var(--af-gold)', flexShrink: 0 }}>›</span>
+                          <span>{r}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── Modals ─────────────────────────────────────────────────────────────── */}
@@ -674,7 +679,19 @@ function DepenseGroupe({ lines, fmt }) {
         <td className="ref">{first.reference}</td>
         <td>{multi ? <span style={{ color: 'var(--af-mute)', fontStyle: 'italic', fontSize: 11 }}>{lines.length} lignes</span> : (first.ligne_designation || '—')}</td>
         <td className="muted">{first.date_depense ? new Date(first.date_depense).toLocaleDateString('fr-FR') : '—'}</td>
-        <td>{first.piece_justificative_url ? <Paperclip size={13} style={{ color: 'var(--af-cream)' }} /> : <span className="muted">—</span>}</td>
+        <td>
+          {first.pieces?.length > 0 ? (
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+              {first.pieces.map((p, i) => (
+                <a key={p.id || i} href={p.url_download} target="_blank" rel="noopener noreferrer"
+                   title={p.nom_original}
+                   style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 6px', borderRadius: 4, background: 'var(--af-steel)', color: 'var(--af-cream)', fontSize: 11, textDecoration: 'none' }}>
+                  <Paperclip size={10} /> {i + 1}
+                </a>
+              ))}
+            </div>
+          ) : <span className="muted">—</span>}
+        </td>
         <td className="num">{fmt(total)} FCFA</td>
         <td><span className={s.cls}>{s.lbl}</span></td>
         <td style={{ paddingRight: 12, textAlign: 'right' }}>

@@ -116,7 +116,14 @@ def _build_detail_table(dep_list, grand_tot, elements, uw, st):
         sc  = d.ligne.sous_categorie if (d.ligne and d.ligne.sous_categorie_id) else None
         cat = sc.categorie           if (sc and sc.categorie_id)                 else None
 
-        libelle = (d.note or d.fournisseur or "—").strip()
+        dep_parent = d.depense if d.depense_id else None
+        libelle = (
+            d.note
+            or d.fournisseur
+            or (dep_parent.note      if dep_parent else '')
+            or (dep_parent.fournisseur if dep_parent else '')
+            or "—"
+        ).strip() or "—"
         montant = float(d.montant or 0)
         alt_bg  = GRAY_LIGHT if i % 2 == 0 else WHITE
 

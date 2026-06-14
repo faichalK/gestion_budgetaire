@@ -105,7 +105,7 @@ class PieceJustificativeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model  = PieceJustificative
-        fields = ['id', 'nom', 'url', 'date_ajout']
+        fields = ['id', 'nom_original', 'url', 'uploaded_at']
 
     def get_url(self, obj):
         request = self.context.get('request')
@@ -124,7 +124,7 @@ class ConsommationLigneSerializer(serializers.ModelSerializer):
     montant_fmt        = serializers.SerializerMethodField()
     date_fmt           = serializers.SerializerMethodField()
     statut_config      = serializers.SerializerMethodField()
-    pieces             = PieceJustificativeSerializer(many=True, read_only=True)
+    pieces             = serializers.SerializerMethodField()
 
     class Meta:
         model  = ConsommationLigne
@@ -153,6 +153,12 @@ class ConsommationLigneSerializer(serializers.ModelSerializer):
         if statut:
             return get_statut_config(statut, 'depense')
         return None
+
+    def get_pieces(self, obj):
+        if obj.depense_id:
+            pieces = obj.depense.pieces_justificatives.all()
+            return PieceJustificativeSerializer(pieces, many=True, context=self.context).data
+        return []
 
 
 # ── Ligne budgétaire ──────────────────────────────────────────────────────────

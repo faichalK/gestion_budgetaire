@@ -615,7 +615,7 @@ class LigneBudgetaire(models.Model):
     def annuler_consommation(self, montant):
         montant = Decimal(str(montant))
         if montant <= 0:
-            raise ValidationError("Le montant a annuler doit etre positif.")
+            raise ValidationError("Le montant à annuler doit être positif.")
         if montant > self.montant_consomme:
             raise ValidationError("Impossible d'annuler plus que le montant consomme sur cette ligne.")
 
@@ -685,12 +685,31 @@ class Depense(models.Model):
                          max_digits=18, decimal_places=2, default=0,
                          verbose_name="Montant total"
                      )
+    numero         = models.PositiveIntegerField(
+                         null=True, blank=True,
+                         verbose_name="Numéro séquentiel"
+                     )
 
     class Meta:
         db_table            = 'depense'
         verbose_name        = 'Dépense'
         verbose_name_plural = 'Dépenses'
         ordering            = ['-date']
+
+    def save(self, *args, **kwargs):
+        if self.numero is None and self.budget_id:
+            from django.db.models import Max
+            last = Depense.objects.filter(budget_id=self.budget_id).aggregate(
+                m=Max('numero')
+            )['m'] or 0
+            self.numero = last + 1
+        super().save(*args, **kwargs)
+
+    @property
+    def reference(self):
+        annee = self.date.year if self.date else ''
+        num   = self.numero or 0
+        return f"DEP-{num:06d}-{annee}"
 
     def __str__(self):
         return f"Dépense {self.id} — {self.montant_total:,.0f} FCFA ({self.get_statut_display()})"

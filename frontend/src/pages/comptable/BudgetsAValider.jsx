@@ -209,9 +209,9 @@ export function BudgetValidationDetail({ basePath = '/validation' }) {
             date_depense:        cl.date || dep.date,
             note:                cl.note || dep.note,
             fournisseur:         dep.fournisseur,
-            reference:           dep.fournisseur || dep.note || String(dep.id).slice(0, 8).toUpperCase(),
-            piece_justificative_url: dep.pieces?.[0]?.url_download || null,
-            nombre_pieces:       dep.nombre_pieces,
+            reference:           dep.reference || dep.fournisseur || dep.note || String(dep.id).slice(0, 8).toUpperCase(),
+            pieces:              dep.pieces || [],
+            nombre_pieces:       dep.nombre_pieces ?? (dep.pieces?.length || 0),
             motif_rejet:         dep.motif_rejet,
             budget_id:           dep.budget_id,
             budget_code:         dep.budget_code,
@@ -280,7 +280,7 @@ export function BudgetValidationDetail({ basePath = '/validation' }) {
     <div className="af-loader"><div className="af-spinner"/><span>Chargement…</span></div>
   )
 
-  const depensesLignes = lignes.filter(l => l.section === 'DEPENSE')
+  const depensesLignes = lignes.filter(l => l.section !== 'REVENU')
   const revenusLignes  = lignes.filter(l => l.section === 'REVENU')
   const totalBudget    = lignes.reduce((s, l) => s + parseFloat(l.montant_alloue   || 0), 0)
   const totalReel      = lignes.reduce((s, l) => s + parseFloat(l.montant_consomme || 0), 0)
@@ -294,9 +294,10 @@ export function BudgetValidationDetail({ basePath = '/validation' }) {
     const a = parseFloat(l.montant_alloue || 0)
     const c = parseFloat(l.montant_consomme || 0)
     const e = a - c
+    const sectionLabel = l.section === 'REVENU' ? 'Revenu' : 'Budget'
     return useFmt
-      ? [l.code || '—', l.libelle, l.section, fmt(a), fmt(c), (e >= 0 ? '+' : '') + fmt(e)]
-      : [l.code || '',  l.libelle, l.section, a,       c,      e]
+      ? [l.code || '—', l.libelle, sectionLabel, fmt(a), fmt(c), (e >= 0 ? '+' : '') + fmt(e)]
+      : [l.code || '',  l.libelle, sectionLabel, a,       c,      e]
   })
 
   const buildDepensesRows = useFmt => depensesItems.map(d => {
@@ -484,11 +485,11 @@ export function BudgetValidationDetail({ basePath = '/validation' }) {
                       <tr key={l.id}>
                         <td>
                           <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.10em] px-[9px] py-1 rounded-[4px] border" style={{
-                            background: l.section === 'REVENU' ? 'rgba(45,106,79,0.18)' : 'rgba(192,72,72,0.15)',
-                            color: l.section === 'REVENU' ? '#7DCFA0' : '#F5A0A0',
-                            borderColor: l.section === 'REVENU' ? 'rgba(45,106,79,0.5)' : 'rgba(192,72,72,0.5)',
+                            background:   l.section === 'REVENU' ? 'rgba(45,106,79,0.18)'  : 'rgba(14,42,71,0.08)',
+                            color:        l.section === 'REVENU' ? '#7DCFA0'                : '#5A6B7E',
+                            borderColor:  l.section === 'REVENU' ? 'rgba(45,106,79,0.5)'   : 'rgba(14,42,71,0.2)',
                           }}>
-                            {l.section}
+                            {l.section === 'REVENU' ? 'Revenu' : 'Budget'}
                           </span>
                         </td>
                         <td>{l.libelle}</td>
@@ -525,7 +526,7 @@ export function BudgetValidationDetail({ basePath = '/validation' }) {
               </div>
               <table className="af-table">
                 <thead>
-                  <tr><th>Réf.</th><th>Libellé</th><th>Ligne budgétaire</th><th>Montant</th><th>Statut</th></tr>
+                  <tr><th>Réf.</th><th>Libellé</th><th>Ligne budgétaire</th><th>Montant</th><th>Statut</th><th>Pièces</th></tr>
                 </thead>
                 <tbody>
                   {depensesItems.map(d => {
@@ -537,6 +538,26 @@ export function BudgetValidationDetail({ basePath = '/validation' }) {
                         <td className="muted">{ligne?.libelle || d.ligne_designation || '—'}</td>
                         <td className="num">{fmt(d.montant)} FCFA</td>
                         <td><StatusBadge status={d.statut}/></td>
+                        <td>
+                          {d.pieces?.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {d.pieces.map((p, i) => (
+                                <a
+                                  key={p.id || i}
+                                  href={p.url_download}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title={p.nom_original}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[rgba(14,42,71,0.06)] text-[#0E2A47] border border-[rgba(14,42,71,0.12)] hover:bg-[rgba(184,134,74,0.12)] hover:text-[#B8864A] hover:border-[#B8864A] transition-colors"
+                                >
+                                  📎 {i + 1}
+                                </a>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-[11px] text-[rgba(90,107,126,0.5)]">—</span>
+                          )}
+                        </td>
                       </tr>
                     )
                   })}
