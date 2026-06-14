@@ -434,6 +434,7 @@ class SousCategorie(models.Model):
 class SectionLigne(models.TextChoices):
     REVENU  = 'REVENU',  'Revenu'
     DEPENSE = 'DEPENSE', 'Dépense'
+    BUDGET  = 'BUDGET',  'Budget'
 
 
 class LigneBudgetaire(models.Model):
@@ -450,7 +451,7 @@ class LigneBudgetaire(models.Model):
     code           = models.CharField(max_length=30, blank=True, verbose_name="Code")
     libelle        = models.CharField(max_length=200, verbose_name="Désignation")
     unite          = models.CharField(max_length=50, blank=True, verbose_name="Unité")
-    section        = models.CharField(max_length=10, choices=SectionLigne.choices, default='DEPENSE', verbose_name="Section")
+    section        = models.CharField(max_length=10, choices=SectionLigne.choices, default='BUDGET', verbose_name="Section")
     quantite       = models.DecimalField(max_digits=14, decimal_places=2, validators=[MinValueValidator(0)], default=1, verbose_name="Quantité")
     prix_unitaire  = models.DecimalField(max_digits=18, decimal_places=2, validators=[MinValueValidator(0)], default=0, verbose_name="Prix unitaire")
     # Champs PERT (technique 3 points)
