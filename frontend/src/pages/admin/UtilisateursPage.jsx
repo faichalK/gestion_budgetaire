@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getUtilisateurs, createUtilisateur, updateUtilisateur, deleteUtilisateur, adminResetPassword, debloquerUtilisateur, getUtilisateurActivite } from '../../api/accounts'
+import { getUtilisateurs, createUtilisateur, updateUtilisateur, deleteUtilisateur, adminResetPassword, debloquerUtilisateur, getUtilisateurActivite, getDepartements } from '../../api/accounts'
 import { ConfirmModal } from '../../components/ui'
 import { Icon } from '../../components/AtlasIcons'
 import { formaterNombre } from '../../utils/formatters'
@@ -48,11 +48,16 @@ export default function UtilisateursPage() {
   const [activiteTab, setActiviteTab] = useState('budgets')
   const [activiteLoading, setActiviteLoading] = useState(false)
   const [confirmModal,    setConfirmModal]     = useState(null)
+  const [editForm,        setEditForm]        = useState({ prenom: '', nom: '', email: '', matricule: '', role: 'GESTIONNAIRE', departement: '', nouveau_password: '', confirmer_password: '' })
+  const [departements,    setDepartements]    = useState([])
 
   const load = () => {
     setLoading(true)
-    getUtilisateurs()
-      .then(u => setUsers(u.data.results ?? u.data))
+    Promise.all([getUtilisateurs(), getDepartements()])
+      .then(([u, d]) => {
+        setUsers(u.data.results ?? u.data)
+        setDepartements(d.data.results ?? d.data ?? [])
+      })
       .finally(() => setLoading(false))
   }
 
@@ -104,6 +109,42 @@ export default function UtilisateursPage() {
         catch (err) { alert(err.response?.data?.detail || 'Erreur.') }
       },
     })
+  }
+
+  const openEdit = user => {
+    setTargetUser(user)
+    setEditForm({
+      prenom:            user.prenom     || '',
+      nom:               user.nom        || '',
+      email:             user.email      || '',
+      matricule:         user.matricule  || '',
+      role:              user.role       || 'GESTIONNAIRE',
+      departement:       user.departement ? String(user.departement) : '',
+      nouveau_password:  '',
+      confirmer_password: '',
+    })
+    setError('')
+    setModal('edit')
+  }
+
+  const handleEdit = async e => {
+    e.preventDefault(); setError(''); setSaving(true)
+    try {
+      if (editForm.nouveau_password && editForm.nouveau_password !== editForm.confirmer_password) {
+        setError('Les mots de passe ne correspondent pas.'); setSaving(false); return
+      }
+      const { nouveau_password, confirmer_password, ...fields } = editForm
+      const payload = { ...fields }
+      if (!payload.departement) delete payload.departement
+      await updateUtilisateur(targetUser.id, payload)
+      if (nouveau_password) {
+        await adminResetPassword(targetUser.id, { nouveau_password })
+      }
+      setModal(null)
+      load()
+    } catch (err) {
+      setError(err.response?.data?.detail || JSON.stringify(err.response?.data) || 'Erreur serveur')
+    } finally { setSaving(false) }
   }
 
   const openActivite = user => {
@@ -263,6 +304,12 @@ export default function UtilisateursPage() {
                           {Icon.kpi}
                         </button>
                       )}
+                      <button className="btn btn-ghost btn-sm" title="Modifier les informations" onClick={() => openEdit(u)}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 13, height: 13 }}>
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                      </button>
                       <button
                         className={u.actif ? 'btn btn-secondary btn-sm' : 'btn btn-primary btn-sm'}
                         title={u.actif ? 'Désactiver' : 'Activer'}
@@ -491,6 +538,77 @@ export default function UtilisateursPage() {
           </div>
         </div>
       )}
+      {/* Modal modification utilisateur */}
+      {modal === 'edit' && targetUser && (
+        <div className="modal-overlay" onClick={() => setModal(null)}>
+          <div className="modal-panel" style={{ maxWidth: 500 }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 style={{ fontSize: 15, fontWeight: 700, fontFamily: 'var(--af-serif)' }}>
+                Modifier l'utilisateur
+              </h2>
+              <button onClick={() => setModal(null)} className="btn btn-ghost btn-sm">{Icon.close}</button>
+            </div>
+            <form onSubmit={handleEdit}>
+              <div className="modal-body">
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                  <div className="mb-[18px]">
+                    <label>Prénom</label>
+                    <input className="form-input" required value={editForm.prenom} onChange={e => setEditForm(f => ({ ...f, prenom: e.target.value }))}/>
+                  </div>
+                  <div className="mb-[18px]">
+                    <label>Nom</label>
+                    <input className="form-input" required value={editForm.nom} onChange={e => setEditForm(f => ({ ...f, nom: e.target.value }))}/>
+                  </div>
+                </div>
+                <div className="mb-[18px]" style={{ marginTop: 14 }}>
+                  <label>Email</label>
+                  <input className="form-input" type="email" required value={editForm.email} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))}/>
+                </div>
+                <div className="mb-[18px]" style={{ marginTop: 14 }}>
+                  <label>Matricule</label>
+                  <input className="form-input" required value={editForm.matricule} onChange={e => setEditForm(f => ({ ...f, matricule: e.target.value }))}/>
+                </div>
+                <div className="mb-[18px]" style={{ marginTop: 14 }}>
+                  <label>Rôle</label>
+                  <select className="form-select" value={editForm.role} onChange={e => setEditForm(f => ({ ...f, role: e.target.value }))}>
+                    {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                </div>
+                {departements.length > 0 && (
+                  <div className="mb-[18px]" style={{ marginTop: 14 }}>
+                    <label>Département</label>
+                    <select className="form-select" value={editForm.departement} onChange={e => setEditForm(f => ({ ...f, departement: e.target.value }))}>
+                      <option value="">— Aucun —</option>
+                      {departements.map(d => <option key={d.id} value={String(d.id)}>{d.nom}</option>)}
+                    </select>
+                  </div>
+                )}
+                <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--af-line)' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--af-mute)', marginBottom: 12 }}>
+                    Changer le mot de passe <span style={{ fontWeight: 400 }}>(optionnel)</span>
+                  </div>
+                  <div className="mb-[14px]">
+                    <label>Nouveau mot de passe</label>
+                    <input className="form-input" type="password" minLength={4} value={editForm.nouveau_password} onChange={e => setEditForm(f => ({ ...f, nouveau_password: e.target.value }))} placeholder="Laisser vide pour ne pas changer"/>
+                  </div>
+                  <div className="mb-[14px]" style={{ marginTop: 10 }}>
+                    <label>Confirmer le mot de passe</label>
+                    <input className="form-input" type="password" value={editForm.confirmer_password} onChange={e => setEditForm(f => ({ ...f, confirmer_password: e.target.value }))} placeholder="••••••••"/>
+                  </div>
+                </div>
+                {error && <p style={{ fontSize: 12, color: 'var(--af-st-reject)', marginTop: 10 }}>{error}</p>}
+              </div>
+              <div className="modal-footer">
+                <button type="button" onClick={() => setModal(null)} className="btn btn-secondary btn-sm">Annuler</button>
+                <button type="submit" disabled={saving} className="btn btn-primary btn-sm">
+                  {saving ? 'Modification…' : 'Enregistrer'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {confirmModal && <ConfirmModal {...confirmModal} onClose={() => setConfirmModal(null)} />}
     </div>
   )

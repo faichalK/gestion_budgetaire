@@ -5,12 +5,13 @@ import {
   getDepense, validerDepense, rejeterDepense,
   uploadPieces, deletePiece, downloadPiece,
 } from '../../api/depenses'
+import PiecePreview from '../../components/PiecePreview'
 import { DepenseBadge } from '../../components/StatusBadge'
 import { notifRefresh } from '../../utils/notifRefresh'
 import { ConfirmModal } from '../../components/ui'
 import {
   ArrowLeft, CheckCircle2, XCircle, AlertTriangle,
-  Paperclip, ExternalLink, Trash2, Download,
+  Paperclip, ExternalLink, Trash2, Download, Eye,
 } from '../../components/AtlasIcons'
 import { formaterNombre } from '../../utils/formatters'
 
@@ -42,7 +43,7 @@ export default function DepenseDetail({ basePath = '/mes-depenses' }) {
   const [uploading,     setUploading]     = useState(false)
   const [dragOver,      setDragOver]      = useState(false)
   const [pieceError,    setPieceError]    = useState('')
-  const [selectedPiece, setSelectedPiece] = useState(null)
+  const [pieceModal, setPieceModal] = useState({ open: false, selected: null })
   const fileRef = useRef(null)
   const loadRef = useRef(() => {})
 
@@ -64,14 +65,6 @@ export default function DepenseDetail({ basePath = '/mes-depenses' }) {
     return () => window.clearTimeout(t)
   }, [id])
 
-  useEffect(() => {
-    if (!depense) return
-    const ps = depense.pieces || []
-    setSelectedPiece(prev => {
-      if (prev && ps.find(p => p.id === prev.id)) return prev
-      return ps[0] || null
-    })
-  }, [depense])
 
   const handleUpload = async (incoming) => {
     const files = Array.from(incoming).filter(f =>
@@ -421,125 +414,75 @@ export default function DepenseDetail({ basePath = '/mes-depenses' }) {
           </div>
         )}
 
-        {/* Liste + Visualiseur côte à côte */}
+        {/* Liste des pièces */}
         {pieces.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', minHeight: 420 }}>
-
-            {/* ── Colonne gauche : liste ── */}
-            <div style={{ borderRight: '1px solid var(--af-line)', padding: '12px 0', display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {pieces.map(p => {
-                const isSelected = selectedPiece?.id === p.id
-                const isImg = p.type_mime?.startsWith('image/')
-                const isPdf = p.type_mime === 'application/pdf' || p.nom_original?.toLowerCase().endsWith('.pdf')
-                const typeIcon = isImg ? '🖼' : isPdf ? '📄' : '📎'
-                return (
-                  <div
-                    key={p.id}
-                    onClick={() => setSelectedPiece(p)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 10,
-                      padding: '9px 14px', cursor: 'pointer', transition: 'background .1s',
-                      background: isSelected ? 'rgba(184,134,74,0.10)' : 'transparent',
-                      borderLeft: isSelected ? '3px solid #B8864A' : '3px solid transparent',
-                    }}
-                  >
-                    <span style={{ fontSize: 16, flexShrink: 0 }}>{typeIcon}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 12, fontWeight: isSelected ? 700 : 500, color: isSelected ? '#B8864A' : 'var(--af-ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {p.nom_original}
-                      </div>
-                      {p.taille_lisible && (
-                        <div style={{ fontSize: 10, color: 'var(--af-mute)' }}>{p.taille_lisible}</div>
-                      )}
-                    </div>
-                    <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
-                      <button type="button" onClick={e => { e.stopPropagation(); downloadPiece(p.id, p.nom_original) }} title="Télécharger"
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#B8864A', display: 'flex', alignItems: 'center' }}>
-                        <Download size={13} strokeWidth={2} />
-                      </button>
-                      {peutModifierPieces && (
-                        <button type="button" onClick={e => { e.stopPropagation(); handleDeletePiece(p) }} title="Supprimer"
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#B91C1C', display: 'flex', alignItems: 'center' }}>
-                          <Trash2 size={13} strokeWidth={2} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-
-              {peutModifierPieces && (
+          <div>
+            {pieces.map(p => {
+              const isImg = p.type_mime?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(p.nom_original || '')
+              const isPdf = p.type_mime === 'application/pdf' || p.nom_original?.toLowerCase().endsWith('.pdf')
+              const typeIcon = isImg ? '🖼' : isPdf ? '📄' : '📎'
+              return (
                 <div
-                  onDragOver={e => { e.preventDefault(); setDragOver(true) }}
-                  onDragLeave={() => setDragOver(false)}
-                  onDrop={e => { e.preventDefault(); setDragOver(false); handleUpload(e.dataTransfer.files) }}
-                  onClick={() => fileRef.current?.click()}
+                  key={p.id}
+                  onClick={() => setPieceModal({ open: true, selected: p })}
                   style={{
-                    margin: '8px 10px 4px', border: `1px dashed ${dragOver ? '#B8864A' : 'var(--af-line)'}`,
-                    borderRadius: 8, padding: '7px 12px',
-                    display: 'flex', alignItems: 'center', gap: 8,
-                    cursor: 'pointer', transition: 'all .15s',
-                    background: dragOver ? 'rgba(184,134,74,0.06)' : 'transparent',
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '10px 20px', borderBottom: '1px solid var(--af-line)',
+                    cursor: 'pointer', transition: 'background .1s',
                   }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(14,42,71,0.03)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
                 >
-                  <Paperclip size={11} strokeWidth={2} style={{ color: 'var(--af-mute)' }} />
-                  <span style={{ fontSize: 11, color: 'var(--af-mute)' }}>
-                    Ajouter une pièce
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* ── Colonne droite : aperçu ── */}
-            <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--af-steel)', minHeight: 420 }}>
-              {(() => {
-                const p = selectedPiece
-                if (!p) return (
-                  <div style={{ textAlign: 'center', color: 'var(--af-mute)', fontSize: 13 }}>
-                    Sélectionnez une pièce pour l'aperçu
-                  </div>
-                )
-                const isImg = p.type_mime?.startsWith('image/')
-                const isPdf = p.type_mime === 'application/pdf' || p.nom_original?.toLowerCase().endsWith('.pdf')
-
-                if (isImg) return (
-                  <div style={{ width: '100%', textAlign: 'center' }}>
-                    <img
-                      src={p.url_download}
-                      alt={p.nom_original}
-                      style={{ maxWidth: '100%', maxHeight: 480, objectFit: 'contain', borderRadius: 8, boxShadow: '0 4px 20px rgba(14,42,71,0.15)' }}
-                      onError={e => { e.currentTarget.style.display = 'none' }}
-                    />
-                    <div style={{ marginTop: 10, fontSize: 11, color: 'var(--af-mute)' }}>{p.nom_original}</div>
-                  </div>
-                )
-
-                if (isPdf) return (
-                  <div style={{ width: '100%', height: '100%', minHeight: 420 }}>
-                    <iframe
-                      src={p.url_download}
-                      title={p.nom_original}
-                      style={{ width: '100%', height: 480, border: 'none', borderRadius: 8 }}
-                    />
-                  </div>
-                )
-
-                return (
-                  <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
-                    <div style={{ fontSize: 48 }}>📎</div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--af-ink)' }}>{p.nom_original}</div>
-                    {p.taille_lisible && <div style={{ fontSize: 11, color: 'var(--af-mute)' }}>{p.taille_lisible}</div>}
-                    <div style={{ fontSize: 12, color: 'var(--af-mute)', marginBottom: 4 }}>
-                      Aperçu non disponible pour ce type de fichier.
+                  <span style={{ fontSize: 18, flexShrink: 0 }}>{typeIcon}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--af-ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {p.nom_original}
                     </div>
-                    <a href={p.url_download} download={p.nom_original}
-                      className="btn btn-secondary btn-sm" style={{ gap: 6, textDecoration: 'none' }}>
-                      <Download size={13} strokeWidth={2} /> Télécharger
-                    </a>
+                    {p.taille_lisible && (
+                      <div style={{ fontSize: 10, color: 'var(--af-mute)' }}>{p.taille_lisible}</div>
+                    )}
                   </div>
-                )
-              })()}
-            </div>
+                  <div style={{ display: 'flex', gap: 4, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                    <button type="button" title="Aperçu"
+                      onClick={() => setPieceModal({ open: true, selected: p })}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#0E2A47', display: 'flex', alignItems: 'center' }}>
+                      <Eye size={13} strokeWidth={2} />
+                    </button>
+                    <button type="button" title="Télécharger"
+                      onClick={() => downloadPiece(p.id, p.nom_original)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#B8864A', display: 'flex', alignItems: 'center' }}>
+                      <Download size={13} strokeWidth={2} />
+                    </button>
+                    {peutModifierPieces && (
+                      <button type="button" title="Supprimer"
+                        onClick={() => handleDeletePiece(p)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#B91C1C', display: 'flex', alignItems: 'center' }}>
+                        <Trash2 size={13} strokeWidth={2} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+
+            {peutModifierPieces && (
+              <div
+                onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={e => { e.preventDefault(); setDragOver(false); handleUpload(e.dataTransfer.files) }}
+                onClick={() => fileRef.current?.click()}
+                style={{
+                  margin: '8px 16px', border: `1px dashed ${dragOver ? '#B8864A' : 'var(--af-line)'}`,
+                  borderRadius: 8, padding: '8px 14px',
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  cursor: 'pointer', transition: 'all .15s',
+                  background: dragOver ? 'rgba(184,134,74,0.06)' : 'transparent',
+                }}
+              >
+                <Paperclip size={11} strokeWidth={2} style={{ color: 'var(--af-mute)' }} />
+                <span style={{ fontSize: 11, color: 'var(--af-mute)' }}>Ajouter une pièce</span>
+              </div>
+            )}
           </div>
         )}
 
@@ -550,6 +493,65 @@ export default function DepenseDetail({ basePath = '/mes-depenses' }) {
           </div>
         )}
       </div>
+
+      {/* ── Modal visualisation pièce ─────────────────────────────────────── */}
+      {pieceModal.open && (
+        <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setPieceModal({ open: false, selected: null }) }}>
+          <div className="modal-panel" onClick={e => e.stopPropagation()} style={{ maxWidth: 860, width: '95vw' }}>
+            <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ fontWeight: 700, fontSize: 15 }}>Pièces justificatives — {titre}</h2>
+              <button onClick={() => setPieceModal({ open: false, selected: null })} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: 'var(--af-mute)', lineHeight: 1 }}>×</button>
+            </div>
+            <div style={{ padding: 0 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: pieces.length > 1 ? '220px 1fr' : '1fr', minHeight: 420 }}>
+                {pieces.length > 1 && (
+                  <div style={{ borderRight: '1px solid rgba(14,42,71,0.08)', padding: '8px 0', background: '#FAFAFA' }}>
+                    {pieces.map(p => {
+                      const isImg = p.type_mime?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(p.nom_original || '')
+                      const isPdf = p.type_mime === 'application/pdf' || p.nom_original?.toLowerCase().endsWith('.pdf')
+                      const emoji = isImg ? '🖼' : isPdf ? '📄' : '📎'
+                      const isSel = pieceModal.selected?.id === p.id
+                      return (
+                        <button key={p.id} onClick={() => setPieceModal(m => ({ ...m, selected: p }))}
+                          style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 14px', background: isSel ? 'rgba(184,134,74,0.08)' : 'none', border: 'none', borderLeft: isSel ? '3px solid #B8864A' : '3px solid transparent', cursor: 'pointer', textAlign: 'left' }}
+                          onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = 'rgba(14,42,71,0.04)' }}
+                          onMouseLeave={e => { if (!isSel) e.currentTarget.style.background = 'none' }}
+                        >
+                          <span style={{ fontSize: 18 }}>{emoji}</span>
+                          <span style={{ fontSize: 11, color: 'var(--af-cream)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {p.nom_original || `Pièce ${String(p.id).slice(0, 6)}`}
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#F1F5F9', padding: 24, minHeight: 420 }}>
+                  {pieceModal.selected ? (
+                    <>
+                      <PiecePreview piece={pieceModal.selected} maxHeight={460} />
+                      <div style={{ marginTop: 14 }}>
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          style={{ gap: 6 }}
+                          onClick={() => downloadPiece(pieceModal.selected.id, pieceModal.selected.nom_original)}
+                        >
+                          <Download size={12} strokeWidth={2} /> Télécharger
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{ color: 'var(--af-mute)', fontSize: 13 }}>Aucune pièce sélectionnée</div>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button type="button" onClick={() => setPieceModal({ open: false, selected: null })} className="btn btn-secondary btn-sm">Fermer</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Modal rejet ──────────────────────────────────────────────────────── */}
       {showRejeter && (

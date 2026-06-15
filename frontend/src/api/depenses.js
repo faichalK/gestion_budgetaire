@@ -34,9 +34,18 @@ export const uploadPieces = (depenseId, files) => {
 export const deletePiece = (depenseId, pieceId) =>
   api.delete(`/v1/depenses/${depenseId}/pieces/${pieceId}/`)
 
+const _fetchPieceBlob = async (pieceId) => {
+  const token = localStorage.getItem('access_token')
+  const res = await fetch(`/api/v1/pieces/${pieceId}/download/`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.blob()
+}
+
 export const downloadPiece = async (pieceId, nomOriginal = 'piece') => {
-  const res = await api.get(`/v1/pieces/${pieceId}/download/`, { responseType: 'blob' })
-  const url = URL.createObjectURL(res.data)
+  const blob = await _fetchPieceBlob(pieceId)
+  const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
   a.download = nomOriginal
@@ -44,4 +53,9 @@ export const downloadPiece = async (pieceId, nomOriginal = 'piece') => {
   a.click()
   document.body.removeChild(a)
   URL.revokeObjectURL(url)
+}
+
+export const fetchPieceBlobUrl = async (pieceId) => {
+  const blob = await _fetchPieceBlob(pieceId)
+  return URL.createObjectURL(blob)
 }

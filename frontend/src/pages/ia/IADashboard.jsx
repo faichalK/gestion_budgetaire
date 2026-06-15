@@ -40,10 +40,11 @@ export default function IADashboard() {
   const risquesEleves = predictions.filter(p => p.probabilite_depassement >= 0.5)
 
   /* ── Alertes budgétaires (budgets avec niveau_alerte critique) ── */
-  const { data: budgetsData, refetch: refetchAlertes } = useQuery({
+  const { data: budgetsData, refetch: refetchAlertes, isFetching: alertesFetching, isError: alertesError } = useQuery({
     queryKey: ['budgets-alertes'],
     queryFn:  () => getBudgets().then(r => r.data.results ?? r.data ?? []),
-    staleTime: 3 * 60 * 1000,
+    staleTime: 0,
+    retry: 1,
   })
   const tousLesBudgets = Array.isArray(budgetsData) ? budgetsData : []
   const alertes          = tousLesBudgets.filter(b => ['ROUGE', 'CRITIQUE'].includes(b.niveau_alerte))
@@ -244,7 +245,7 @@ export default function IADashboard() {
       {/* ── Contenu onglets ── */}
       {onglet === 'anomalies'   && <AnomaliesTab   anomalies={anomalies}     onScan={handleScanAnomalies} scanning={scanning} scanResult={scanResult} />}
       {onglet === 'predictions' && <PredictionsTab predictions={predictions} onPredire={handlePredireTous} scanning={scanning} />}
-      {onglet === 'alertes'     && <AlertesTab alertes={alertes} critiques={alertesCritiques} rouge={alertesRouge} cfg={ALERTE_CFG} onRefresh={refetchAlertes} />}
+      {onglet === 'alertes'     && <AlertesTab alertes={alertes} critiques={alertesCritiques} rouge={alertesRouge} cfg={ALERTE_CFG} onRefresh={refetchAlertes} fetching={alertesFetching} erreur={alertesError} />}
     </div>
   )
 }
@@ -487,16 +488,37 @@ function ScanBanner({ scanResult }) {
 /* ══════════════════════════════════════════════════════════════════════════════
    Onglet Alertes
 ══════════════════════════════════════════════════════════════════════════════ */
-function AlertesTab({ alertes, critiques, rouge, cfg, onRefresh }) {
+function AlertesTab({ alertes, critiques, rouge, cfg, onRefresh, fetching, erreur }) {
   const fmt = n => new Intl.NumberFormat('fr-FR').format(Math.round(parseFloat(n) || 0))
+
+  const BtnActualiser = () => (
+    <button
+      onClick={onRefresh}
+      disabled={fetching}
+      style={{ marginTop: 16, fontSize: 12, color: 'var(--color-gold)', background: 'none', border: 'none', cursor: fetching ? 'default' : 'pointer', fontWeight: 600, opacity: fetching ? 0.6 : 1 }}
+    >
+      {fetching ? 'Actualisation…' : '↻ Actualiser'}
+    </button>
+  )
+
+  if (fetching && !alertes.length) return (
+    <div style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--af-mute)', fontSize: 13 }}>
+      Chargement des alertes…
+    </div>
+  )
+
+  if (erreur) return (
+    <div style={{ padding: '48px 24px', textAlign: 'center' }}>
+      <div style={{ fontSize: 14, color: '#DC2626', marginBottom: 6 }}>Erreur lors du chargement des alertes.</div>
+      <BtnActualiser />
+    </div>
+  )
 
   if (!alertes.length) return (
     <div style={{ padding: '48px 24px', textAlign: 'center' }}>
       <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-success-600)', marginBottom: 6 }}>Aucune alerte active</div>
       <div style={{ fontSize: 13, color: 'var(--af-mute)' }}>Tous les budgets sont dans les seuils normaux (taux &lt; 90%).</div>
-      <button onClick={onRefresh} style={{ marginTop: 16, fontSize: 12, color: 'var(--color-gold)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
-        Actualiser
-      </button>
+      <BtnActualiser />
     </div>
   )
 
@@ -507,6 +529,15 @@ function AlertesTab({ alertes, critiques, rouge, cfg, onRefresh }) {
 
   return (
     <div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+        <button
+          onClick={onRefresh}
+          disabled={fetching}
+          style={{ fontSize: 12, color: 'var(--color-gold)', background: 'none', border: '1px solid rgba(201,169,97,.3)', borderRadius: 6, padding: '4px 12px', cursor: fetching ? 'default' : 'pointer', fontWeight: 600, opacity: fetching ? 0.6 : 1 }}
+        >
+          {fetching ? 'Actualisation…' : '↻ Actualiser'}
+        </button>
+      </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 24 }}>
         {[
           { label: 'Critique (≥100%)', count: critiques.length, color: '#DC2626' },

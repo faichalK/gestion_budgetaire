@@ -198,11 +198,9 @@ function LignesAvecDepenses({ categories, depensesItems, lignes, fmt }) {
     REJETEE: { label: 'Rejetée',    color: '#DC2626' },
   }
 
-  const revenusLignes  = lignes.filter(l => l.section === 'REVENU')
-  const depensesLignes = lignes.filter(l => l.section !== 'REVENU')
-  const totRev  = revenusLignes.reduce((s, l)  => s + parseFloat(l.montant_alloue || 0), 0)
-  const totDep  = depensesLignes.reduce((s, l) => s + parseFloat(l.montant_alloue || 0), 0)
-  const solde   = totRev - totDep
+  const totalBudget   = lignes.reduce((s, l) => s + parseFloat(l.montant_alloue   || 0), 0)
+  const totalDepenses = lignes.reduce((s, l) => s + parseFloat(l.montant_consomme || 0), 0)
+  const reste = totalBudget - totalDepenses
 
   if (categories.length === 0) {
     return (
@@ -232,9 +230,9 @@ function LignesAvecDepenses({ categories, depensesItems, lignes, fmt }) {
         </table>
         <div className="grid grid-cols-3 gap-[14px] px-5 py-3.5 border-t border-[rgba(14,42,71,0.08)]">
           {[
-            { label: 'Total recettes',    value: fmt(totRev),  color: '#7DCFA0' },
-            { label: 'Total dépenses',    value: fmt(totDep),  color: '#F5A0A0' },
-            { label: 'Solde prévisionnel',value: fmt(solde),   color: '#B8864A' },
+            { label: 'Total budget',   value: fmt(totalBudget),   color: '#7DCFA0' },
+            { label: 'Total dépenses', value: fmt(totalDepenses),  color: '#F5A0A0' },
+            { label: 'Reste',          value: fmt(reste),          color: reste >= 0 ? '#B8864A' : '#DC2626' },
           ].map(s => (
             <div key={s.label}>
               <div className="text-[10px] tracking-[0.18em] uppercase text-[rgba(90,107,126,0.7)] mb-1">{s.label}</div>
@@ -335,9 +333,9 @@ function LignesAvecDepenses({ categories, depensesItems, lignes, fmt }) {
       </table>
       <div className="grid grid-cols-3 gap-[14px] px-5 py-3.5 border-t border-[rgba(14,42,71,0.08)]">
         {[
-          { label: 'Total recettes',     value: fmt(totRev), color: '#7DCFA0' },
-          { label: 'Total dépenses',     value: fmt(totDep), color: '#F5A0A0' },
-          { label: 'Solde prévisionnel', value: fmt(solde),  color: '#B8864A' },
+          { label: 'Total budget',   value: fmt(totalBudget),   color: '#7DCFA0' },
+          { label: 'Total dépenses', value: fmt(totalDepenses),  color: '#F5A0A0' },
+          { label: 'Reste',          value: fmt(reste),          color: reste >= 0 ? '#B8864A' : '#DC2626' },
         ].map(s => (
           <div key={s.label}>
             <div className="text-[10px] tracking-[0.18em] uppercase text-[rgba(90,107,126,0.7)] mb-1">{s.label}</div>

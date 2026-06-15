@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { getDepenses, validerDepense, rejeterDepense } from '../../api/depenses'
+import { getDepenses, validerDepense, rejeterDepense, downloadPiece } from '../../api/depenses'
+import PiecePreview from '../../components/PiecePreview'
 import { getBudget, exportDepensesExcel, exportDepensesPdf } from '../../api/budget'
 import { ArrowLeft, ExternalLink, Download, ChevronDown, CheckCircle2, XCircle, AlertTriangle, Eye } from '../../components/AtlasIcons'
 import { formaterNombre } from '../../utils/formatters'
@@ -274,16 +275,18 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
           ) : (
             <>
               {/* En-tête colonnes */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 160px 90px 110px auto', padding: '8px 24px', gap: 12, borderBottom: '1px solid rgba(14,42,71,0.08)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.4px', color: 'var(--af-mute)', background: 'rgba(14,42,71,0.02)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 160px 90px 110px', padding: '8px 24px', gap: 12, borderBottom: '1px solid rgba(14,42,71,0.08)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.4px', color: 'var(--af-mute)', background: 'rgba(14,42,71,0.02)' }}>
                 <span>Dépense</span>
                 <span style={{ textAlign: 'right' }}>Montant total</span>
                 <span style={{ textAlign: 'center' }}>Date</span>
                 <span style={{ textAlign: 'center' }}>Statut</span>
-                <span style={{ textAlign: 'right' }}>Actions</span>
               </div>
 
               {depenses.map(dep => (
-                <div key={dep.id} style={{ display: 'grid', gridTemplateColumns: '1fr 160px 90px 110px auto', padding: '13px 24px', gap: 12, borderBottom: '1px solid rgba(14,42,71,0.05)', alignItems: 'center', background: dep.statut === 'SAISIE' ? 'rgba(254,243,199,0.25)' : 'transparent' }}>
+                <div key={dep.id} onClick={() => navigate(`${depenseBasePath}/${dep.id}`)} style={{ display: 'grid', gridTemplateColumns: '1fr 160px 90px 110px', padding: '13px 24px', gap: 12, borderBottom: '1px solid rgba(14,42,71,0.05)', alignItems: 'center', background: dep.statut === 'SAISIE' ? 'rgba(254,243,199,0.25)' : 'transparent', cursor: 'pointer' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = dep.statut === 'SAISIE' ? 'rgba(254,243,199,0.45)' : 'rgba(14,42,71,0.02)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = dep.statut === 'SAISIE' ? 'rgba(254,243,199,0.25)' : 'transparent' }}
+                >
                   {/* Désignation */}
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontFamily: 'var(--af-mono)', fontSize: 13, fontWeight: 700, color: 'var(--af-ink)', marginBottom: 2 }}>
@@ -324,53 +327,6 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
                     )}
                   </div>
 
-                  {/* Actions */}
-                  <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
-                    {(dep.pieces?.length > 0 || dep.nombre_pieces > 0) && (
-                      <button
-                        onClick={() => openPiece(dep)}
-                        title={`Voir ${dep.nombre_pieces || dep.pieces?.length} pièce${(dep.nombre_pieces || dep.pieces?.length) > 1 ? 's' : ''} justificative${(dep.nombre_pieces || dep.pieces?.length) > 1 ? 's' : ''}`}
-                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 6, border: '1px solid rgba(184,134,74,0.3)', background: 'rgba(184,134,74,0.08)', cursor: 'pointer', color: '#B8864A' }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(184,134,74,0.2)'; e.currentTarget.style.borderColor = '#B8864A' }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(184,134,74,0.08)'; e.currentTarget.style.borderColor = 'rgba(184,134,74,0.3)' }}
-                      >
-                        <Eye size={14} strokeWidth={2} />
-                      </button>
-                    )}
-                    <button
-                      onClick={() => navigate(`${depenseBasePath}/${dep.id}`)}
-                      title="Voir le détail de la dépense"
-                      style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 6, border: '1px solid rgba(14,42,71,0.12)', background: 'rgba(14,42,71,0.04)', cursor: 'pointer', color: 'var(--af-cream)' }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(14,42,71,0.08)'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'rgba(14,42,71,0.04)'}
-                    >
-                      <ExternalLink size={14} strokeWidth={2} />
-                    </button>
-                    {isComptable && !isAdmin && dep.statut === 'SAISIE' && (
-                      <>
-                        <button
-                          onClick={async () => { setValidating(dep.id); try { await validerDepense(dep.id); load() } catch {} finally { setValidating('') } }}
-                          disabled={!!validating}
-                          title="Valider cette dépense"
-                          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 6, border: '1px solid rgba(22,163,74,0.3)', background: 'rgba(22,163,74,0.1)', cursor: 'pointer', color: '#16A34A' }}
-                          onMouseEnter={e => { if (!validating) { e.currentTarget.style.background = '#16A34A'; e.currentTarget.style.color = '#fff' } }}
-                          onMouseLeave={e => { if (!validating) { e.currentTarget.style.background = 'rgba(22,163,74,0.1)'; e.currentTarget.style.color = '#16A34A' } }}
-                        >
-                          {validating === dep.id ? <span className="spinner-sm" /> : <CheckCircle2 size={14} strokeWidth={2.5} />}
-                        </button>
-                        <button
-                          onClick={() => openRejet(dep)}
-                          disabled={!!validating}
-                          title="Rejeter cette dépense"
-                          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 6, border: '1px solid rgba(220,38,38,0.3)', background: 'rgba(220,38,38,0.1)', cursor: 'pointer', color: '#DC2626' }}
-                          onMouseEnter={e => { if (!validating) { e.currentTarget.style.background = '#DC2626'; e.currentTarget.style.color = '#fff' } }}
-                          onMouseLeave={e => { if (!validating) { e.currentTarget.style.background = 'rgba(220,38,38,0.1)'; e.currentTarget.style.color = '#DC2626' } }}
-                        >
-                          <XCircle size={14} strokeWidth={2.5} />
-                        </button>
-                      </>
-                    )}
-                  </div>
                 </div>
               ))}
 
@@ -450,36 +406,21 @@ export default function DepensesParBudget({ basePath = '/mes-depenses', depenseB
                 )}
                 {/* Prévisualisation */}
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#F1F5F9', padding: 24, minHeight: 420 }}>
-                  {pieceModal.selected ? (() => {
-                    const p     = pieceModal.selected
-                    const isImg = p.type_mime?.startsWith('image/')
-                    const isPdf = p.type_mime === 'application/pdf'
-                    if (isImg) return (
-                      <img src={p.url_download} alt={p.nom_original} style={{ maxWidth: '100%', maxHeight: 460, objectFit: 'contain', borderRadius: 8, boxShadow: '0 4px 16px rgba(14,42,71,0.12)' }} />
-                    )
-                    if (isPdf) return (
-                      <iframe src={p.url_download} title={p.nom_original} style={{ width: '100%', height: 460, border: 'none', borderRadius: 8 }} />
-                    )
-                    return (
-                      <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 52, marginBottom: 12 }}>📎</div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--af-ink)', marginBottom: 16 }}>{p.nom_original || 'Fichier'}</div>
-                        <a href={p.url_download} download target="_blank" rel="noreferrer"
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 18px', borderRadius: 8, background: 'var(--af-ink)', color: '#fff', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
-                          <Download size={14} strokeWidth={2} /> Télécharger
-                        </a>
+                  {pieceModal.selected ? (
+                    <>
+                      <PiecePreview piece={pieceModal.selected} maxHeight={460} />
+                      <div style={{ marginTop: 14 }}>
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          style={{ gap: 6 }}
+                          onClick={() => downloadPiece(pieceModal.selected.id, pieceModal.selected.nom_original)}
+                        >
+                          <Download size={12} strokeWidth={2} /> Télécharger
+                        </button>
                       </div>
-                    )
-                  })() : (
+                    </>
+                  ) : (
                     <div style={{ color: 'var(--af-mute)', fontSize: 13 }}>Aucune pièce sélectionnée</div>
-                  )}
-                  {pieceModal.selected && (pieceModal.selected.type_mime?.startsWith('image/') || pieceModal.selected.type_mime === 'application/pdf') && (
-                    <div style={{ marginTop: 14 }}>
-                      <a href={pieceModal.selected.url_download} download target="_blank" rel="noreferrer"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 7, background: 'white', border: '1px solid rgba(14,42,71,0.12)', color: 'var(--af-cream)', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
-                        <Download size={12} strokeWidth={2} /> Télécharger
-                      </a>
-                    </div>
                   )}
                 </div>
               </div>

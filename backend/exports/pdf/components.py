@@ -35,10 +35,9 @@ _LOGO_PATH = Path(__file__).parent.parent.parent / 'frontend_dist' / 'budget.jpg
 
 def draw_page_header(canvas, doc):
     """
-    Dessine l'en-tête sur chaque page :
-    - Logo Atlas Finance à gauche (3 cm × 1,2 cm)
-    - Nom du document à droite en navy bold 10 pt
-    - Ligne de séparation navy 0,5 pt à HEADER_LINE_Y cm du haut
+    Dessine l'en-tête sur les pages de contenu (pas la page de garde) :
+    - Logo Atlas Finance centré
+    - Ligne de séparation navy 0,5 pt
     """
     f = get_fonts()
     w, h = doc.pagesize
@@ -46,29 +45,22 @@ def draw_page_header(canvas, doc):
 
     canvas.saveState()
 
-    # Logo ou repli texte
-    logo_x = MARGIN_LEFT * cm
-    logo_y = y_line + 4
     logo_w = LOGO_WIDTH * cm
     logo_h = LOGO_HEIGHT * cm
+    logo_y = y_line + 4
 
     if _LOGO_PATH.exists():
         try:
+            logo_x = w / 2 - logo_w / 2
             canvas.drawImage(
                 str(_LOGO_PATH), logo_x, logo_y,
                 width=logo_w, height=logo_h,
                 preserveAspectRatio=True, mask='auto',
             )
         except Exception:
-            _draw_text_logo(canvas, logo_x, logo_y + logo_h / 2, f)
+            _draw_text_logo(canvas, w / 2, logo_y + logo_h / 2, f)
     else:
-        _draw_text_logo(canvas, logo_x, logo_y + logo_h / 2, f)
-
-    # Titre du document à droite
-    doc_title = getattr(doc, '_atlas_title', 'Atlas Finance')
-    canvas.setFont(f['bold'], 10)
-    canvas.setFillColor(NAVY)
-    canvas.drawRightString(w - MARGIN_RIGHT * cm, y_line + 8, doc_title)
+        _draw_text_logo(canvas, w / 2, logo_y + logo_h / 2, f)
 
     # Ligne de séparation
     canvas.setStrokeColor(NAVY)

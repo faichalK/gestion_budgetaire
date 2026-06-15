@@ -845,7 +845,7 @@ class LigneHierarchieDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class LignesSelecteurView(APIView):
     """GET /budget/{id}/lignes-selecteur/ — Liste pour saisir une depense"""
-    permission_classes = [IsGestionnaire]
+    permission_classes = [IsGestionnaireOrAdmin]
 
     def get(self, request, pk):
         budget = _get_budget_or_404(request.user, pk)

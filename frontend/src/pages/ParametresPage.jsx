@@ -193,10 +193,10 @@ export default function ParametresPage() {
     if (pwForm.nouveau.length < 8) { setPwError('Minimum 8 caractères'); return }
     setPwSaving(true)
     try {
-      await changePassword({ old_password: pwForm.ancien, new_password: pwForm.nouveau })
+      await changePassword({ ancien_password: pwForm.ancien, nouveau_password: pwForm.nouveau })
       setPwForm({ ancien: '', nouveau: '', confirm: '' }); flash('Mot de passe modifié')
     } catch (err) {
-      setPwError(err.response?.data?.old_password?.[0] || err.response?.data?.detail || 'Mot de passe actuel incorrect')
+      setPwError(err.response?.data?.ancien_password?.[0] || err.response?.data?.detail || 'Mot de passe actuel incorrect')
     } finally { setPwSaving(false) }
   }
 

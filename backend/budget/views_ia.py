@@ -554,8 +554,73 @@ def _reponse_chatbot_simulee(question, user=None):
             + detail_lignes
         )
 
-    # Etat / resume global
-    if any(w in q for w in ['etat', 'resume', 'situation', 'tableau', 'bord', 'synthese', 'mes budgets', 'liste', 'tous', 'global', 'vue']):
+    # Résumé spécifique des dépenses (gestionnaire) — DOIT être avant le bloc 'resume' générique
+    if any(w in q for w in ['mes depenses', 'mes depense', 'resume de mes dep', 'depenses recentes', 'voir mes dep']):
+        try:
+            if user and user.is_gestionnaire:
+                deps = list(Depense.objects.filter(enregistre_par=user).order_by('-date')[:10])
+            elif user:
+                deps = list(Depense.objects.order_by('-date')[:10])
+            else:
+                deps = []
+        except Exception:
+            deps = []
+
+        if not deps:
+            return (
+                "Vous n'avez encore enregistre aucune depense.\n\n"
+                "Rendez-vous sur un budget **APPROUVE** depuis 'Mes budgets' pour saisir une depense."
+            )
+
+        total = sum(float(d.montant_total or 0) for d in deps)
+        en_attente = [d for d in deps if d.statut == 'SAISIE']
+        validees   = [d for d in deps if d.statut == 'VALIDEE']
+        rejetees   = [d for d in deps if d.statut == 'REJETEE']
+
+        lignes = []
+        for d in deps[:6]:
+            icone = '[EN ATTENTE]' if d.statut == 'SAISIE' else ('[VALIDE]' if d.statut == 'VALIDEE' else '[REJETE]')
+            ref = d.reference or str(d.id)[:8].upper()
+            lignes.append(f"{icone} **{ref}** - {_fmt(d.montant_total or 0)} FCFA")
+
+        return (
+            f"**Resume de vos depenses :**\n\n"
+            + '\n'.join(lignes) +
+            f"\n\n**Total** : {len(deps)} depense(s) | **{_fmt(total)} FCFA**\n"
+            f"En attente : **{len(en_attente)}** | Validees : **{len(validees)}** | Rejetees : **{len(rejetees)}**"
+        )
+
+    # Résumé spécifique des budgets (liste pure sans données de consommation)
+    if any(w in q for w in ['mes budgets', 'mes budget', 'liste des budgets', 'liste budgets', 'voir mes budgets']):
+        if not budgets:
+            return "Vous n'avez aucun budget pour le moment. Creez votre premier budget depuis 'Nouveau budget'."
+
+        STATUT_EMOJI = {
+            'APPROUVE': '[APPROUVE]',
+            'SOUMIS':   '[SOUMIS]',
+            'BROUILLON': '[BROUILLON]',
+            'REJETE':   '[REJETE]',
+            'CLOTURE':  '[CLOTURE]',
+        }
+        lignes = []
+        for b in budgets[:8]:
+            statut_txt = STATUT_EMOJI.get(b.statut, b.statut)
+            lignes.append(
+                f"{statut_txt} **{b.nom}** ({b.code})\n"
+                f"   Montant alloue : {_fmt(b.montant_global)} FCFA"
+            )
+
+        return (
+            f"**Vos budgets ({total_budgets}) :**\n\n"
+            + '\n\n'.join(lignes) +
+            f"\n\n---\n"
+            f"Approuves : **{len(approuves)}** | Soumis : **{len(soumis)}** | "
+            f"Brouillons : **{len(brouillons)}** | Rejetes : **{len(rejetes)}**\n"
+            f"**Enveloppe totale allouee** : {_fmt(montant_total)} FCFA"
+        )
+
+    # Etat / resume global (tableau de bord consolide)
+    if any(w in q for w in ['etat', 'resume', 'situation', 'tableau', 'bord', 'synthese', 'liste', 'tous', 'global', 'vue']):
         if not budgets:
             return "Vous n'avez aucun budget pour le moment. Creez votre premier budget depuis 'Nouveau budget'."
         total_dispo = sum(float(b.montant_disponible or 0) for b in approuves)

@@ -158,8 +158,13 @@ class AtlasPDFDocument:
 
         return factory
 
+    def _cover_page_callback(self, canvas, doc):
+        """Page de garde : filigrane uniquement, pas d'en-tête ni de pied de page."""
+        if self.is_draft:
+            _draw_watermark(canvas, doc)
+
     def _page_callback(self, canvas, doc):
-        """Callback pour toutes les pages : header + footer [+ filigrane]."""
+        """Pages de contenu : header + footer [+ filigrane]."""
         if self.is_draft:
             _draw_watermark(canvas, doc)
         draw_header_and_footer(canvas, doc)
@@ -188,7 +193,7 @@ class AtlasPDFDocument:
 
         doc.build(
             elements,
-            onFirstPage=self._page_callback,
+            onFirstPage=self._cover_page_callback,
             onLaterPages=self._page_callback,
             canvasmaker=self._make_canvas_factory(),
         )
