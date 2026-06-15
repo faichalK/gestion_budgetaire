@@ -1,5 +1,5 @@
 """
-BudgetFlow — Vues pour la génération de rapports budgétaires.
+Atlas Finance — Vues pour la génération de rapports budgétaires.
 """
 import datetime
 

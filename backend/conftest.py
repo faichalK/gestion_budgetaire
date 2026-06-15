@@ -1,5 +1,5 @@
 """
-Fixtures globales pytest pour BudgetFlow.
+Fixtures globales pytest pour Atlas Finance.
 Basées sur les apps actives : accounts, budget, audit.
 """
 import datetime
@@ -19,7 +19,7 @@ def departement(db):
 def admin(db):
     from accounts.models import Utilisateur, Role
     return Utilisateur.objects.create_superuser(
-        email="admin_test@budgetflow.ci",
+        email="admin_test@atlasfinance.ci",
         password="Admin2026!",
         nom="Admin",
         prenom="Test",
@@ -32,7 +32,7 @@ def admin(db):
 def comptable(db, departement):
     from accounts.models import Utilisateur, Role
     return Utilisateur.objects.create_user(
-        email="comptable_test@budgetflow.ci",
+        email="comptable_test@atlasfinance.ci",
         password="Comptable2026!",
         nom="Comptable",
         prenom="Test",
@@ -46,7 +46,7 @@ def comptable(db, departement):
 def gestionnaire(db, departement):
     from accounts.models import Utilisateur, Role
     return Utilisateur.objects.create_user(
-        email="gestionnaire_test@budgetflow.ci",
+        email="gestionnaire_test@atlasfinance.ci",
         password="Gestionnaire2026!",
         nom="Gestionnaire",
         prenom="Test",

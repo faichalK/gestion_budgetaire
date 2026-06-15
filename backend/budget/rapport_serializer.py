@@ -1,5 +1,5 @@
 """
-BudgetFlow — Serializers pour les rapports budgétaires.
+Atlas Finance — Serializers pour les rapports budgétaires.
 """
 from rest_framework import serializers
 

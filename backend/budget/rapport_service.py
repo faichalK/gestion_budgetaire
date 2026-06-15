@@ -1,5 +1,5 @@
 """
-BudgetFlow — Service de génération de rapports budgétaires.
+Atlas Finance — Service de génération de rapports budgétaires.
 Quatre types : Mensuel, Trimestriel, Annuel, Ad-hoc.
 """
 from decimal import Decimal

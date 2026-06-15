@@ -1,5 +1,5 @@
 """
-BudgetFlow — Vues KPIs & Rapports analytiques
+Atlas Finance — Vues KPIs & Rapports analytiques
 Endpoints: /api/v1/rapports/
 """
 import datetime

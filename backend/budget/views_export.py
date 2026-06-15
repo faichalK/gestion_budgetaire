@@ -1,5 +1,5 @@
 """
-BudgetFlow — Exports Excel & PDF
+Atlas Finance — Exports Excel & PDF
   GET /api/budget/<pk>/export/budget-excel/
   GET /api/budget/<pk>/export/budget-pdf/
   GET /api/budget/<pk>/export/depenses-excel/

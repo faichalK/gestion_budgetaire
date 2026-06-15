@@ -54,12 +54,20 @@ export default function PiecePreview({ piece, maxHeight = 460, style = {} }) {
   )
 
   if (isPdf) return (
-    <div style={{ width: '100%', height: '100%', minHeight: maxHeight, ...style }}>
-      <iframe
+    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, ...style }}>
+      <embed
         src={blobUrl}
-        title={piece.nom_original}
-        style={{ width: '100%', height: maxHeight, border: 'none', borderRadius: 8 }}
+        type="application/pdf"
+        style={{ width: '100%', height: maxHeight, border: 'none', borderRadius: 8, display: 'block' }}
       />
+      <button
+        type="button"
+        className="btn btn-secondary btn-sm"
+        style={{ gap: 6, fontSize: 11 }}
+        onClick={() => window.open(blobUrl, '_blank', 'noopener')}
+      >
+        ↗ Ouvrir dans un onglet
+      </button>
     </div>
   )
 

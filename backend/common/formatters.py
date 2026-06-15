@@ -1,5 +1,5 @@
 """
-BudgetFlow — Formateurs communs
+Atlas Finance — Formateurs communs
 Fonctions de formatage pour les montants FCFA, les dates, les statuts et les références.
 """
 from decimal import Decimal, ROUND_HALF_UP

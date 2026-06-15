@@ -1,5 +1,5 @@
 /**
- * BudgetFlow - Formateurs communs.
+ * Atlas Finance - Formateurs communs.
  * Les formats numeriques suivent la langue active de l'interface (fr / en).
  */
 

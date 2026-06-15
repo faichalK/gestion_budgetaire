@@ -5,7 +5,7 @@ from django.contrib import messages
 from audit.mixins import AuditMixin
 from .models import Utilisateur, Departement
 
-# BudgetFlow utilise des rôles métier — le modèle Group de Django n'est pas utilisé
+# Atlas Finance utilise des rôles métier — le modèle Group de Django n'est pas utilisé
 admin.site.unregister(Group)
 
 

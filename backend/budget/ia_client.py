@@ -1,5 +1,5 @@
 """
-BudgetFlow — Client Anthropic Claude pour l'IA budgétaire.
+Atlas Finance — Client Anthropic Claude pour l'IA budgétaire.
 """
 import os
 import anthropic
@@ -108,7 +108,7 @@ def _build_context(user):
     return '\n'.join(lines)
 
 
-SYSTEM_PROMPT = """Tu es BudgetFlow AI, un assistant financier expert intégré à la plateforme de gestion budgétaire BudgetFlow.
+SYSTEM_PROMPT = """Tu es Atlas Finance AI, un assistant financier expert intégré à la plateforme de gestion budgétaire Atlas Finance.
 
 Ton rôle :
 - Analyser les données budgétaires réelles de l'utilisateur

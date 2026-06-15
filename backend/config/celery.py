@@ -1,5 +1,5 @@
 """
-BudgetFlow — Configuration Celery
+Atlas Finance — Configuration Celery
 Broker : Redis. Beat scheduler : django_celery_beat.
 """
 import os

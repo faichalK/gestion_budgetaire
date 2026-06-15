@@ -1,5 +1,5 @@
 """
-BudgetFlow — URLs principales
+Atlas Finance — URLs principales
 Toutes les routes API sont accessibles sous /api/
 """
 from django.contrib import admin

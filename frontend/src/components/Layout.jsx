@@ -401,8 +401,8 @@ function NotificationBell({ navigate, t }) {
     const run = () => loadNotifsRef.current?.()
     run()
     const timer = setInterval(run, 60000)
-    window.addEventListener('budgetflow:notif-refresh', run)
-    return () => { clearInterval(timer); window.removeEventListener('budgetflow:notif-refresh', run) }
+    window.addEventListener('atlasfinance:notif-refresh', run)
+    return () => { clearInterval(timer); window.removeEventListener('atlasfinance:notif-refresh', run) }
   }, [])
 
   useEffect(() => {

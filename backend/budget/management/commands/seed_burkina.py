@@ -1,6 +1,6 @@
 """
 Commande Django : python manage.py seed_burkina
-Vide toutes les tables et injecte le jeu de données BudgetFlow complet.
+Vide toutes les tables et injecte le jeu de données Atlas Finance complet.
 """
 import datetime
 import uuid
@@ -12,7 +12,7 @@ from django.utils import timezone
 
 
 class Command(BaseCommand):
-    help = "Vide la base et crée le jeu de données BudgetFlow complet (11 users, 7 depts, 15M FCFA)."
+    help = "Vide la base et crée le jeu de données Atlas Finance complet (11 users, 7 depts, 15M FCFA)."
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.WARNING("Suppression de toutes les donnees existantes..."))
@@ -27,25 +27,25 @@ class Command(BaseCommand):
 
         self.stdout.write("")
         self.stdout.write(self.style.SUCCESS("=" * 55))
-        self.stdout.write(self.style.SUCCESS("  Jeu de donnees BudgetFlow cree avec succes !"))
+        self.stdout.write(self.style.SUCCESS("  Jeu de donnees Atlas Finance cree avec succes !"))
         self.stdout.write(self.style.SUCCESS("=" * 55))
         self.stdout.write("")
         self.stdout.write("  ADMINISTRATEURS")
-        self.stdout.write("  stanislas.konate@budgetflow.org   / Admin@2025!")
-        self.stdout.write("  marie.ouedraogo@budgetflow.org    / Admin@2025!")
-        self.stdout.write("  paul.sawadogo@budgetflow.org      / Admin@2025!")
+        self.stdout.write("  stanislas.konate@atlasfinance.org   / Admin@2025!")
+        self.stdout.write("  marie.ouedraogo@atlasfinance.org    / Admin@2025!")
+        self.stdout.write("  paul.sawadogo@atlasfinance.org      / Admin@2025!")
         self.stdout.write("")
         self.stdout.write("  GESTIONNAIRES")
-        self.stdout.write("  jean.kouakou@budgetflow.org       / Gest@2025!  (INFO)")
-        self.stdout.write("  fatima.diallo@budgetflow.org      / Gest@2025!  (RH)")
-        self.stdout.write("  andre.traore@budgetflow.org       / Gest@2025!  (LOG)")
-        self.stdout.write("  sophie.zongo@budgetflow.org       / Gest@2025!  (COM)")
-        self.stdout.write("  ibrahim.sanogo@budgetflow.org     / Gest@2025!  (PROJ - inactif)")
+        self.stdout.write("  jean.kouakou@atlasfinance.org       / Gest@2025!  (INFO)")
+        self.stdout.write("  fatima.diallo@atlasfinance.org      / Gest@2025!  (RH)")
+        self.stdout.write("  andre.traore@atlasfinance.org       / Gest@2025!  (LOG)")
+        self.stdout.write("  sophie.zongo@atlasfinance.org       / Gest@2025!  (COM)")
+        self.stdout.write("  ibrahim.sanogo@atlasfinance.org     / Gest@2025!  (PROJ - inactif)")
         self.stdout.write("")
         self.stdout.write("  COMPTABLES")
-        self.stdout.write("  alice.kabore@budgetflow.org       / Compta@2025!")
-        self.stdout.write("  bernard.yameogo@budgetflow.org    / Compta@2025!")
-        self.stdout.write("  claire.ouattara@budgetflow.org    / Compta@2025!")
+        self.stdout.write("  alice.kabore@atlasfinance.org       / Compta@2025!")
+        self.stdout.write("  bernard.yameogo@atlasfinance.org    / Compta@2025!")
+        self.stdout.write("  claire.ouattara@atlasfinance.org    / Compta@2025!")
         self.stdout.write("")
 
     # ── Purge ─────────────────────────────────────────────────────────────────
@@ -102,17 +102,17 @@ class Command(BaseCommand):
 
         specs = [
             # matricule, email, nom, prenom, role, dept_code, password, actif
-            ("ADM-001", "stanislas.konate@budgetflow.org",  "KONATÉ",    "Stanislas", Role.ADMINISTRATEUR, None,   "Admin@2025!",  True),
-            ("ADM-002", "marie.ouedraogo@budgetflow.org",   "OUEDRAOGO", "Marie",     Role.ADMINISTRATEUR, None,   "Admin@2025!",  True),
-            ("ADM-003", "paul.sawadogo@budgetflow.org",     "SAWADOGO",  "Paul",      Role.ADMINISTRATEUR, None,   "Admin@2025!",  True),
-            ("GES-001", "jean.kouakou@budgetflow.org",      "KOUAKOU",   "Jean",      Role.GESTIONNAIRE,   "INFO", "Gest@2025!",   True),
-            ("GES-002", "fatima.diallo@budgetflow.org",     "DIALLO",    "Fatima",    Role.GESTIONNAIRE,   "RH",   "Gest@2025!",   True),
-            ("GES-003", "andre.traore@budgetflow.org",      "TRAORÉ",    "André",     Role.GESTIONNAIRE,   "LOG",  "Gest@2025!",   True),
-            ("GES-004", "sophie.zongo@budgetflow.org",      "ZONGO",     "Sophie",    Role.GESTIONNAIRE,   "COM",  "Gest@2025!",   True),
-            ("GES-005", "ibrahim.sanogo@budgetflow.org",    "SANOGO",    "Ibrahim",   Role.GESTIONNAIRE,   "PROJ", "Gest@2025!",   False),
-            ("CPT-001", "alice.kabore@budgetflow.org",      "KABORÉ",    "Alice",     Role.COMPTABLE,      "FIN",  "Compta@2025!", True),
-            ("CPT-002", "bernard.yameogo@budgetflow.org",   "YAMEOGO",   "Bernard",   Role.COMPTABLE,      "FIN",  "Compta@2025!", True),
-            ("CPT-003", "claire.ouattara@budgetflow.org",   "OUATTARA",  "Claire",    Role.COMPTABLE,      "FIN",  "Compta@2025!", True),
+            ("ADM-001", "stanislas.konate@atlasfinance.org",  "KONATÉ",    "Stanislas", Role.ADMINISTRATEUR, None,   "Admin@2025!",  True),
+            ("ADM-002", "marie.ouedraogo@atlasfinance.org",   "OUEDRAOGO", "Marie",     Role.ADMINISTRATEUR, None,   "Admin@2025!",  True),
+            ("ADM-003", "paul.sawadogo@atlasfinance.org",     "SAWADOGO",  "Paul",      Role.ADMINISTRATEUR, None,   "Admin@2025!",  True),
+            ("GES-001", "jean.kouakou@atlasfinance.org",      "KOUAKOU",   "Jean",      Role.GESTIONNAIRE,   "INFO", "Gest@2025!",   True),
+            ("GES-002", "fatima.diallo@atlasfinance.org",     "DIALLO",    "Fatima",    Role.GESTIONNAIRE,   "RH",   "Gest@2025!",   True),
+            ("GES-003", "andre.traore@atlasfinance.org",      "TRAORÉ",    "André",     Role.GESTIONNAIRE,   "LOG",  "Gest@2025!",   True),
+            ("GES-004", "sophie.zongo@atlasfinance.org",      "ZONGO",     "Sophie",    Role.GESTIONNAIRE,   "COM",  "Gest@2025!",   True),
+            ("GES-005", "ibrahim.sanogo@atlasfinance.org",    "SANOGO",    "Ibrahim",   Role.GESTIONNAIRE,   "PROJ", "Gest@2025!",   False),
+            ("CPT-001", "alice.kabore@atlasfinance.org",      "KABORÉ",    "Alice",     Role.COMPTABLE,      "FIN",  "Compta@2025!", True),
+            ("CPT-002", "bernard.yameogo@atlasfinance.org",   "YAMEOGO",   "Bernard",   Role.COMPTABLE,      "FIN",  "Compta@2025!", True),
+            ("CPT-003", "claire.ouattara@atlasfinance.org",   "OUATTARA",  "Claire",    Role.COMPTABLE,      "FIN",  "Compta@2025!", True),
         ]
 
         users = {}
@@ -143,7 +143,7 @@ class Command(BaseCommand):
             annee=2025,
             annee_fin=2025,
             montant_global=Decimal("15000000"),
-            description="Budget global annuel 2025 de l'organisation BudgetFlow.",
+            description="Budget global annuel 2025 de l'organisation Atlas Finance.",
         )
         self.stdout.write(f"  + Budget annuel 2025 : 15 000 000 FCFA")
 

@@ -1,5 +1,5 @@
 """
-BudgetFlow — Vues Intelligence Artificielle (Claude Anthropic)
+Atlas Finance — Vues Intelligence Artificielle (Claude Anthropic)
 Endpoints: /api/v1/ia/
 
 Chaque vue tente d'appeler l'API Claude.
@@ -278,7 +278,7 @@ class EnvoyerMessageView(APIView):
 
 def _reponse_chatbot_simulee(question, user=None):
     """
-    Assistant financier BudgetFlow — simulation avancee basee sur les donnees reelles.
+    Assistant financier Atlas Finance — simulation avancee basee sur les donnees reelles.
     Utilisee quand SKIP_CLAUDE_API=True ou qu'aucune cle API n'est configuree.
     """
     import unicodedata
@@ -744,7 +744,7 @@ def _reponse_chatbot_simulee(question, user=None):
             en_attente = f"\n\n**Actuellement en attente** : {len(soumis)} budget(s)\n"
             en_attente += '\n'.join(f"  - {b.nom} ({b.code})" for b in soumis[:5])
         return (
-            "**Circuit de validation BudgetFlow :**\n\n"
+            "**Circuit de validation Atlas Finance :**\n\n"
             "```\n"
             "Gestionnaire            Comptable\n"
             "────────────────        ──────────────────\n"
@@ -800,7 +800,7 @@ def _reponse_chatbot_simulee(question, user=None):
     if any(w in q for w in ['anomalie', 'irregularite', 'probleme', 'erreur', 'ecart', 'fraude', 'incident']):
         return (
             "**Detection d'anomalies IA :**\n\n"
-            "L'IA BudgetFlow analyse automatiquement :\n"
+            "L'IA Atlas Finance analyse automatiquement :\n"
             "- **Depassements globaux** : montant consomme > montant alloue\n"
             "- **Depassements de ligne** : poste depasse individuellement\n"
             "- **Seuil d'alerte** : consommation >= 85% de l'enveloppe\n"
@@ -812,7 +812,7 @@ def _reponse_chatbot_simulee(question, user=None):
     # Rapport
     if any(w in q for w in ['rapport', 'reporting', 'bilan', 'export', 'statistique', 'kpi']):
         return (
-            "**Rapports disponibles dans BudgetFlow :**\n\n"
+            "**Rapports disponibles dans Atlas Finance :**\n\n"
             "**Rapports IA (Intelligence IA > Rapports) :**\n"
             "- Generation automatique via IA\n"
             "- Analyse narrative avec recommandations\n"

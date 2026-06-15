@@ -1,5 +1,5 @@
 """
-Django settings pour BudgetFlow.
+Django settings pour Atlas Finance.
 Ce fichier est le point d'entrée de config.settings (package).
 """
 

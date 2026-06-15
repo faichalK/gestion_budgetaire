@@ -411,7 +411,7 @@ class Command(BaseCommand):
             ],
             "BDG-2026-011": [
                 ("Audit pentest infrastructure",     Decimal("4500000"), "Pentest complet — réseau, serveurs, VPN",         "CYBERSEC AFRIQUE SARL",    "VALIDEE"),
-                ("Audit code applications critiques",Decimal("3200000"), "Revue sécurité code BudgetFlow et ERP",           "CYBERSEC AFRIQUE SARL",    "VALIDEE"),
+                ("Audit code applications critiques",Decimal("3200000"), "Revue sécurité code Atlas Finance et ERP",           "CYBERSEC AFRIQUE SARL",    "VALIDEE"),
                 ("Rapport et recommandations",       Decimal("800000"),  "Rapport exécutif + plan de remédiation 90 jours", "CYBERSEC AFRIQUE SARL",    "VALIDEE"),
             ],
         }

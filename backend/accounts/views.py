@@ -437,7 +437,7 @@ class ForgotPasswordView(APIView):
                 subject='Réinitialisation de votre mot de passe — Atlas Finance',
                 message=plain_body,
                 html_message=html_body,
-                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@budgetflow.bf'),
+                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@atlasfinance.bf'),
                 recipient_list=[user.email],
                 fail_silently=False,
             )

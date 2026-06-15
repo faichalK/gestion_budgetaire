@@ -128,8 +128,7 @@ export default function DepenseDetail({ basePath = '/mes-depenses' }) {
   const titre    = depense.reference || `DEP-${String(depense.id).slice(0, 6).toUpperCase()}`
   const sousTitre = depense.fournisseur || depense.note || 'Dépense'
 
-  const peutGererPieces    = enAttente && (isAdmin || !isComptable)
-  const peutModifierPieces = peutGererPieces || (validee && isAdmin)
+  const peutModifierPieces = enAttente && !isAdmin && !isComptable
 
   const budgetPath = isAdmin
     ? `/budgets/${depense.budget_id}`

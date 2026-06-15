@@ -1,5 +1,5 @@
 """
-BudgetFlow — Service d'export PDF et Excel pour les rapports budgétaires.
+Atlas Finance — Service d'export PDF et Excel pour les rapports budgétaires.
 """
 import io
 from decimal import Decimal
@@ -79,7 +79,7 @@ def _export_excel(rapport):
     # Titre
     ws.merge_cells('A1:F1')
     title_cell = ws['A1']
-    title_cell.value = f"BudgetFlow — Rapport {meta.get('type', '')} : {meta.get('label_periode', '')}"
+    title_cell.value = f"Atlas Finance — Rapport {meta.get('type', '')} : {meta.get('label_periode', '')}"
     _header_style(title_cell, NAVY, GOLD, bold=True, size=14)
     ws.row_dimensions[1].height = 32
 
@@ -259,7 +259,7 @@ def _export_pdf(rapport):
 
     # ── En-tête ───────────────────────────────────────────────────────────────
     header_data = [[Paragraph(
-        f"BudgetFlow — Rapport {meta.get('type', '')} : {meta.get('label_periode', '')}",
+        f"Atlas Finance — Rapport {meta.get('type', '')} : {meta.get('label_periode', '')}",
         style_title
     )]]
     header_table = Table(header_data, colWidths=[doc.width])
@@ -449,7 +449,7 @@ def _export_pdf(rapport):
     story.append(Spacer(1, 20))
     story.append(HRFlowable(width='100%', thickness=0.5, color=colors.HexColor('#E5E7EB'), spaceAfter=6))
     story.append(Paragraph(
-        f"BudgetFlow — Système de gestion budgétaire   |   Document généré automatiquement",
+        f"Atlas Finance — Système de gestion budgétaire   |   Document généré automatiquement",
         ParagraphStyle('Footer', fontSize=8, textColor=GRAY, alignment=TA_CENTER, fontName='Helvetica-Oblique'),
     ))
 

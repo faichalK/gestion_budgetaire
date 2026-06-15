@@ -3,19 +3,24 @@ python manage.py seed_5budgets_gestionnaire [--email EMAIL]
 
 Crée 5 budgets complets pour le gestionnaire spécifié (ou le premier gestionnaire
 actif trouvé), couvrant tous les statuts : BROUILLON, SOUMIS, APPROUVE, REJETE, CLOTURE.
+Chaque dépense est accompagnée d'une pièce justificative PDF générée à la volée.
 Idempotente : relancer ne crée pas de doublons.
 """
 import datetime
+import io
+import unicodedata
 from decimal import Decimal
 
+from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from accounts.models import Role, Utilisateur
 from budget.models import (
     Budget, StatutBudget,
+    BudgetAnnuel, AllocationDepartementale,
     CategoriePrincipale, SousCategorie, LigneBudgetaire,
-    Depense, StatutDepense,
+    Depense, StatutDepense, PieceJustificative,
 )
 
 
@@ -45,11 +50,12 @@ class Command(BaseCommand):
             )
             self.stdout.write("")
 
-            self._creer_budget_brouillon(gestionnaire)
-            self._creer_budget_soumis(gestionnaire)
-            self._creer_budget_approuve(gestionnaire, comptable)
-            self._creer_budget_rejete(gestionnaire, comptable)
-            self._creer_budget_cloture(gestionnaire, comptable)
+            ba, alloc = self._find_or_create_allocation(gestionnaire)
+            self._creer_budget_brouillon(gestionnaire, ba, alloc)
+            self._creer_budget_soumis(gestionnaire, ba, alloc)
+            self._creer_budget_approuve(gestionnaire, comptable, ba, alloc)
+            self._creer_budget_rejete(gestionnaire, comptable, ba, alloc)
+            self._creer_budget_cloture(gestionnaire, comptable, ba, alloc)
 
         self.stdout.write("")
         self.stdout.write(self.style.SUCCESS(
@@ -81,6 +87,167 @@ class Command(BaseCommand):
 
         return gestionnaire, comptable
 
+    # ── BudgetAnnuel + AllocationDepartementale ───────────────────────────────
+
+    def _find_or_create_allocation(self, gestionnaire):
+        """Garantit qu'il existe un BudgetAnnuel 2026 et une AllocationDepartementale
+        pour le département du gestionnaire, avec une enveloppe suffisante."""
+        dept = gestionnaire.departement
+        if not dept:
+            raise CommandError(
+                f"Le gestionnaire {gestionnaire.email} n'a pas de département assigné. "
+                "Assignez un département avant de lancer ce seed."
+            )
+
+        # 300M FCFA — large marge au-dessus des ~152M nécessaires pour les 5 budgets
+        MONTANT = Decimal('300000000')
+
+        # BudgetAnnuel 2026
+        ba = BudgetAnnuel.objects.filter(annee=2026).first()
+        if ba is None:
+            ba = BudgetAnnuel.objects.create(
+                annee=2026,
+                annee_fin=2026,
+                montant_global=MONTANT,
+                description="Budget annuel Atlas Finance 2026",
+            )
+            self.stdout.write(f"  + BudgetAnnuel 2026 ({MONTANT:,.0f} FCFA)")
+        elif ba.montant_global < MONTANT:
+            ba.montant_global = MONTANT
+            ba.save(update_fields=['montant_global'])
+            self.stdout.write(f"  ~ BudgetAnnuel 2026 mis à jour ({MONTANT:,.0f} FCFA)")
+
+        # AllocationDepartementale pour ce département
+        alloc = AllocationDepartementale.objects.filter(
+            budget_annuel=ba, departement=dept
+        ).first()
+        if alloc is None:
+            alloc = AllocationDepartementale.objects.create(
+                budget_annuel=ba,
+                departement=dept,
+                montant_alloue=MONTANT,
+            )
+            self.stdout.write(f"  + Allocation {dept.code} 2026 ({MONTANT:,.0f} FCFA)")
+        elif alloc.montant_alloue < MONTANT:
+            alloc.montant_alloue = MONTANT
+            alloc.montant_disponible = MONTANT - alloc.montant_consomme
+            alloc.save(update_fields=['montant_alloue', 'montant_disponible'])
+            self.stdout.write(f"  ~ Allocation {dept.code} 2026 mise à jour ({MONTANT:,.0f} FCFA)")
+
+        self.stdout.write(
+            f"  Département : {dept.code} — {dept.nom} | "
+            f"Allocation disponible : {alloc.montant_disponible:,.0f} FCFA"
+        )
+        return ba, alloc
+
+    # ── Génération d'un PDF minimal valide ────────────────────────────────────
+
+    @staticmethod
+    def _ascii(s):
+        """Supprime les accents pour les chaînes embarquées dans le PDF."""
+        return unicodedata.normalize('NFKD', str(s)).encode('ascii', 'ignore').decode('ascii')
+
+    def _generer_pdf_bytes(self, titre, fournisseur, montant, reference, date_str):
+        """Génère un PDF d'une page valide et lisible (Helvetica, sans lib externe)."""
+
+        def esc(s):
+            s = self._ascii(s)
+            return s.replace('\\', '\\\\').replace('(', '\\(').replace(')', '\\)')
+
+        sep = '-' * 65
+
+        lignes_stream = [
+            "BT",
+            "/F1 14 Tf",
+            "50 800 Td",
+            f"({esc('ATLAS FINANCE')}) Tj",
+            "0 -18 Td",
+            "/F1 11 Tf",
+            f"({esc('PIECE JUSTIFICATIVE / BON DE COMMANDE')}) Tj",
+            "0 -8 Td",
+            f"({esc(sep)}) Tj",
+            "0 -22 Td",
+            "/F1 10 Tf",
+            f"({esc(f'Objet       : {titre}')}) Tj",
+            "0 -18 Td",
+            f"({esc(f'Fournisseur : {fournisseur}')}) Tj",
+            "0 -18 Td",
+            f"({esc(f'Montant     : {montant} FCFA')}) Tj",
+            "0 -18 Td",
+            f"({esc(f'Reference   : {reference}')}) Tj",
+            "0 -18 Td",
+            f"({esc(f'Date        : {date_str}')}) Tj",
+            "0 -8 Td",
+            f"({esc(sep)}) Tj",
+            "0 -22 Td",
+            "/F1 9 Tf",
+            f"({esc('Ce document est genere automatiquement pour demonstration.')}) Tj",
+            "0 -14 Td",
+            f"({esc('Atlas Finance - Systeme de Gestion Budgetaire 2026.')}) Tj",
+            "ET",
+        ]
+        stream = "\n".join(lignes_stream) + "\n"
+        stream_b = stream.encode('latin-1', errors='replace')
+
+        buf = io.BytesIO()
+
+        def w(s):
+            if isinstance(s, str):
+                s = s.encode('latin-1', errors='replace')
+            buf.write(s)
+
+        offsets = []
+        w("%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")  # header + binary comment (marks as binary)
+
+        offsets.append(buf.tell())
+        w("1 0 obj\n<</Type /Catalog /Pages 2 0 R>>\nendobj\n\n")
+
+        offsets.append(buf.tell())
+        w("2 0 obj\n<</Type /Pages /Kids [3 0 R] /Count 1>>\nendobj\n\n")
+
+        offsets.append(buf.tell())
+        w("3 0 obj\n"
+          "<</Type /Page\n"
+          "  /Parent 2 0 R\n"
+          "  /MediaBox [0 0 595 842]\n"
+          "  /Resources << /Font << /F1 4 0 R >> >>\n"
+          "  /Contents 5 0 R\n"
+          ">>\nendobj\n\n")
+
+        offsets.append(buf.tell())
+        w("4 0 obj\n"
+          "<</Type /Font /Subtype /Type1 /BaseFont /Helvetica\n"
+          "  /Encoding /WinAnsiEncoding>>\nendobj\n\n")
+
+        offsets.append(buf.tell())
+        w(f"5 0 obj\n<</Length {len(stream_b)}>>\nstream\n")
+        w(stream_b)
+        w("\nendstream\nendobj\n\n")
+
+        xref_pos = buf.tell()
+        w("xref\n0 6\n")
+        w("0000000000 65535 f \n")
+        for off in offsets:
+            w(f"{off:010d} 00000 n \n")
+        w(f"trailer\n<</Size 6 /Root 1 0 R>>\nstartxref\n{xref_pos}\n%%EOF\n")
+
+        return buf.getvalue()
+
+    def _attacher_piece(self, depense, gestionnaire, nom_fichier, titre,
+                        fournisseur, montant_str, reference, date_str, description=""):
+        """Génère un PDF et crée la PieceJustificative liée à la dépense."""
+        pdf_bytes = self._generer_pdf_bytes(titre, fournisseur, montant_str, reference, date_str)
+        piece = PieceJustificative(
+            depense=depense,
+            nom_original=nom_fichier,
+            taille=len(pdf_bytes),
+            type_mime='application/pdf',
+            description=description or titre,
+            uploaded_by=gestionnaire,
+        )
+        piece.fichier.save(nom_fichier, ContentFile(pdf_bytes), save=True)
+        return piece
+
     # ── Helper : création lignes budgétaires ──────────────────────────────────
 
     def _creer_lignes(self, budget, sous_categorie, specs):
@@ -100,7 +267,7 @@ class Command(BaseCommand):
 
     # ── Budget 1 : BROUILLON ──────────────────────────────────────────────────
 
-    def _creer_budget_brouillon(self, gestionnaire):
+    def _creer_budget_brouillon(self, gestionnaire, ba, alloc):
         nom = "Formation du Personnel et Développement des Compétences 2026"
         if Budget.objects.filter(nom=nom, gestionnaire=gestionnaire).exists():
             self.stdout.write(f"  (skip) {nom}")
@@ -110,6 +277,8 @@ class Command(BaseCommand):
             gestionnaire=gestionnaire,
             nom=nom,
             departement=gestionnaire.departement,
+            budget_annuel=ba,
+            allocation=alloc,
             technique_estimation="ASCENDANTE",
             statut=StatutBudget.BROUILLON,
             date_debut=datetime.date(2026, 1, 15),
@@ -163,7 +332,7 @@ class Command(BaseCommand):
 
     # ── Budget 2 : SOUMIS ─────────────────────────────────────────────────────
 
-    def _creer_budget_soumis(self, gestionnaire):
+    def _creer_budget_soumis(self, gestionnaire, ba, alloc):
         nom = "Modernisation Équipements de Travail — Semestre 1 2026"
         if Budget.objects.filter(nom=nom, gestionnaire=gestionnaire).exists():
             self.stdout.write(f"  (skip) {nom}")
@@ -173,6 +342,8 @@ class Command(BaseCommand):
             gestionnaire=gestionnaire,
             nom=nom,
             departement=gestionnaire.departement,
+            budget_annuel=ba,
+            allocation=alloc,
             technique_estimation="ASCENDANTE",
             statut=StatutBudget.BROUILLON,
             date_debut=datetime.date(2026, 1, 20),
@@ -227,7 +398,7 @@ class Command(BaseCommand):
 
     # ── Budget 3 : APPROUVÉ (avec dépenses) ──────────────────────────────────
 
-    def _creer_budget_approuve(self, gestionnaire, comptable):
+    def _creer_budget_approuve(self, gestionnaire, comptable, ba, alloc):
         nom = "Maintenance Infrastructure Informatique et Licences 2026"
         if Budget.objects.filter(nom=nom, gestionnaire=gestionnaire).exists():
             self.stdout.write(f"  (skip) {nom}")
@@ -237,6 +408,8 @@ class Command(BaseCommand):
             gestionnaire=gestionnaire,
             nom=nom,
             departement=gestionnaire.departement,
+            budget_annuel=ba,
+            allocation=alloc,
             technique_estimation="ASCENDANTE",
             statut=StatutBudget.BROUILLON,
             date_debut=datetime.date(2026, 1, 5),
@@ -307,6 +480,17 @@ class Command(BaseCommand):
                     depense_parent=d1, fournisseur=d1.fournisseur,
                 )
         d1.recalculer_total()
+        today = datetime.date.today().strftime('%d/%m/%Y')
+        self._attacher_piece(
+            d1, gestionnaire,
+            nom_fichier="facture_maintenance_reseau_2026.pdf",
+            titre="Maintenance serveurs et switches réseau",
+            fournisseur=d1.fournisseur,
+            montant_str=f"{float(d1.montant_total):,.0f}",
+            reference=d1.reference,
+            date_str=today,
+            description="Facture SYSTÈMES INFO AFRIQUE — maintenance préventive & équipements",
+        )
         d1.valider(comptable)
 
         # ── Dépense 2 : VALIDÉE — Pare-feu + Sauvegarde cloud
@@ -329,6 +513,16 @@ class Command(BaseCommand):
                     depense_parent=d2, fournisseur=d2.fournisseur,
                 )
         d2.recalculer_total()
+        self._attacher_piece(
+            d2, gestionnaire,
+            nom_fichier="facture_securite_reseau_2026.pdf",
+            titre="Pare-feu FortiGate et sauvegarde cloud",
+            fournisseur=d2.fournisseur,
+            montant_str=f"{float(d2.montant_total):,.0f}",
+            reference=d2.reference,
+            date_str=today,
+            description="Facture CYBERSEC TECHNOLOGIES — pare-feu et plan de continuité",
+        )
         d2.valider(comptable)
 
         # ── Dépense 3 : EN ATTENTE (SAISIE) — Licences Microsoft
@@ -351,6 +545,16 @@ class Command(BaseCommand):
                     depense_parent=d3, fournisseur=d3.fournisseur,
                 )
         d3.recalculer_total()
+        self._attacher_piece(
+            d3, gestionnaire,
+            nom_fichier="devis_licences_microsoft_2026.pdf",
+            titre="Licences Microsoft 365 et Windows 11 Pro",
+            fournisseur=d3.fournisseur,
+            montant_str=f"{float(d3.montant_total):,.0f}",
+            reference=d3.reference,
+            date_str=today,
+            description="Devis MICROSOFT AFRIQUE — renouvellement licences (en attente validation)",
+        )
         # d3 reste SAISIE — en attente de validation comptable
 
         b.refresh_from_db()
@@ -362,7 +566,7 @@ class Command(BaseCommand):
 
     # ── Budget 4 : REJETÉ ─────────────────────────────────────────────────────
 
-    def _creer_budget_rejete(self, gestionnaire, comptable):
+    def _creer_budget_rejete(self, gestionnaire, comptable, ba, alloc):
         nom = "Rénovation et Climatisation des Locaux Administratifs"
         if Budget.objects.filter(nom=nom, gestionnaire=gestionnaire).exists():
             self.stdout.write(f"  (skip) {nom}")
@@ -372,6 +576,8 @@ class Command(BaseCommand):
             gestionnaire=gestionnaire,
             nom=nom,
             departement=gestionnaire.departement,
+            budget_annuel=ba,
+            allocation=alloc,
             technique_estimation="ASCENDANTE",
             statut=StatutBudget.BROUILLON,
             date_debut=datetime.date(2026, 2, 1),
@@ -433,7 +639,7 @@ class Command(BaseCommand):
 
     # ── Budget 5 : CLÔTURÉ (avec dépenses totalement consommées) ─────────────
 
-    def _creer_budget_cloture(self, gestionnaire, comptable):
+    def _creer_budget_cloture(self, gestionnaire, comptable, ba, alloc):
         nom = "Acquisition et Déploiement Postes de Travail — T4 2025"
         if Budget.objects.filter(nom=nom, gestionnaire=gestionnaire).exists():
             self.stdout.write(f"  (skip) {nom}")
@@ -443,6 +649,8 @@ class Command(BaseCommand):
             gestionnaire=gestionnaire,
             nom=nom,
             departement=gestionnaire.departement,
+            budget_annuel=ba,
+            allocation=alloc,
             technique_estimation="ASCENDANTE",
             statut=StatutBudget.BROUILLON,
             date_debut=datetime.date(2025, 10, 1),
@@ -512,6 +720,17 @@ class Command(BaseCommand):
                     depense_parent=d1, fournisseur=d1.fournisseur,
                 )
         d1.recalculer_total()
+        today = datetime.date.today().strftime('%d/%m/%Y')
+        self._attacher_piece(
+            d1, gestionnaire,
+            nom_fichier="facture_ordinateurs_HP_Dell_T4_2025.pdf",
+            titre="Ordinateurs HP EliteBook et stations Dell OptiPlex",
+            fournisseur=d1.fournisseur,
+            montant_str=f"{float(d1.montant_total):,.0f}",
+            reference=d1.reference,
+            date_str="15/11/2025",
+            description="Facture N°ISA-2025-087 — livraison et installation postes informatiques",
+        )
         d1.valider(comptable)
 
         # ── Dépense 2 : VALIDÉE — Moniteurs, imprimantes, accessoires
@@ -535,6 +754,16 @@ class Command(BaseCommand):
                     depense_parent=d2, fournisseur=d2.fournisseur,
                 )
         d2.recalculer_total()
+        self._attacher_piece(
+            d2, gestionnaire,
+            nom_fichier="facture_moniteurs_imprimantes_T4_2025.pdf",
+            titre="Moniteurs Dell, imprimantes laser et accessoires",
+            fournisseur=d2.fournisseur,
+            montant_str=f"{float(d2.montant_total):,.0f}",
+            reference=d2.reference,
+            date_str="22/11/2025",
+            description="Facture N°ISA-2025-088 — écrans, imprimantes et périphériques",
+        )
         d2.valider(comptable)
 
         # ── Dépense 3 : VALIDÉE — Scanners + services déploiement + garantie + formation
@@ -560,6 +789,27 @@ class Command(BaseCommand):
                     depense_parent=d3, fournisseur=d3.fournisseur,
                 )
         d3.recalculer_total()
+        # 2 pièces pour cette dépense : bon de livraison + procès-verbal de formation
+        self._attacher_piece(
+            d3, gestionnaire,
+            nom_fichier="facture_deploiement_formation_T4_2025.pdf",
+            titre="Services déploiement, garantie et formation utilisateurs",
+            fournisseur=d3.fournisseur,
+            montant_str=f"{float(d3.montant_total):,.0f}",
+            reference=d3.reference,
+            date_str="05/12/2025",
+            description="Facture N°TDC-2025-089 — installation, migration et formation",
+        )
+        self._attacher_piece(
+            d3, gestionnaire,
+            nom_fichier="PV_reception_formation_T4_2025.pdf",
+            titre="Procès-verbal de réception et attestation formation",
+            fournisseur=d3.fournisseur,
+            montant_str=f"{float(d3.montant_total):,.0f}",
+            reference=d3.reference,
+            date_str="12/12/2025",
+            description="PV de réception des équipements et attestation formation (15 agents)",
+        )
         d3.valider(comptable)
 
         # Clôturer le budget (budget exécuté à 100%)

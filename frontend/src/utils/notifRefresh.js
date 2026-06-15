@@ -11,5 +11,5 @@
  *   notifRefresh()
  */
 export function notifRefresh() {
-  window.dispatchEvent(new CustomEvent('budgetflow:notif-refresh'))
+  window.dispatchEvent(new CustomEvent('atlasfinance:notif-refresh'))
 }
